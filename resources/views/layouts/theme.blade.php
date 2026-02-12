@@ -4,9 +4,17 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Incident Management Overview V2</title>
+    <title>{{ env('APP_NAME') }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <style>
+        *:not(i){
+            font-family: "Kanit", sans-serif;
+        }
+    </style>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -51,23 +59,17 @@
     </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark text-slate-900 h-screen flex flex-col overflow-hidden">
-    <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 bg-white dark:bg-slate-900 px-6 py-3 shrink-0 z-20 shadow-sm relative">
-        <div class="flex items-center gap-6 text-slate-900 dark:text-white">
+<body class="bg-background-light dark:bg-background-dark text-slate-900 flex flex-col ">
+    <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 bg-white dark:bg-slate-900 px-6 py-3 shrink-0 z-20 shadow-sm w-full fixed ">
+      <div class="flex items-center gap-6 text-slate-900 dark:text-white">
             <div class="flex items-center gap-3">
-                <div class="flex items-center justify-center bg-primary/10 p-2 rounded-lg text-primary">
-                    <span class="material-symbols-outlined">local_police</span>
-                </div>
+                <img class="h-10 w-auto object-contain" 
+                    src="{{ url('/image/Theme/logo_navbar.png') }}">
                 <div>
-                    <h2 class="text-lg font-bold leading-tight tracking-tight">Dispatch Command</h2>
-                    <p class="text-[11px] text-slate-500 font-medium uppercase tracking-wider">Overview Dashboard</p>
+                    <h2 class="text-lg font-bold leading-tight tracking-tight">{{ env('ORGANIZATION') }}</h2>
+                    <p class="text-[11px] text-slate-500 font-medium uppercase tracking-wider">SOS Platform</p>
                 </div>
             </div>
-            <nav class="hidden lg:flex items-center gap-1 ml-4 border-l border-slate-200 pl-4 h-8">
-                <a class="px-3 py-1.5 text-sm font-bold text-primary bg-primary/5 rounded-md" href="#">Board</a>
-                <a class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors" href="#">Map View</a>
-                <a class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors" href="#">Units</a>
-            </nav>
         </div>
         <div class="flex-1 max-w-xl px-8 hidden md:block">
             <div class="relative group">

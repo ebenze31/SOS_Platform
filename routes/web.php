@@ -19,6 +19,9 @@ Route::get('/', function () {
 Route::get('/demo/assign', function () {
     return view('demo/assign');
 });
+Route::get('/demo/sos_main', function () {
+    return view('demo/sos_main');
+});
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
