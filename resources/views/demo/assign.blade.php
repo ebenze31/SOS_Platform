@@ -1,7 +1,7 @@
 @extends('layouts.theme')
 
 @section('content')
-<main class="flex-1 overflow-x-auto overflow-y-hidden bg-slate-50/50 p-6">
+<main class="flex-1 overflow-x-auto overflow-y-hidden bg-slate-50/50 p-6 pt-[85px]">
     <div class="h-full grid grid-cols-1 md:grid-cols-3 gap-6 min-w-[1024px] max-w-[1600px] mx-auto">
         <div class="flex flex-col h-full bg-slate-100/70 rounded-xl border border-slate-200/60 shadow-inner">
             <div class="p-4 flex items-center justify-between border-b border-slate-200/60 bg-white/60 backdrop-blur-sm rounded-t-xl sticky top-0 z-10">
