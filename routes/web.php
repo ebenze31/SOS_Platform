@@ -22,6 +22,12 @@ Route::get('/demo/assign', function () {
 Route::get('/demo/sos_main', function () {
     return view('demo/sos_main');
 });
+Route::get('/demo/status_update', function () {
+    return view('demo/status_update');
+});
+Route::get('/demo/rate', function () {
+    return view('demo/rate');
+});
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');

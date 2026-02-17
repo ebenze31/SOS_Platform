@@ -87,7 +87,7 @@
             </div>
         </div>
     </div>
-<script id="tailwind-config">
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -100,105 +100,114 @@
                     fontFamily: {
                         "display": ["Public Sans", "sans-serif"]
                     },
-                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
                 },
             },
         }
     </script>
     <!-- Modal -->
-    <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
-        <div class="relative w-full max-w-md h-screen overflow-auto bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm transition-all duration-300 ">
+        <div class="flex min-h-full items-center justify-center p-4 ">
+            <div class=" relative w-full max-w-md my-8 bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
 
-          <header class="px-8 py-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1a2632]">
-<div>
-<h1 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Report Incident</h1>
-<p class="text-xs text-slate-400 mt-1 uppercase tracking-wide">Emergency Assistance Request</p>
-</div>
-<div class="h-10 w-10 rounded-full bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 flex items-center justify-center shadow-sm">
-<span class="material-symbols-outlined text-xl">assignment_late</span>
-</div>
-</header>
-            <form class="flex flex-col bg-white dark:bg-[#1a2632]" onsubmit="event.preventDefault();">
-                <section class="px-8 py-6 border-b border-slate-100 dark:border-slate-700/50">
-                    <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">Reporter Details</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div class="space-y-1.5">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="reporter-name">Reporter Name</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                    <span class="material-symbols-outlined text-[18px]">person</span>
-                                </div>
-                                <input class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="reporter-name" placeholder="Full Name" type="text" />
-                            </div>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">Phone Number</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                    <span class="material-symbols-outlined text-[18px]">call</span>
-                                </div>
-                                <input class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="phone-number" placeholder="+1 (555) 000-0000" type="tel" />
-                            </div>
-                        </div>
+                <header class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1a2632] sticky top-0 z-10">
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight">รายงานเหตุการณ์</h1>
+                        <p class="text-xs text-slate-400 mt-1 uppercase tracking-wide">แจ้งเหตุฉุกเฉิน</p>
                     </div>
-                </section>
-                <section class="px-8 py-6 border-b border-slate-100 dark:border-slate-700/50">
-                    <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">Assistance Topic</h2>
-                    <div class="space-y-1.5">
-                        <label class="sr-only" for="topic">Topic</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                <span class="material-symbols-outlined text-[18px]">category</span>
-                            </div>
-                            <select class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow appearance-none" id="topic">
-                                <option disabled="" selected="" value="">Select Incident Type...</option>
-                                <option value="medical">Medical Emergency</option>
-                                <option value="fire">Fire / Smoke</option>
-                                <option value="accident">Traffic Accident</option>
-                                <option value="security">Security Threat</option>
-                                <option value="other">Other Assistance</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                                <span class="material-symbols-outlined text-[18px]">expand_more</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <section class="px-8 py-6 border-b border-slate-100 dark:border-slate-700/50">
-                    <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">Detailed Description</h2>
-                    <div class="space-y-1.5">
-                        <textarea class="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow resize-none" id="description" placeholder="Please describe the incident in detail, including location markers and current status..." rows="4"></textarea>
-                    </div>
-                </section>
-                <section class="px-8 py-6">
-                    <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">Evidence &amp; Photos</h2>
-                    <div class="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 hover:border-primary/50 dark:bg-slate-800/30 dark:border-slate-700 dark:hover:bg-slate-800 dark:hover:border-primary/50 transition-all cursor-pointer">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <div class="h-10 w-10 mb-3 rounded-full bg-white shadow-sm flex items-center justify-center text-primary dark:bg-slate-700 dark:text-primary-400 ring-1 ring-slate-900/5 group-hover:scale-110 transition-transform duration-300">
-                                <span class="material-symbols-outlined text-xl">cloud_upload</span>
-                            </div>
-                            <p class="mb-1 text-sm text-slate-600 dark:text-slate-300"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p class="text-xs text-slate-400 dark:text-slate-500">SVG, PNG, JPG (MAX. 5MB)</p>
-                        </div>
-                        <input class="hidden" id="dropzone-file" type="file" />
-                    </div>
-                </section>
-                <footer class="px-8 py-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                    <p class="text-xs text-slate-400 hidden sm:block">All fields are required unless marked optional.</p>
-                    <button class="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm shadow-blue-900/20 transition-all flex items-center justify-center gap-2">
-                        <span>Submit Incident</span>
-                        <span class="material-symbols-outlined text-[18px]">send</span>
+                    <button onclick="closeModal()" class="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-sm transition-colors">
+                        <span class="material-symbols-outlined text-xl">close</span>
                     </button>
-                </footer>
-            </form>
+                </header>
+                <form class="flex flex-col bg-white dark:bg-[#1a2632]" onsubmit="event.preventDefault();">
+                    <section class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50">
+                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">ข้อมูลผู้แจ้ง</h2>
+                        <div class="grid grid-cols-1 gap-4 md:gap-5">
+                            <div class="space-y-1.5">
+                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="reporter-name">ชื่อผู้แจ้ง</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                        <span class="material-symbols-outlined text-[18px]">person</span>
+                                    </div>
+                                    <input class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="reporter-name" placeholder="ชื่อ-นามสกุล" type="text" />
+                                </div>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">เบอร์โทรศัพท์</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                        <span class="material-symbols-outlined text-[18px]">call</span>
+                                    </div>
+                                    <input class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="phone-number" placeholder="08X-XXX-XXXX" type="tel" />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50">
+                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">ประเภทเหตุการณ์</h2>
+                        <div class="space-y-1.5">
+                            <label class="sr-only" for="topic">ประเภท</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">category</span>
+                                </div>
+                                <select class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow appearance-none" id="topic">
+                                    <option disabled="" selected="" value="">เลือกประเภทเหตุการณ์...</option>
+                                    <option value="medical">ฉุกเฉินทางการแพทย์</option>
+                                    <option value="fire">ไหม้ / ควัน</option>
+                                    <option value="accident">อุบัติเหตุจราจร</option>
+                                    <option value="security">ภัยคุกคามความปลอดภัย</option>
+                                    <option value="other">อื่นๆ</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50">
+                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">รายละเอียดเหตุการณ์</h2>
+                        <div class="space-y-1.5">
+                            <textarea class="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow resize-none" id="description" placeholder="กรุณาอธิบายเหตุการณ์โดยละเอียด รวมถึงสถานที่และสถานการณ์ปัจจุบัน..." rows="4"></textarea>
+                        </div>
+                    </section>
+                    <section class="px-6 md:px-8 py-5 md:py-6">
+                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">หลักฐาน &amp; รูปภาพ</h2>
+                        <div class="group relative flex flex-col items-center justify-center w-full h-28 md:h-32 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 hover:border-primary/50 dark:bg-slate-800/30 dark:border-slate-700 dark:hover:bg-slate-800 dark:hover:border-primary/50 transition-all cursor-pointer">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <div class="h-9 w-9 md:h-10 md:w-10 mb-2 md:mb-3 rounded-full bg-white shadow-sm flex items-center justify-center text-primary dark:bg-slate-700 dark:text-primary-400 ring-1 ring-slate-900/5 group-hover:scale-110 transition-transform duration-300">
+                                    <span class="material-symbols-outlined text-lg md:text-xl">cloud_upload</span>
+                                </div>
+                                <p class="mb-1 text-xs md:text-sm text-slate-600 dark:text-slate-300"><span class="font-semibold">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง</p>
+                                <p class="text-[10px] md:text-xs text-slate-400 dark:text-slate-500">SVG, PNG, JPG (ขนาดสูงสุด 5MB)</p>
+                            </div>
+                            <input class="hidden" id="dropzone-file" type="file" />
+                        </div>
+                    </section>
+                    <footer class="px-6 md:px-8 py-4 md:py-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 sticky bottom-0">
+                        <p class="text-xs text-slate-400 hidden sm:block">กรุณากรอกข้อมูลให้ครบถ้วน</p>
+                        <button onclick="confirmSend()" type="button" class="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm shadow-blue-900/20 transition-all flex items-center justify-center gap-2">
+                            <span>ส่งรายงาน</span>
+                            <span class="material-symbols-outlined text-[18px]">send</span>
+                        </button>
+                    </footer>
+                </form>
+            </div>
         </div>
-    </div>
     </div>
 
     <script>
         function openModal() {
             const modal = document.getElementById('confirmModal');
             const modalContent = document.getElementById('modalContent');
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
 
             modal.classList.remove('hidden');
             setTimeout(() => {
@@ -216,6 +225,8 @@
 
             setTimeout(() => {
                 modal.classList.add('hidden');
+                // Re-enable body scroll
+                document.body.style.overflow = 'auto';
             }, 300);
         }
 
@@ -230,7 +241,7 @@
             alert('รายงานถูกส่งเรียบร้อยแล้ว');
         }
 
-        // Close modal when clicking outside
+        // Close modal when clicking outside (on backdrop)
         document.getElementById('confirmModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
@@ -240,7 +251,10 @@
         // Close modal with ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closeModal();
+                const modal = document.getElementById('confirmModal');
+                if (!modal.classList.contains('hidden')) {
+                    closeModal();
+                }
             }
         });
     </script>
