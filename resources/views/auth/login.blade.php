@@ -25,17 +25,20 @@
         <div class="w-full p-8 md:p-12 md:w-1/2 lg:p-16">
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Login</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Sign in to your account</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">เข้าสู่ระบบบัญชีของคุณ</p>
             </div>
 
             <form method="POST" action="{{ route('login') }}" class="space-y-5">
                 @csrf
                 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Email</label>
-                    <input id="email" name="email" type="email" required value="{{ old('email') }}"
-                        class="block w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all sm:text-sm"
-                        placeholder="Jane Doe">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Username</label>
+                    <input id="username" name="username" type="text" required value="{{ old('username') }}"
+                        class="block w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all sm:text-sm @error('username') border-red-500 @enderror"
+                        placeholder="Enter your username" autofocus>
+                    @error('username')
+                        <p class="mt-1 text-xs text-red-500 font-medium">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
@@ -55,7 +58,7 @@
                         <div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
                     </div>
                     <div class="relative flex justify-center text-xs uppercase">
-                        <span class="bg-white dark:bg-slate-900 px-4 text-slate-400 font-medium">Or continue with</span>
+                        <span class="bg-white dark:bg-slate-900 px-4 text-slate-400 font-medium">หรือ</span>
                     </div>
                 </div>
 
@@ -77,8 +80,8 @@
                 </div>
 
                 <div class="mt-6 text-center space-y-2">
-                    <p><a href="{{ route('password.request') }}" class="text-sm font-medium text-primary hover:underline">Forgot your password?</a></p>
-                    <p class="text-sm text-slate-500">Don't have an account? <a href="#" class="text-primary font-bold hover:underline">Create account</a></p>
+                    <p><a href="{{ route('password.request') }}" class="text-sm font-medium text-primary hover:underline">ลืมรหัสผ่านใช่ไหม?</a></p>
+                    <p class="text-sm text-slate-500">ยังไม่มีบัญชี <a href="{{ url('/register') }}" class="text-primary font-bold hover:underline">สร้างบัญชี</a></p>
                 </div>
             </form>
         </div>
