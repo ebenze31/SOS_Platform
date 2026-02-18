@@ -32,6 +32,37 @@
     .rating-selected > div {
         box-shadow: 0 0 0 3px currentColor;
     }
+
+    @keyframes pop {
+        0% {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .animate-pop {
+        animation: pop 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.3s ease-out;
+    }
 </style>
 <div class="w-full md:h-[calc(100% - 71px)] relative flex justify-center sm:items-center p-3 bg-slate-50 dark:bg-slate-900 " style="height: calc(100% - 71.75px);margin-top:71.75px;overflow: auto;">
 
@@ -142,6 +173,29 @@
 </div>
 </div>
 
+<!-- Success Modal -->
+<div id="successModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm transition-all duration-300 animate-fadeIn">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative w-full max-w-[440px] bg-white dark:bg-[#1a2632] rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10 p-10 items-center text-center transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+            <div class="mb-8 animate-pop">
+                <div class="w-24 h-24 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center ring-1 ring-green-100 dark:ring-green-800">
+                    <span class="material-symbols-outlined text-6xl text-green-500 dark:text-green-400" style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 48;">check</span>
+                </div>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-0 tracking-tight">ขอบคุณ</h1>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">สำหรับความคิดเห็น</h3>
+            <p class="text-slate-500 dark:text-slate-400 mb-10 leading-relaxed text-[15px]">
+                ความคิดเห็นของท่านช่วยให้เราสามารถปรับปรุงและพัฒนาให้ดียิ่งขึ้นในอนาคต
+            </p>
+            <div class="w-full space-y-4">
+                <button onclick="returnHome()" class="w-full py-3.5 px-4 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span>กลับหน้าแรก</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Rating state
     let ratingData = {
@@ -220,12 +274,50 @@
         console.log('Full Data Object:', ratingData);
         console.log('========================');
 
-        // Show success message
-        alert('ขอบคุณสำหรับการประเมิน!');
-
-        // Optional: Reset form
-        // resetForm();
+        // Show success modal
+        showSuccessModal();
     }
+
+    // Show success modal
+    function showSuccessModal() {
+        const modal = document.getElementById('successModal');
+        const modalContent = document.getElementById('modalContent');
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        modal.classList.remove('hidden');
+        
+        // Trigger animation after a brief delay
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    // Close success modal
+    function closeSuccessModal() {
+        const modal = document.getElementById('successModal');
+        const modalContent = document.getElementById('modalContent');
+        
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }, 300);
+    }
+
+    // Return to home
+    function returnHome() {
+        console.log('Returning to home page...');
+        closeSuccessModal();
+        // Add your navigation logic here
+        // window.location.href = '/home';
+    }
+
+ 
 
     // Optional: Reset form function
     function resetForm() {

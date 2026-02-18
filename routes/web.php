@@ -28,6 +28,9 @@ Route::get('/demo/status_update', function () {
 Route::get('/demo/rate', function () {
     return view('demo/rate');
 });
+Route::get('/demo/case_assign', function () {
+    return view('demo/case_assign');
+});
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
