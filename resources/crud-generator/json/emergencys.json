@@ -1,0 +1,56 @@
+{
+    "fields": [
+        {
+            "name": "name_reporter",
+            "type": "string"
+        },
+        {
+            "name": "type_reporter",
+            "type": "string"
+        },
+        {
+            "name": "phone_reporter",
+            "type": "string"
+        },
+        {
+            "name": "emergency_type",
+            "type": "string"
+        },
+        {
+            "name": "emergency_detail",
+            "type": "string"
+        },
+        {
+            "name": "emergency_lat",
+            "type": "string"
+        },
+        {
+            "name": "emergency_lng",
+            "type": "string"
+        },
+        {
+            "name": "emergency_location",
+            "type": "longtext"
+        },
+        {
+            "name": "emergency_photo",
+            "type": "string"
+        },
+        {
+            "name": "score_impression",
+            "type": "string"
+        },
+        {
+            "name": "score_period",
+            "type": "string"
+        },
+        {
+            "name": "score_total",
+            "type": "string"
+        },
+        {
+            "name": "comment_help",
+            "type": "string"
+        }
+    ]
+}

@@ -1,0 +1,88 @@
+{
+    "fields": [
+        {
+            "name": "emergency_id",
+            "type": "string"
+        },
+        {
+            "name": "notify",
+            "type": "string"
+        },
+        {
+            "name": "command_by",
+            "type": "string"
+        },
+        {
+            "name": "operating_code",
+            "type": "string"
+        },
+        {
+            "name": "waiting_reply",
+            "type": "string"
+        },
+        {
+            "name": "officer_refuse",
+            "type": "string"
+        },
+        {
+            "name": "officer_no_respond",
+            "type": "string"
+        },
+        {
+            "name": "status",
+            "type": "string"
+        },
+        {
+            "name": "remark_status",
+            "type": "string"
+        },
+        {
+            "name": "area_id",
+            "type": "string"
+        },
+        {
+            "name": "user_officers_id",
+            "type": "string"
+        },
+        {
+            "name": "time_create_sos",
+            "type": "datetime"
+        },
+        {
+            "name": "time_command",
+            "type": "datetime"
+        },
+        {
+            "name": "time_go_to_help",
+            "type": "datetime"
+        },
+        {
+            "name": "time_to_the_scene",
+            "type": "datetime"
+        },
+        {
+            "name": "time_sos_success",
+            "type": "datetime"
+        },
+        {
+            "name": "time_sum_sos",
+            "type": "string"
+        },
+        {
+            "name": "photo_by_officer",
+            "type": "string"
+        },
+        {
+            "name": "remark_photo_by_officer",
+            "type": "string"
+        },
+        {
+            "name": "photo_succeed",
+            "type": "string"
+        },
+        {
+            "name": "remark_by_helper",
+            "type": "string"
+        }
+    ]
+}

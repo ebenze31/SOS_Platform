@@ -1,0 +1,12 @@
+{
+    "fields": [
+        {
+            "name": "name_emergency",
+            "type": "string"
+        },
+        {
+            "name": "status",
+            "type": "string"
+        }
+    ]
+}

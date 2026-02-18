@@ -34,3 +34,14 @@ Route::get('/demo/case_assign', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
+
+
+Route::resource('data_organizations', 'Data_organizationsController');
+Route::resource('user_commands', 'User_commandsController');
+Route::resource('user_officers', 'User_officersController');
+Route::resource('areas', 'AreasController');
+Route::resource('phone_emergencys', 'Phone_emergencysController');
+Route::resource('emergency_types', 'Emergency_typesController');
+Route::resource('my_log', 'My_logController');
+Route::resource('emergencys', 'EmergencysController');
+Route::resource('emergency_operations', 'Emergency_operationsController');

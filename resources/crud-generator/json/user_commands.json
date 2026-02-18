@@ -1,0 +1,28 @@
+{
+    "fields": [
+        {
+            "name": "name_command",
+            "type": "string"
+        },
+        {
+            "name": "command_role",
+            "type": "string"
+        },
+        {
+            "name": "number",
+            "type": "string"
+        },
+        {
+            "name": "status",
+            "type": "string"
+        },
+        {
+            "name": "creator",
+            "type": "string"
+        },
+        {
+            "name": "user_id",
+            "type": "string"
+        }
+    ]
+}
