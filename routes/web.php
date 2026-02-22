@@ -51,7 +51,8 @@ Route::middleware(['auth'])->group(function () {
         // ================= Areas =================
         Route::get('/area/create_polygon', 'AreasController@create_polygon')->name('area.create_polygon');
         Route::post('/area/store_polygon', 'AreasController@store_polygon')->name('area.store_polygon');
-        Route::get('/area/{id}/qrcode', 'AreasController@show_qrcode')->name('area.show_qrcode');
+        Route::get('/area/{id}/manage', 'AreasController@manage_area')->name('area.manage_area');
+        Route::post('/area/{id}/manage/update', 'AreasController@update_manage_area')->name('area.update_manage');
 
         // ============ Command monitor ============
         Route::get('/monitor', 'EmergencysController@monitor')->name('emergency.monitor');

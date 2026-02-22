@@ -8,6 +8,7 @@ use App\Http\Requests;
 use App\Models\Area;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Models\User_officer;
 
 class AreasController extends Controller
 {
@@ -149,16 +150,39 @@ class AreasController extends Controller
         $area->save();
 
         // ส่งต่อไปหน้าแสดง QR Code สำหรับให้เจ้าหน้าที่สแกนลงทะเบียน
-        return redirect()->route('area.show_qrcode', $area->id)
-                         ->with('success', 'สร้างพื้นที่รับผิดชอบเรียบร้อยแล้ว');
+        return redirect()->route('area.manage_area', $area->id)
+                         ->with('success', 'สร้างพื้นที่เรียบร้อยแล้ว');
     }
 
-    public function show_qrcode($id)
+    public function manage_area($id)
     {
         $area = Area::findOrFail($id);
         
         $registerUrl = route('officer.register', ['area_id' => $area->id]);
 
-        return view('areas.show_qrcode', compact('area', 'registerUrl'));
+        // ดึงข้อมูลเจ้าหน้าที่ที่อยู่ในพื้นที่
+        $officers = User_officer::whereJsonContains('area_id', (string)$area->id)
+                            ->orWhereJsonContains('area_id', (int)$area->id)
+                            ->get();
+
+        return view('areas.manage_area', compact('area', 'registerUrl', 'officers'));
+    }
+
+    public function update_manage_area(Request $request, $id)
+    {
+        $area = Area::findOrFail($id);
+
+        $request->validate([
+            'name_area' => 'required|string|max:255',
+            'status'    => 'required|string',
+            'polygon'   => 'required|json',
+        ]);
+
+        $area->name_area = $request->name_area;
+        $area->status    = $request->status;
+        $area->polygon   = $request->polygon;
+        $area->save();
+
+        return redirect()->back()->with('success', 'บันทึกการแก้ไขข้อมูลพื้นที่เรียบร้อยแล้ว');
     }
 }
