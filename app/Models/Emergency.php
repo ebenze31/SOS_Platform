@@ -27,5 +27,8 @@ class Emergency extends Model
      */
     protected $fillable = ['name_reporter', 'type_reporter', 'phone_reporter', 'emergency_type', 'emergency_detail', 'emergency_lat', 'emergency_lng', 'emergency_location', 'emergency_photo', 'score_impression', 'score_period', 'score_total', 'comment_help'];
 
-    
+    public function operation()
+    {
+        return $this->hasOne(Emergency_operation::class, 'emergency_id', 'id')->latest();
+    }
 }

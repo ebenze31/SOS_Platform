@@ -7,6 +7,7 @@ use App\Http\Requests;
 
 use App\Models\Area;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class AreasController extends Controller
 {
@@ -120,5 +121,44 @@ class AreasController extends Controller
         Area::destroy($id);
 
         return redirect('areas')->with('flash_message', 'Area deleted!');
+    }
+
+    // เปิดหน้าฟอร์มวาดแผนที่
+    public function create_polygon()
+    {
+        return view('areas.create_polygon');
+    }
+
+    // บันทึกข้อมูลลง DB
+    public function store_polygon(Request $request)
+    {
+        $request->validate([
+            'name_area' => 'required|string|max:255',
+            'type'      => 'required|string|max:100',
+            'status'    => 'required|string',
+            'polygon'   => 'required|json',
+        ]);
+
+        // บันทึกลงตาราง areas
+        $area = new Area();
+        $area->name_area = $request->name_area;
+        $area->type      = $request->type;
+        $area->status    = $request->status;
+        $area->polygon   = $request->polygon;
+        $area->creator = auth()->user()->id; 
+        $area->save();
+
+        // ส่งต่อไปหน้าแสดง QR Code สำหรับให้เจ้าหน้าที่สแกนลงทะเบียน
+        return redirect()->route('area.show_qrcode', $area->id)
+                         ->with('success', 'สร้างพื้นที่รับผิดชอบเรียบร้อยแล้ว');
+    }
+
+    public function show_qrcode($id)
+    {
+        $area = Area::findOrFail($id);
+        
+        $registerUrl = route('officer.register', ['area_id' => $area->id]);
+
+        return view('areas.show_qrcode', compact('area', 'registerUrl'));
     }
 }
