@@ -28,9 +28,9 @@ class EmergencysController extends Controller
     {
         $user = auth()->user();
 
-        $emergencyTypes = Emergency_type::where('status', true)->get();
+        $emergencyTypes = Emergency_type::where('status', 'Active')->get();
 
-        $phoneEmergencies = Phone_emergency::where('status', true)
+        $phoneEmergencies = Phone_emergency::where('status', 'Active')
             ->orderBy('priority', 'asc')
             ->get();
 
