@@ -31,6 +31,13 @@ Route::get('/demo/rate', function () {
 Route::get('/demo/case_assign', function () {
     return view('demo/case_assign');
 });
+Route::get('/demo/register_scan', function () {
+    return view('demo/register_scan');
+});
+Route::get('/demo/register_form', function () {
+    return view('demo/register_form');
+});
+
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
@@ -58,13 +65,21 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/monitor', 'EmergencysController@monitor')->name('emergency.monitor');
         Route::get('/case_assign/{id}', 'EmergencysController@case_assign')->name('emergency.case_assign');
         Route::post('/emergency/complete/{id}', 'EmergencysController@completeCase')->name('emergency.complete');
+        Route::post('/emergencys/assign/{id}', 'EmergencysController@assign_officer')->name('emergency.assign');
+
+        // ======== Command Check requests ========
+        Route::get('/command/requests', 'CommandController@index')->name('command.requests');
+        Route::post('/command/requests/manage', 'CommandController@manage_request')->name('command.requests.manage');
     });
 
     // Admin, Officer
     Route::middleware(['role:admin,officer'])->group(function () {
+        // ============ หน้าสแกน / เลือกพื้นที่ ============
+        Route::get('/user_officers/scan', 'User_officersController@scan_area')->name('user_officers.scan');
+
         // ============ ลงทะเบียนเจ้าหน้าที่ ============
-        Route::get('/officer/register', 'User_officersController@register_form')->name('officer.register');
-        Route::post('/officer/register', 'User_officersController@register_store')->name('officer.store');
+        Route::get('/user_officers/register', 'User_officersController@register_form')->name('user_officers.register');
+        Route::post('/user_officers/register', 'User_officersController@register_store')->name('user_officers.register_store');
     });
 });
 // ----------------------- End middleware -------------------------- //

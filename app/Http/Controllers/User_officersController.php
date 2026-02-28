@@ -7,6 +7,7 @@ use App\Http\Requests;
 
 use App\Models\User_officer;
 use Illuminate\Http\Request;
+use App\Models\Area;
 
 class User_officersController extends Controller
 {
@@ -125,5 +126,114 @@ class User_officersController extends Controller
         User_officer::destroy($id);
 
         return redirect('user_officers')->with('flash_message', 'User_officer deleted!');
+    }
+
+    public function scan_area()
+    {
+        $areas = Area::where('status', 'active')->get();
+        
+        return view('user_officers.scan', compact('areas'));
+    }
+
+    public function register_form(Request $request)
+    {
+        $selectedAreaId = $request->query('area_id');
+
+        // ถ้าไม่มี area_id แนบมาให้เด้งกลับไปหน้าสแกน
+        if (!$selectedAreaId) {
+            return redirect()->route('user_officers.scan')->with('error', 'กรุณาสแกน QR Code หรือเลือกพื้นที่รับผิดชอบก่อนทำการลงทะเบียน');
+        }
+
+        $selectedArea = Area::where('status', 'active')->findOrFail($selectedAreaId);
+
+        // ดึงโปรไฟล์เดิม ถ้ามี
+        $userProfile = User_officer::where('user_id', auth()->id())->first();
+
+        // ตัวแปรสำหรับเก็บสถานะปัจจุบันของพื้นที่ที่กำลังสแกน
+        $currentStatus = null;
+        $remark = null;
+
+        if ($userProfile && $userProfile->status_register) {
+            // แปลง JSON status_register เป็น Array เพื่อเช็คประวัติการลงพื้นที่นี้
+            $statusArray = json_decode($userProfile->status_register, true) ?? [];
+            
+            foreach ($statusArray as $item) {
+                if ($item['area_id'] == $selectedAreaId) {
+                    $currentStatus = $item['status']; // 'Pending', 'Approve', 'Reject'
+                    $remark = $item['remark'] ?? null;
+                    break;
+                }
+            }
+        }
+
+        return view('user_officers.register', compact('selectedArea', 'userProfile', 'currentStatus', 'remark'));
+    }
+
+    public function register_store(Request $request)
+    {
+        $request->validate([
+            'name_officer' => 'required|string|max:255',
+            'vehicle_type' => 'required|string',
+            'area_id'      => 'required',
+        ]);
+
+        $areaId = (int) $request->area_id;
+
+        // ค้นหาประวัติเดิม
+        $officer = User_officer::where('user_id', auth()->id())->first();
+
+        if ($officer) {
+            // == กรณีที่ 1: เคยมี Row ในระบบแล้ว (อัปเดตข้อมูล) ==
+            $officer->name_officer = $request->name_officer;
+            $officer->vehicle_type = $request->vehicle_type;
+
+            // จัดการ status_register JSON
+            $statusArray = json_decode($officer->status_register, true) ?? [];
+            $foundIndex = -1;
+
+            foreach ($statusArray as $index => $item) {
+                if ($item['area_id'] == $areaId) {
+                    $foundIndex = $index;
+                    break;
+                }
+            }
+
+            if ($foundIndex >= 0) {
+                // ถ้าเคยมีประวัติพื้นที่นี้ ให้ปรับเป็น Pending ใหม่ และล้างเหตุผลการปฏิเสธเดิม
+                $statusArray[$foundIndex]['status'] = 'Pending';
+                $statusArray[$foundIndex]['remark'] = null;
+            } else {
+                // ถ้าสแกนพื้นที่ใหม่ที่ไม่เคยลงทะเบียน ให้ Push เข้า Array
+                $statusArray[] = [
+                    'area_id' => $areaId,
+                    'status'  => 'Pending',
+                    'remark'  => null
+                ];
+            }
+
+            $officer->status_register = json_encode($statusArray);
+
+        } else {
+            // == กรณีที่ 2: เพิ่งเคยลงทะเบียนครั้งแรกสุด (สร้าง Row ใหม่) ==
+            $officer = new User_officer();
+            $officer->user_id      = auth()->id();
+            $officer->name_officer = $request->name_officer;
+            $officer->vehicle_type = $request->vehicle_type;
+            $officer->area_id = json_encode([]); 
+            $officer->status  = 'Inactive'; 
+
+            // สร้าง JSON status_register อันแรก
+            $officer->status_register = json_encode([
+                [
+                    'area_id' => $areaId,
+                    'status'  => 'Pending',
+                    'remark'  => null
+                ]
+            ]);
+        }
+
+        $officer->save();
+
+        return redirect()->route('user_officers.register', ['area_id' => $request->area_id]);
     }
 }

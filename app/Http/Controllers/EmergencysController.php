@@ -278,31 +278,30 @@ class EmergencysController extends Controller
 
     public function case_assign($id)
     {
-        // ดึงข้อมูลเหตุการณ์
+        // ดึงข้อมูลเหตุการณ์และพิกัดจุดเกิดเหตุ
         $emergency = Emergency::with('operation')->findOrFail($id);
         $incidentLat = $emergency->emergency_lat;
         $incidentLng = $emergency->emergency_lng;
 
-        // ดึงข้อมูล Areas ที่ Active ทั้งหมดมาเช็ค Point-in-Polygon
-        $areas = Area::where('status', 'Active')->get(); 
+        // ดึงข้อมูลพื้นที่ที่เปิดใช้งานเพื่อตรวจสอบจุดเกิดเหตุว่าอยู่ในโพลิกอนใดบ้าง
+        $areas = Area::where('status', 'active')->get(); 
         $matchedAreaIds = [];
 
         foreach ($areas as $area) {
-            $polygon = json_decode($area->polygon, true); 
+            $polygon = json_decode($area->polygon, true) ?? [];
             
-            if ($this->isPointInPolygon($incidentLat, $incidentLng, $polygon)) {
+            if (!empty($polygon) && $this->isPointInPolygon($incidentLat, $incidentLng, $polygon)) {
                 $matchedAreaIds[] = $area->id; 
             }
         }
 
-        // เช็คว่าจุดเกิดเหตุอยู่นอกเขตพื้นที่ทั้งหมดหรือไม่
+        // ตรวจสอบว่าจุดเกิดเหตุอยู่นอกเขตพื้นที่รับผิดชอบทั้งหมดหรือไม่
         $isOutOfArea = empty($matchedAreaIds);
 
-        // ดึงเจ้าหน้าที่จาก user_officers เฉพาะที่ Standby
+        // ดึงข้อมูลเจ้าหน้าที่ที่พร้อมปฏิบัติงาน
         $officersQuery = User_officer::where('status', 'Standby');
 
-        // ถ้ามีพื้นที่ที่ตรงกัน ให้กรองเฉพาะเจ้าหน้าที่ที่ดูแลพื้นที่นั้น
-        // แต่ถ้านอกเขต ส่วนนี้จะไม่ทำงาน ทำให้ดึงเจ้าหน้าที่ Standby ทั้งหมดมาแสดงแทน
+        // กรองเจ้าหน้าที่เฉพาะผู้ที่ได้รับอนุมัติให้อยู่ในพื้นที่เกิดเหตุจากคอลัมน์ area_id
         if (!$isOutOfArea) {
             $officersQuery->where(function($q) use ($matchedAreaIds) {
                 foreach ($matchedAreaIds as $areaId) {
@@ -314,21 +313,110 @@ class EmergencysController extends Controller
 
         $officers = $officersQuery->get();
 
-        // คำนวณระยะทางจากพิกัดเจ้าหน้าที่ถึงจุดเกิดเหตุ
+        // คำนวณระยะทางจากพิกัดเจ้าหน้าที่ถึงจุดเกิดเหตุและจัดการกรณีที่เจ้าหน้าที่ยังไม่เคยส่งพิกัด
         foreach ($officers as $officer) {
-            $distance = $this->calculateDistance($incidentLat, $incidentLng, $officer->lat, $officer->lng);
+            $offLat = $officer->lat ?? $incidentLat; 
+            $offLng = $officer->lng ?? $incidentLng;
+
+            $distance = $this->calculateDistance($incidentLat, $incidentLng, $offLat, $offLng);
             $officer->distance_km = round($distance, 1);
         }
 
-        // เรียงลำดับเจ้าหน้าที่ตามระยะทางที่ใกล้ที่สุด
+        // เรียงลำดับเจ้าหน้าที่ตามระยะทางจากใกล้ไปไกล
         $officers = $officers->sortBy('distance_km')->values();
 
         return view('emergencys.case_assign', compact('emergency', 'officers', 'isOutOfArea'));
     }
 
-    // =========================================================================
-    // HELPER FUNCTIONS
-    // =========================================================================
+    public function assign_officer(Request $request, $id)
+    {
+        $request->validate([
+            'officer_id' => 'required|integer'
+        ]);
+
+        $emergency = Emergency::with('operation')->findOrFail($id);
+        $operation = $emergency->operation;
+        $newOfficerId = $request->officer_id;
+        
+        $officer = User_officer::with('user')->findOrFail($newOfficerId);
+
+        // ดึงรายการประวัติ log_command และผู้ที่ไม่ตอบรับเดิมออกมาจัดการ
+        $logCommand = json_decode($operation->log_command, true) ?? [];
+        $noRespondList = json_decode($operation->officer_no_respond, true) ?? [];
+        
+        // ตรวจสอบว่ามีเจ้าหน้าที่เดิมที่กำลังรอการตอบรับอยู่หรือไม่
+        if (!empty($operation->waiting_reply)) {
+            $previousOfficerId = $operation->waiting_reply;
+            
+            // หาเวลาที่ใช้รอสำหรับเจ้าหน้าที่คนก่อนหน้า
+            $timeCommandStr = $operation->time_command ?? now()->toISOString();
+            $timeCommand = Carbon::parse($timeCommandStr);
+            $sumTimeSeconds = now()->diffInSeconds($timeCommand);
+            
+            // นำเจ้าหน้าที่เดิมย้ายไปเก็บไว้ในรายชื่อผู้ที่ไม่ตอบรับ
+            if (!in_array($previousOfficerId, $noRespondList)) {
+                $noRespondList[] = $previousOfficerId;
+            }
+            
+            // อัปเดตสถานะเจ้าหน้าที่เดิมใน log_command
+            foreach ($logCommand as &$log) {
+                if ($log['sendTo'] == $previousOfficerId && $log['status'] == 'pending') {
+                    $log['status'] = 'no_respond';
+                    $log['sum_time'] = $sumTimeSeconds;
+                }
+            }
+        }
+
+        // สร้าง Operating Code หากยังไม่มี
+        if (empty($operation->operating_code)) {
+            // ดึง area_id จากการถอดรหัสพื้นที่ที่ครอบคลุมของเคส หรือใช้พื้นที่ของเจ้าหน้าที่
+            $areaIdForCode = 0;
+            $areasArray = json_decode($officer->area_id, true) ?? [];
+            if (!empty($areasArray)) {
+                $areaIdForCode = $areasArray[0]; 
+            }
+            
+            $datePrefix = now()->format('ymd');
+            
+            // ค้นหาจำนวนเคสที่เกิดขึ้นในวันนี้เพื่อสร้าง Running Number
+            $todayCasesCount = Emergency_operation::whereDate('created_at', now()->toDateString())->count();
+            $runningNumber = str_pad($todayCasesCount + 1, 4, '0', STR_PAD_LEFT);
+            
+            // แปลงรหัสพื้นที่ให้เป็นตัวเลข 3 หลักด้วยการเติม 0 ด้านหน้า
+            $formattedAreaId = str_pad($areaIdForCode, 3, '0', STR_PAD_LEFT);
+            
+            $operation->operating_code = "{$datePrefix}-{$formattedAreaId}-{$runningNumber}";
+            // บันทึกพื้นที่รับผิดชอบของเคสนี้
+            $operation->area_id = $areaIdForCode;
+        }
+
+        // เพิ่มการส่งงานให้เจ้าหน้าที่คนใหม่ลงใน Log
+        $logCommand[] = [
+            'datetime' => now()->toDateTimeString(),
+            'sendTo'   => $newOfficerId,
+            'status'   => 'pending',
+            'sum_time' => 0
+        ];
+
+        // อัปเดตข้อมูลตาราง Operation
+        $operation->command_by = auth()->id();
+        $operation->waiting_reply = $newOfficerId;
+        $operation->status = 'สั่งการ';
+        $operation->time_command = now()->toDateTimeString();
+        $operation->officer_no_respond = json_encode($noRespondList);
+        $operation->log_command = json_encode($logCommand);
+        
+        $operation->save();
+
+        // ส่ง Flex Message แจ้งเตือนไปยัง Line OA ของเจ้าหน้าที่
+        $lineUserId = $officer->user->provider_id ?? null;
+        if ($lineUserId) {
+            // เรียกฟังก์ชันส่ง Flex Message
+            // $this->sendLineFlexMessageToOfficer($lineUserId, $emergency);
+        }
+
+        return redirect()->back()->with('success', 'สั่งการและมอบหมายงานให้เจ้าหน้าที่เรียบร้อยแล้ว');
+    }
 
     // ตรวจสอบว่าพิกัดอยู่ใน Polygon หรือไม่
     private function isPointInPolygon($lat, $lng, $polygon)

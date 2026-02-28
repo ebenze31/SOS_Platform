@@ -136,7 +136,7 @@
                             </div>
                         </div>
 
-                        {{-- เปลี่ยนประเภทผู้แจ้ง (4 ตัวเลือก UI เล็กกะทัดรัดขึ้น) --}}
+                        {{-- เปลี่ยนประเภทผู้แจ้ง --}}
                         <div class="space-y-3 pt-4">
                             <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">ประเภทผู้แจ้ง</label>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -170,8 +170,8 @@
                                     <option disabled="" selected="" value="">เลือกประเภทเหตุการณ์...</option>
                                     {{-- ดึงข้อมูลจาก DB --}}
                                     @foreach($emergencyTypes as $type)
-                                        <option value="{{ $type->name }}" {{ old('emergency_type') == $type->name ? 'selected' : '' }}>
-                                            {{ $type->name }}
+                                        <option value="{{ $type->name_emergency }}" {{ old('emergency_type') == $type->name_emergency ? 'selected' : '' }}>
+                                            {{ $type->name_emergency }}
                                         </option>
                                     @endforeach
                                 </select>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\User;
 
 class User_officer extends Model
 {
@@ -27,5 +28,8 @@ class User_officer extends Model
      */
     protected $fillable = ['name_officer', 'type', 'vehicle_type', 'level', 'amount_help', 'status', 'lat', 'lng', 'user_id', 'area_id','status_register'];
 
-    
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
 }

@@ -77,10 +77,12 @@
                         <h3 class="text-sm font-bold text-slate-800 mb-3">QR-Code ลงทะเบียน</h3>
                         
                         {{-- สร้าง div ครอบ QR Code ไว้สำหรับทำรูปภาพ --}}
-                        <div id="qr-container" class="bg-white p-2 rounded-xl border border-slate-200 inline-block mb-3 shadow-inner">
-                            {!! QrCode::size(120)->margin(1)->style('round')->generate($registerUrl) !!}
+                        <div id="qr-container" class="bg-white p-4 inline-block mb-3" style="background-color: #ffffff;">
+                            
+                            {!! QrCode::size(150)->margin(0)->generate($registerUrl) !!}
+                            
                             {{-- ซ่อนชื่อพื้นที่ไว้ในรูปตอนกดโหลด จะได้รู้ว่า QR ของที่ไหน --}}
-                            <div class="text-[10px] font-bold text-slate-700 mt-1 hidden print-only">{{ $area->name_area }}</div>
+                            <div class="text-sm font-bold text-black mt-3 text-center hidden print-only">{{ $area->name_area }}</div>
                         </div>
                         
                         <button onclick="downloadQR()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-lg transition-colors flex items-center justify-center gap-2">

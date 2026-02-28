@@ -158,7 +158,7 @@ class AreasController extends Controller
     {
         $area = Area::findOrFail($id);
         
-        $registerUrl = route('officer.register', ['area_id' => $area->id]);
+        $registerUrl = route('user_officers.register', ['area_id' => $area->id]);
 
         // ดึงข้อมูลเจ้าหน้าที่ที่อยู่ในพื้นที่
         $officers = User_officer::whereJsonContains('area_id', (string)$area->id)

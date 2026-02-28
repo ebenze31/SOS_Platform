@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddStatusRegisterToUserOfficersTable extends Migration
+class AddLogCommandToEmergencyOperationsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class AddStatusRegisterToUserOfficersTable extends Migration
      */
     public function up()
     {
-        Schema::table('user_officers', function (Blueprint $table) {
-            $table->longText('status_register')->nullable();
+        Schema::table('emergency_operations', function (Blueprint $table) {
+            $table->longText('log_command')->nullable();
         });
     }
 
@@ -25,7 +25,7 @@ class AddStatusRegisterToUserOfficersTable extends Migration
      */
     public function down()
     {
-        Schema::table('user_officers', function (Blueprint $table) {
+        Schema::table('emergency_operations', function (Blueprint $table) {
             //
         });
     }
