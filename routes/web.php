@@ -37,7 +37,12 @@ Route::get('/demo/register_scan', function () {
 Route::get('/demo/register_form', function () {
     return view('demo/register_form');
 });
-
+Route::get('/demo/main_officer', function () {
+    return view('demo/main_officer');
+});
+Route::get('/demo/area_main', function () {
+    return view('demo/area_main');
+});
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
