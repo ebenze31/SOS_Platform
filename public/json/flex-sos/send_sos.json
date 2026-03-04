@@ -1,0 +1,4 @@
+{
+   "type": "text",
+   "text": "{operating_code}\n{emergency_type}\n{emergency_location}\n{distance}\n{operation_id}\n"
+}

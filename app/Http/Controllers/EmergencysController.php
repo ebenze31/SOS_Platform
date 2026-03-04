@@ -16,6 +16,7 @@ use App\Models\Emergency_type;
 use App\Models\Phone_emergency;
 use App\Models\User_officer;
 use App\Models\Area;
+use App\Models\My_log;
 
 class EmergencysController extends Controller
 {
@@ -219,6 +220,43 @@ class EmergencysController extends Controller
         return view('emergencys.tracking', compact('emergency', 'operation'));
     }
 
+    public function checkStatus($id)
+    {
+        $operation = Emergency_operation::where('emergency_id', $id)->first();
+        $dbStatus = $operation->status ?? 'รับแจ้งเหตุ';
+        $currentState = 1;
+
+        if ($dbStatus == 'รับแจ้งเหตุ') {
+            $currentState = 1;
+        } elseif ($dbStatus == 'สั่งการ') {
+            $currentState = 2;
+        } elseif ($dbStatus == 'กำลังไปช่วยเหลือ') {
+            $currentState = 3;
+        } elseif ($dbStatus == 'ถึงที่เกิดเหตุ') {
+            $currentState = 4;
+        } elseif ($dbStatus == 'เสร็จสิ้น') {
+            $currentState = 5;
+        }
+
+        // ดึงข้อมูลเจ้าหน้าที่เฉพาะจาก user_officers_id (คนที่รับงานแล้วเท่านั้น)
+        $officerData = null;
+        if (!empty($operation->user_officers_id)) {
+            $officer = User_officer::find($operation->user_officers_id);
+            if ($officer) {
+                $officerData = [
+                    'name'  => $officer->name_officer,
+                    'type'  => $officer->type ?? 'หน่วยกู้ชีพ',
+                    'phone' => str_replace('-', '', $officer->phone)
+                ];
+            }
+        }
+
+        return response()->json([
+            'state'   => $currentState,
+            'officer' => $officerData
+        ]);
+    }
+
     public function monitor()
     {
         // -------------------------------------------------------
@@ -411,11 +449,53 @@ class EmergencysController extends Controller
         // ส่ง Flex Message แจ้งเตือนไปยัง Line OA ของเจ้าหน้าที่
         $lineUserId = $officer->user->provider_id ?? null;
         if ($lineUserId) {
-            // เรียกฟังก์ชันส่ง Flex Message
-            // $this->sendLineFlexMessageToOfficer($lineUserId, $emergency);
+            $this->sendLineFlexMessageToOfficer($lineUserId, $emergency, $operation, $officer);
         }
 
         return redirect()->back()->with('success', 'สั่งการและมอบหมายงานให้เจ้าหน้าที่เรียบร้อยแล้ว');
+    }
+
+    private function sendLineFlexMessageToOfficer($lineUserId, $emergency, $operation, $officer)
+    {
+        $template_path = public_path('json/flex-sos/send_sos.json'); 
+        $string_json = file_get_contents($template_path);
+
+        $string_json = str_replace("{operating_code}", $operation->operating_code, $string_json);
+        $string_json = str_replace("{emergency_type}", $emergency->emergency_type, $string_json);
+        $string_json = str_replace("{emergency_location}", $emergency->emergency_location, $string_json);
+        $string_json = str_replace("{distance}", $officer->distance_km ?? '-', $string_json);
+        $string_json = str_replace("{operation_id}", $operation->id, $string_json);
+
+        $messages = [ json_decode($string_json, true) ];
+
+        $body = [
+            "to" => $lineUserId,
+            "messages" => $messages,
+        ];
+
+        $opts = [
+            'http' => [
+                'method'  => 'POST',
+                'header'  => "Content-Type: application/json\r\n" .
+                             "Authorization: Bearer " . env('CHANNEL_ACCESS_TOKEN') . "\r\n",
+                'content' => json_encode($body, JSON_UNESCAPED_UNICODE),
+                'ignore_errors' => true // ป้องกันระบบพังถ้ายิง API ไม่ผ่าน
+            ]
+        ];
+
+        $context  = stream_context_create($opts);
+        $url = "https://api.line.me/v2/bot/message/push";
+        
+        // สั่งยิง Request ไปหา LINE
+        $result = file_get_contents($url, false, $context);
+
+        // บันทึก Log การส่งข้อมูล
+        $logData = [
+            "title" => "Send data sos to",
+            "content" => "ID : " . $officer->id . " / NAME : " . $officer->name_officer,
+        ];
+        
+        My_log::create($logData);
     }
 
     // ตรวจสอบว่าพิกัดอยู่ใน Polygon หรือไม่

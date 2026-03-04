@@ -16,12 +16,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
-Route::get('/demo/assign', function () {
-    return view('demo/assign');
-});
-Route::get('/demo/sos_main', function () {
-    return view('demo/sos_main');
-});
+// Route::get('/demo/assign', function () {
+//     return view('demo/assign');
+// });
+// Route::get('/demo/sos_main', function () {
+//     return view('demo/sos_main');
+// });
 Route::get('/demo/status_update', function () {
     return view('demo/status_update');
 });
@@ -52,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
 
     // หน้าติดตามสถานะ
     Route::get('/sos/tracking/{id}', 'EmergencysController@tracking')->name('emergency.tracking');
+    Route::get('/emergency/tracking/api/{id}', 'EmergencysController@checkStatus')->name('emergency.checkStatus');
 
     // Admin
     Route::middleware(['role:admin'])->group(function () {
