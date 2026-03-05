@@ -22,21 +22,21 @@ Route::get('/', function () {
 // Route::get('/demo/sos_main', function () {
 //     return view('demo/sos_main');
 // });
-Route::get('/demo/status_update', function () {
-    return view('demo/status_update');
-});
-Route::get('/demo/rate', function () {
-    return view('demo/rate');
-});
-Route::get('/demo/case_assign', function () {
-    return view('demo/case_assign');
-});
-Route::get('/demo/register_scan', function () {
-    return view('demo/register_scan');
-});
-Route::get('/demo/register_form', function () {
-    return view('demo/register_form');
-});
+// Route::get('/demo/status_update', function () {
+//     return view('demo/status_update');
+// });
+// Route::get('/demo/rate', function () {
+//     return view('demo/rate');
+// });
+// Route::get('/demo/case_assign', function () {
+//     return view('demo/case_assign');
+// });
+// Route::get('/demo/register_scan', function () {
+//     return view('demo/register_scan');
+// });
+// Route::get('/demo/register_form', function () {
+//     return view('demo/register_form');
+// });
 Route::get('/demo/main_officer', function () {
     return view('demo/main_officer');
 });
@@ -51,6 +51,9 @@ Route::get('/home', 'HomeController@index')->name('home');
 // -------------------------- middleware -------------------------- //
 Route::middleware(['auth'])->group(function () {
 
+    // ประวัติการขอความช่วยเหลือ
+    Route::get('/sos/history', 'EmergencysController@history')->name('emergency.history');
+
     // หน้าขอความช่วยเหลือ
     Route::get('/sos', 'EmergencysController@index')->name('emergency.index');
     Route::post('/sos/send', 'EmergencysController@store')->name('emergency.store');
@@ -58,6 +61,10 @@ Route::middleware(['auth'])->group(function () {
     // หน้าติดตามสถานะ
     Route::get('/sos/tracking/{id}', 'EmergencysController@tracking')->name('emergency.tracking');
     Route::get('/emergency/tracking/api/{id}', 'EmergencysController@checkStatus')->name('emergency.checkStatus');
+
+    // หน้าประเมินการบริการ
+    Route::get('/sos/rate/{id}', 'EmergencysController@showRatePage')->name('emergency.rate');
+    Route::post('/sos/rate/{id}', 'EmergencysController@submitRate')->name('emergency.rate.submit');
 
     // Admin
     Route::middleware(['role:admin'])->group(function () {
@@ -86,6 +93,11 @@ Route::middleware(['auth'])->group(function () {
         // ============ ลงทะเบียนเจ้าหน้าที่ ============
         Route::get('/user_officers/register', 'User_officersController@register_form')->name('user_officers.register');
         Route::post('/user_officers/register', 'User_officersController@register_store')->name('user_officers.register_store');
+
+        // ============  Map ดำเนินการช่วยเหลือ ============
+        Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
+        Route::post('/officer/action/update/{id}', 'User_officersController@updateStatus')->name('officer.action.update');
+        Route::post('/officer/action/upload-photo/{id}', 'User_officersController@uploadPhoto')->name('officer.action.upload_photo');
     });
 });
 // ----------------------- End middleware -------------------------- //

@@ -96,6 +96,7 @@ class EmergencysController extends Controller
 
             // 3. บันทึกตาราง emergencys
             $emergency = new Emergency();
+            $emergency->user_id = auth()->id();
             $emergency->name_reporter = $request->name_reporter;
             $emergency->type_reporter = $typeReporter;
             $emergency->phone_reporter = $request->phone_reporter;
@@ -241,20 +242,29 @@ class EmergencysController extends Controller
         // ดึงข้อมูลเจ้าหน้าที่เฉพาะจาก user_officers_id (คนที่รับงานแล้วเท่านั้น)
         $officerData = null;
         if (!empty($operation->user_officers_id)) {
-            $officer = User_officer::find($operation->user_officers_id);
+            $officer = User_officer::with('user')->find($operation->user_officers_id);
             if ($officer) {
                 $officerData = [
                     'name'  => $officer->name_officer,
-                    'type'  => $officer->type ?? 'หน่วยกู้ชีพ',
-                    'phone' => str_replace('-', '', $officer->phone)
+                    'type'  => $officer->type ?? '',
+                    'phone' => ($officer->user && $officer->user->phone) ? str_replace('-', '', $officer->user->phone) : '' 
                 ];
             }
         }
 
+        $times = [
+            'time_create' => $operation->time_create_sos ? Carbon::parse($operation->time_create_sos)->format('H:i') . ' น.' : '',
+            'time_go' => $operation->time_go_to_help ? Carbon::parse($operation->time_go_to_help)->format('H:i') . ' น.' : '',
+            'time_arrive' => $operation->time_to_the_scene ? Carbon::parse($operation->time_to_the_scene)->format('H:i') . ' น.' : '',
+            'time_success' => $operation->time_sos_success ? Carbon::parse($operation->time_sos_success)->format('H:i') . ' น.' : '',
+        ];
+
         return response()->json([
             'state'   => $currentState,
-            'officer' => $officerData
+            'officer' => $officerData,
+            'times'   => $times
         ]);
+
     }
 
     public function monitor()
@@ -598,5 +608,55 @@ class EmergencysController extends Controller
 
         // คืนค่ากลับไปหน้า Monitor (Dashboard) และแจ้งเตือน Success
         return redirect()->route('emergency.monitor')->with('success', 'บันทึกการเสร็จสิ้นภารกิจเรียบร้อยแล้ว');
+    }
+
+    public function showRatePage($id)
+    {
+        $emergency = Emergency::findOrFail($id);
+        $operation = Emergency_operation::where('emergency_id', $id)->first();
+        
+        $officer = null;
+        if ($operation && !empty($operation->user_officers_id)) {
+            $officer = User_officer::find($operation->user_officers_id);
+        }
+
+        return view('emergencys.rate', compact('emergency', 'operation', 'officer'));
+    }
+
+    // สำหรับบันทึกข้อมูลการประเมิน
+    public function submitRate(Request $request, $id)
+    {
+        $request->validate([
+            'score_impression' => 'required|integer|min:1|max:5',
+            'score_period'     => 'required|integer|min:1|max:5',
+            'comment_help'     => 'nullable|string'
+        ]);
+
+        $emergency = Emergency::findOrFail($id);
+        
+        $emergency->score_impression = $request->score_impression;
+        $emergency->score_period = $request->score_period;
+        // คำนวณคะแนนรวม (เฉลี่ยจากทั้ง 2 หัวข้อ)
+        $emergency->score_total = ($request->score_impression + $request->score_period) / 2; 
+        $emergency->comment_help = $request->comment_help;
+        
+        $emergency->save();
+
+        return response()->json([
+            'success' => true, 
+            'message' => 'บันทึกการประเมินเรียบร้อยแล้ว'
+        ]);
+    }
+
+    public function history()
+    {
+        $userId = auth()->id();
+        
+        $emergencies = Emergency::with('operation')
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('emergencys.history', compact('emergencies'));
     }
 }

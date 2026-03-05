@@ -25,7 +25,7 @@ class Emergency extends Model
      *
      * @var array
      */
-    protected $fillable = ['name_reporter', 'type_reporter', 'phone_reporter', 'emergency_type', 'emergency_detail', 'emergency_lat', 'emergency_lng', 'emergency_location', 'emergency_photo', 'score_impression', 'score_period', 'score_total', 'comment_help'];
+    protected $fillable = ['name_reporter', 'type_reporter', 'phone_reporter', 'emergency_type', 'emergency_detail', 'emergency_lat', 'emergency_lng', 'emergency_location', 'emergency_photo', 'score_impression', 'score_period', 'score_total', 'comment_help','user_id'];
 
     public function operation()
     {

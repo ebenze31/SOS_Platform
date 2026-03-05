@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests;
 
 use App\Models\User_officer;
+use App\Models\Emergency;
+use App\Models\Emergency_operation;
 use Illuminate\Http\Request;
 use App\Models\Area;
+use Carbon\Carbon;
 
 class User_officersController extends Controller
 {
@@ -235,5 +238,75 @@ class User_officersController extends Controller
         $officer->save();
 
         return redirect()->route('user_officers.register', ['area_id' => $request->area_id]);
+    }
+
+    public function actionPage($id)
+    {
+        $emergency = Emergency::findOrFail($id);
+        $operation = Emergency_operation::where('emergency_id', $id)->firstOrFail();
+        
+        return view('user_officers.action', compact('emergency', 'operation'));
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $operation = Emergency_operation::where('emergency_id', $id)->firstOrFail();
+        $status = $request->input('status');
+        
+        if ($status == 'ถึงที่เกิดเหตุ') {
+            $operation->status = 'ถึงที่เกิดเหตุ';
+            $operation->time_to_the_scene = now();
+        } elseif ($status == 'เสร็จสิ้น') {
+            $operation->status = 'เสร็จสิ้น';
+            $operation->remark_by_helper = $request->input('remark');
+            $operation->time_sos_success = now();
+            
+            // จัดการอัปโหลดไฟล์รูปภาพ ถ้ามีการแนบมา
+            if ($request->hasFile('photo_succeed')) {
+                $file = $request->file('photo_succeed');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $file->move(public_path('uploads/emergencys'), $filename);
+                $operation->photo_succeed = 'uploads/emergencys/' . $filename;
+            }
+            
+            // คำนวณเวลารวม
+            if ($operation->time_create_sos) {
+                $created = Carbon::parse($operation->time_create_sos);
+                $diff = now()->diff($created);
+                $operation->time_sum_sos = $diff->format('%h ชม. %i นาที');
+            }
+        }
+        
+        $operation->save();
+        
+        return response()->json(['success' => true]);
+    }
+
+    public function uploadPhoto(Request $request, $id)
+    {
+        $operation = Emergency_operation::where('emergency_id', $id)->firstOrFail();
+        
+        // รับหมายเหตุจาก Modal
+        if ($request->has('remark')) {
+            $operation->remark_by_helper = $request->input('remark');
+        }
+
+        // จัดการอัปโหลดไฟล์รูปภาพ
+        if ($request->hasFile('photo_succeed')) {
+            $file = $request->file('photo_succeed');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            // ย้ายไฟล์ไปที่ public/uploads/emergencys
+            $file->move(public_path('uploads/emergencys'), $filename);
+            
+            $operation->photo_succeed = 'uploads/emergencys/' . $filename;
+        }
+
+        $operation->save();
+
+        return response()->json([
+            'success' => true,
+            'photo_url' => asset($operation->photo_succeed),
+            'remark' => $operation->remark_by_helper
+        ]);
     }
 }
