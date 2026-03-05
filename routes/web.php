@@ -43,6 +43,9 @@ Route::get('/demo/main_officer', function () {
 Route::get('/demo/area_main', function () {
     return view('demo/area_main');
 });
+Route::get('/demo/all_officer', function () {
+    return view('demo/all_officer');
+});
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
