@@ -1,4 +1,4 @@
-@extends('layouts.theme')
+@extends('layouts.theme_user')
 
 @section('content')
 
@@ -75,9 +75,6 @@
 </head>
 <div class="bg-background-light text-text-main antialiased">
 
-    <div class="h-[75px] bg-white border-b border-border-color fixed top-0 left-0 right-0 z-30 flex items-center px-8 shadow-sm">
-        <span class="text-primary font-bold text-xl tracking-tight">🚑 ระบบจัดการเจ้าหน้าที่</span>
-    </div>
 
     <div class="mt-[75px]">
         <main class="flex flex-col max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 gap-6">
