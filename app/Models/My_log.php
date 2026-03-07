@@ -25,7 +25,7 @@ class My_log extends Model
      *
      * @var array
      */
-    protected $fillable = ['line', 'title', 'content'];
+    protected $fillable = ['line', 'title', 'content','event_arr'];
 
     
 }

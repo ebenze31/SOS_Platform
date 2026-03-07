@@ -470,10 +470,15 @@ class EmergencysController extends Controller
         $template_path = public_path('json/flex-sos/send_sos.json'); 
         $string_json = file_get_contents($template_path);
 
-        $string_json = str_replace("{operating_code}", $operation->operating_code, $string_json);
-        $string_json = str_replace("{emergency_type}", $emergency->emergency_type, $string_json);
-        $string_json = str_replace("{emergency_location}", $emergency->emergency_location, $string_json);
-        $string_json = str_replace("{distance}", $officer->distance_km ?? '-', $string_json);
+        $string_json = str_replace("{emergency_type}", $emergency->emergency_type ?? 'ขอความช่วยเหลือ', $string_json);
+        $string_json = str_replace("{emergency_location}", $emergency->emergency_location ?? 'ไม่ระบุสถานที่', $string_json);
+        $string_json = str_replace("{emergency_detail}", $emergency->emergency_detail ?? 'ไม่มีรายละเอียดเพิ่มเติม', $string_json);
+        $string_json = str_replace("{emergency_type}", $emergency->emergency_type ?? '-', $string_json);
+        $string_json = str_replace("{name_reporter}", $emergency->name_reporter ?? 'ผู้แจ้งไม่ประสงค์ออกนาม', $string_json);
+        $string_json = str_replace("{phone_reporter}", $emergency->phone_reporter ?? '-', $string_json);
+        $string_json = str_replace("{type_reporter}", $emergency->type_reporter ?? '-', $string_json);
+        $string_json = str_replace("{emergency_lat}", $emergency->emergency_lat ?? '', $string_json);
+        $string_json = str_replace("{emergency_lng}", $emergency->emergency_lng ?? '', $string_json);
         $string_json = str_replace("{operation_id}", $operation->id, $string_json);
 
         $messages = [ json_decode($string_json, true) ];

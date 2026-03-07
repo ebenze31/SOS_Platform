@@ -1,117 +1,121 @@
 {
-  "type": "bubble",
-  "size": "giga",
-  "body": {
-    "type": "box",
-    "layout": "vertical",
-    "contents": [
-      {
-        "type": "image",
-        "url": "https://i.ibb.co/MyyhCnRD/Group-45-1.png",
-        "size": "full",
-        "aspectRatio": "1448:1208",
-        "aspectMode": "cover"
-      },
-      {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": "oprating_id",
-            "color": "#334155",
-            "size": "md",
-            "wrap": true,
-            "weight": "bold",
-            "align": "center",
-            "maxLines": 1
+  "type": "flex",
+  "altText": "ยืนยันการรับเคส",
+  "contents": {
+    "type": "bubble",
+    "size": "giga",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "image",
+          "url": "https://i.ibb.co/MyyhCnRD/Group-45-1.png",
+          "size": "full",
+          "aspectRatio": "1448:1208",
+          "aspectMode": "cover"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "{operating_code}",
+              "color": "#334155",
+              "size": "md",
+              "wrap": true,
+              "weight": "bold",
+              "align": "center",
+              "maxLines": 1
+            }
+          ],
+          "position": "absolute",
+          "offsetTop": "13%",
+          "offsetStart": "7%",
+          "width": "80%",
+          "height": "10%",
+          "justifyContent": "space-around",
+          "alignItems": "flex-start"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "{name_officer}",
+              "color": "#000000",
+              "size": "xl",
+              "wrap": false,
+              "align": "start",
+              "weight": "bold",
+              "maxLines": 1
+            }
+          ],
+          "position": "absolute",
+          "offsetTop": "37%",
+          "offsetStart": "7%",
+          "width": "90%"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "{date_create}",
+              "color": "#4b5769",
+              "size": "md",
+              "wrap": false
+            }
+          ],
+          "position": "absolute",
+          "offsetTop": "66.5%",
+          "offsetStart": "7%",
+          "width": "38%",
+          "alignItems": "flex-start",
+          "justifyContent": "center"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "{time_create}",
+              "color": "#4b5769",
+              "size": "md",
+              "wrap": false
+            }
+          ],
+          "position": "absolute",
+          "offsetTop": "66.5%",
+          "offsetStart": "52%",
+          "width": "38%",
+          "alignItems": "flex-start",
+          "justifyContent": "center"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "contents": [],
+          "position": "absolute",
+          "offsetTop": "82%",
+          "offsetStart": "6.5%",
+          "width": "85%",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "height": "11%",
+          "action": {
+            "type": "uri",
+            "label": "action",
+            "uri": "{action_url}"
           }
-        ],
-        "position": "absolute",
-        "offsetTop": "13%",
-        "offsetStart": "7%",
-        "width": "80%",
-        "height": "10%",
-        "justifyContent": "space-around",
-        "alignItems": "flex-start"
-      },
-      {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": "name_officer",
-            "color": "#000000",
-            "size": "xl",
-            "wrap": false,
-            "align": "start",
-            "weight": "bold",
-            "maxLines": 1
-          }
-        ],
-        "position": "absolute",
-        "offsetTop": "37%",
-        "offsetStart": "7%",
-        "width": "90%"
-      },
-      {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": "วันที่แจ้ง",
-            "color": "#4b5769",
-            "size": "md",
-            "wrap": false
-          }
-        ],
-        "position": "absolute",
-        "offsetTop": "66.5%",
-        "offsetStart": "7%",
-        "width": "38%",
-        "alignItems": "flex-start",
-        "justifyContent": "center"
-      },
-      {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": "เวลาที่แจ้ง",
-            "color": "#4b5769",
-            "size": "md",
-            "wrap": false
-          }
-        ],
-        "position": "absolute",
-        "offsetTop": "66.5%",
-        "offsetStart": "52%",
-        "width": "38%",
-        "alignItems": "flex-start",
-        "justifyContent": "center"
-      },
-      {
-        "type": "box",
-        "layout": "horizontal",
-        "contents": [],
-        "position": "absolute",
-        "offsetTop": "82%",
-        "offsetStart": "6.5%",
-        "width": "85%",
-        "alignItems": "center",
-        "justifyContent": "center",
-        "height": "11%",
-        "action": {
-          "type": "message",
-          "label": "action",
-          "text": "ดำเนินการ"
         }
-      }
-    ],
-    "position": "relative",
-    "paddingAll": "0px"
+      ],
+      "position": "relative",
+      "paddingAll": "0px"
+    }
   }
 }
