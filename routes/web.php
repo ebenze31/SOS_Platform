@@ -97,6 +97,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/user_officers/register', 'User_officersController@register_form')->name('user_officers.register');
         Route::post('/user_officers/register', 'User_officersController@register_store')->name('user_officers.register_store');
 
+        // ============  หน้าเปิดสถานะเจ้าหน้าที่ ============
+        Route::get('/officer/open_status', 'User_officersController@open_status')->name('officer.open_status');
+
+
         // ============  Map ดำเนินการช่วยเหลือ ============
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
         Route::post('/officer/action/update/{id}', 'User_officersController@updateStatus')->name('officer.action.update');

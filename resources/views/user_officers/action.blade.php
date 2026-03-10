@@ -1,4 +1,4 @@
-@extends('layouts.theme')
+@extends('layouts.theme_user')
 
 @section('content')
 
@@ -234,32 +234,29 @@
             </div>
 
             <div id="mcontent-upload" class="hidden space-y-4">
-                <div class="bg-blue-50 dark:bg-slate-700 p-3 rounded-lg text-xs text-slate-600 dark:text-slate-300 flex items-start gap-2">
-                    <span class="material-icons text-primary text-[16px] mt-0.5 shrink-0">info</span>
-                    <span>คุณสามารถเพิ่ม/แก้ไขภาพถ่ายการดำเนินการได้ตลอดเวลา แม้จะปิดภารกิจไปแล้ว</span>
-                </div>
-
                 <div>
                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">อัปโหลด/ถ่ายภาพหลังการช่วยเหลือ</label>
-                    <input type="file" id="photo-upload" accept="image/*" capture="environment" class="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors cursor-pointer border border-slate-200 dark:border-slate-600 rounded-lg p-2 bg-slate-50 dark:bg-slate-900/50">
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <button type="button" onclick="document.getElementById('photo-camera').click()" class="py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-slate-700 dark:hover:bg-slate-600 border border-blue-200 dark:border-slate-600 rounded-xl flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 transition-colors shadow-sm">
+                            <span class="material-icons text-xl">photo_camera</span> ถ่ายภาพ
+                        </button>
+                        <button type="button" onclick="document.getElementById('photo-gallery').click()" class="py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl flex items-center justify-center gap-2 text-slate-700 dark:text-slate-300 transition-colors shadow-sm">
+                            <span class="material-icons text-xl">image</span> เลือกรูป
+                        </button>
+                    </div>
+
+                    <input type="file" id="photo-camera" accept="image/*" capture="environment" class="hidden" onchange="previewSelectedPhoto(this)">
+                    <input type="file" id="photo-gallery" accept="image/*" class="hidden" onchange="previewSelectedPhoto(this)">
                     
                     <div id="current-photo-preview" class="mt-3 {{ empty($operation->photo_succeed) ? 'hidden' : '' }}">
-                        <p class="text-xs text-slate-500 mb-1">ภาพที่บันทึกไว้ล่าสุด:</p>
-                        <img id="img-preview-tag" src="{{ asset($operation->photo_succeed) }}" class="w-full max-h-32 object-contain rounded-lg border border-slate-200" alt="Success Photo">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-xs text-slate-500" id="preview-label">ภาพที่บันทึกไว้ล่าสุด:</p>
+                            <button type="button" id="btn-remove-photo" onclick="clearSelectedPhoto()" class="hidden text-xs text-red-500 hover:text-red-700 font-bold">ยกเลิกรูปนี้</button>
+                        </div>
+                        <img id="img-preview-tag" src="{{ asset($operation->photo_succeed) }}" class="w-full max-h-48 object-contain rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800" alt="Preview Photo">
                     </div>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">หมายเหตุการดำเนินการ</label>
-                    <textarea id="modal-note" rows="3" oninput="syncNote('modal')"
-                        class="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-primary resize-none"
-                        placeholder="กรอกหมายเหตุ (เชื่อมโยงกับหน้าดำเนินการ)...">{{ $operation->remark_by_helper ?? '' }}</textarea>
-                </div>
-                
-                <button onclick="saveModalPhoto()" id="btn-save-modal" class="w-full py-3 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-primary/20 transition-colors mt-4 flex items-center justify-center gap-2">
-                    <span class="material-icons text-[18px]" id="modal-btn-icon">save</span>
-                    <span id="modal-btn-text">บันทึกรูปและหมายเหตุ</span>
-                </button>
             </div>
         </div>
     </div>
@@ -363,14 +360,62 @@
         }
     }
 
-    // บันทึกรูปและหมายเหตุแยกต่างหาก
+    // ตัวแปรส่วนกลางสำหรับเก็บไฟล์ภาพที่เตรียมจะอัปโหลด
+    let selectedPhotoFile = null;
+
+    // ฟังก์ชันพรีวิวภาพทันทีที่เลือก/ถ่ายเสร็จ
+    function previewSelectedPhoto(inputElement) {
+        if (!inputElement.files || inputElement.files.length === 0) return;
+
+        // เก็บไฟล์ลงตัวแปร
+        selectedPhotoFile = inputElement.files[0];
+
+        // อัปเดต UI พรีวิว
+        const previewDiv = document.getElementById('current-photo-preview');
+        const previewImg = document.getElementById('img-preview-tag');
+        const previewLabel = document.getElementById('preview-label');
+        const btnRemove = document.getElementById('btn-remove-photo');
+
+        // สร้าง URL ชั่วคราวเพื่อแสดงภาพบนหน้าเว็บ
+        previewImg.src = URL.createObjectURL(selectedPhotoFile);
+        previewLabel.innerText = 'ภาพที่เลือก (รอการบันทึก):';
+        previewLabel.classList.add('text-orange-500'); // เปลี่ยนสีให้รู้ว่ายังไม่ได้เซฟ
+        btnRemove.classList.remove('hidden');
+        previewDiv.classList.remove('hidden');
+
+        // รีเซ็ตค่า input เพื่อให้สามารถเลือกรูปเดิมซ้ำได้ถ้ายกเลิก
+        document.getElementById('photo-camera').value = '';
+        document.getElementById('photo-gallery').value = '';
+    }
+
+    // ฟังก์ชันกดยกเลิกรูปที่เพิ่งเลือก (กลับไปโชว์รูปเดิมจาก DB)
+    function clearSelectedPhoto() {
+        selectedPhotoFile = null;
+        const previewDiv = document.getElementById('current-photo-preview');
+        const previewImg = document.getElementById('img-preview-tag');
+        const previewLabel = document.getElementById('preview-label');
+        const btnRemove = document.getElementById('btn-remove-photo');
+
+        const originalPhoto = "{{ $operation->photo_succeed ? asset($operation->photo_succeed) : '' }}";
+        
+        if (originalPhoto) {
+            previewImg.src = originalPhoto;
+            previewLabel.innerText = 'ภาพที่บันทึกไว้ล่าสุด:';
+            previewLabel.classList.remove('text-orange-500');
+        } else {
+            previewDiv.classList.add('hidden');
+        }
+        btnRemove.classList.add('hidden');
+    }
+
+    // ฟังก์ชันบันทึกรูปลง DB ทันที
     async function saveModalPhoto() {
         const btnText = document.getElementById('modal-btn-text');
         const btnIcon = document.getElementById('modal-btn-icon');
         const btn = document.getElementById('btn-save-modal');
         
         btn.disabled = true;
-        btnText.innerText = 'กำลังบันทึก...';
+        btnText.innerText = 'กำลังบันทึกและอัปโหลด...';
         btnIcon.innerText = 'sync';
         btnIcon.classList.add('animate-spin');
 
@@ -381,11 +426,12 @@
             const note = document.getElementById('modal-note').value.trim();
             formData.append('remark', note);
             
-            const fileInput = document.getElementById('photo-upload');
-            if(fileInput.files.length > 0) {
-                formData.append('photo_succeed', fileInput.files[0]);
+            // ใช้ไฟล์จากตัวแปรที่เราเก็บไว้ตอนเลือกรูป
+            if(selectedPhotoFile) {
+                formData.append('photo_succeed', selectedPhotoFile);
             }
 
+            // ยิง API อัปเดตลง DB
             const res = await fetch(uploadPhotoApiUrl, {
                 method: 'POST',
                 body: formData
@@ -393,12 +439,19 @@
             const data = await res.json();
             
             if(data.success) {
-                alert('บันทึกข้อมูลเรียบร้อยแล้ว');
-                // โชว์รูปที่เพิ่งอัปโหลด
+                alert('บันทึกรูปภาพและหมายเหตุเข้าสู่ระบบเรียบร้อยแล้ว');
+                
+                // ถ้าระบบส่ง URL รูปใหม่กลับมา ให้อัปเดต UI 
                 if(data.photo_url) {
-                    document.getElementById('current-photo-preview').classList.remove('hidden');
                     document.getElementById('img-preview-tag').src = data.photo_url;
                 }
+                
+                // รีเซ็ตสถานะกลับเป็นปกติ (บันทึกแล้ว)
+                selectedPhotoFile = null;
+                document.getElementById('preview-label').innerText = 'ภาพที่บันทึกไว้ล่าสุด:';
+                document.getElementById('preview-label').classList.remove('text-orange-500');
+                document.getElementById('btn-remove-photo').classList.add('hidden');
+
             } else {
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
             }
