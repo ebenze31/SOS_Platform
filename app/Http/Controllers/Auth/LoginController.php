@@ -10,6 +10,8 @@ use Laravel\Socialite\Facades\Socialite;
 use App\User;
 use Illuminate\Support\Facades\Auth;
 use App\Models\My_log;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
@@ -84,6 +86,10 @@ class LoginController extends Controller
                 $user->name = $lineUser->getName();
                 $user->provider_id = $lineUser->getId();
                 $user->role = null; 
+                // ถ้า LINE ส่งอีเมลมาก็ใช้เลย ถ้าไม่ส่งมา ให้ใช้อีเมลจำลอง
+                $user->email = $lineUser->getEmail() ?? $lineUser->getId() . '@line.me';
+                // สุ่มรหัสผ่านยาวๆ 24 ตัวอักษร แล้วเข้ารหัสให้ปลอดภัย (ให้ผ่านเงื่อนไข DB)
+                $user->password = Hash::make(Str::random(24));
             }
 
             // ==========================================
