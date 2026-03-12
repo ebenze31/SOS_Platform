@@ -73,38 +73,122 @@
                 </div>
             </div>
         </div>
-        <div class="flex-1 max-w-xl px-8 hidden md:block">
-            <div class="relative group">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
-                </div>
-                <input class="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg leading-5 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm shadow-sm" placeholder="Search by ID, location, or type..." type="text" />
-                <div class="absolute inset-y-0 right-0 pr-2 flex items-center">
-                    <kbd class="inline-flex items-center border border-slate-200 rounded px-2 text-[10px] font-sans font-medium text-slate-400">⌘K</kbd>
-                </div>
-            </div>
-        </div>
+        
+        @php
+            $profileImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDdOXcPh06FSp-zWoRlX-ZR94Xk6sFcHjNA7SPIwT4ZCFiOEwhbnP9qqe3z_JqWsj8VziPZxcbnADTEVyDwJL5cOnH9jdTNo9ToZWboOBYA9jkVKjKaSsBrNjU4O8Ke06Zablgt-2uQ_BafhNyqu9OL4h2WjLstaq5sYjo5SwdfJkO8Ud-pClwDioZrD4o2JZRDbmoHBXCz4lJE8VZmQ-ruSA-im_TpfDejOY01i5yzyt05jp1xlQCG1_2w8Hej-9a-uPjxJ89ZqUs7';
+            
+            if (Auth::check()) {
+                if (!empty(Auth::user()->photo) && file_exists(public_path(Auth::user()->photo))) {
+                    $profileImage = asset(Auth::user()->photo);
+                } elseif (!empty(Auth::user()->avatar)) {
+                    $profileImage = Auth::user()->avatar;
+                }
+            }
+        @endphp
+
         <div class="flex items-center gap-4">
             <div class="hidden sm:flex items-center gap-2">
-                <button class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span>
-                    Priority
-                </button>
-                <button class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">map</span>
-                    District
-                </button>
+                
+                <a href="{{ url('/dashboard') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">dashboard</span>
+                    Dashboard
+                </a>
+
+                <a href="{{ url('/monitor') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">monitor_heart</span>
+                    Monitor
+                </a>
+
+                <div class="relative group z-50">
+                    <button class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 group-hover:bg-slate-50 group-hover:text-slate-900 transition-all">
+                        <span class="material-symbols-outlined text-[18px]">layers</span>
+                        พื้นที่
+                        <span class="material-symbols-outlined text-[16px] transition-transform group-hover:rotate-180">arrow_drop_down</span>
+                    </button>
+                    
+                    <div class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-left group-hover:scale-100 scale-95">
+                        <a href="{{ url('/demo/area_main') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-t-lg border-b border-slate-50 transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">format_list_bulleted</span> พื้นที่ทั้งหมด
+                        </a>
+                        <a href="{{ url('/area/create_polygon') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-b-lg transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">add_location</span> สร้างพื้นที่ใหม่
+                        </a>
+                    </div>
+                </div>
+
+                <a href="{{ url('/register/requests') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">how_to_reg</span>
+                    คำขอลงทะเบียน
+                </a>
+
             </div>
+
             <div class="h-8 w-px bg-slate-200 mx-1"></div>
-            <button class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                <span class="material-symbols-outlined">notifications</span>
-                <span class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                </span>
-            </button>
-            <div class="bg-center bg-no-repeat bg-cover rounded-full size-9 ring-2 ring-slate-100 cursor-pointer hover:ring-primary/30 transition-all" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDdOXcPh06FSp-zWoRlX-ZR94Xk6sFcHjNA7SPIwT4ZCFiOEwhbnP9qqe3z_JqWsj8VziPZxcbnADTEVyDwJL5cOnH9jdTNo9ToZWboOBYA9jkVKjKaSsBrNjU4O8Ke06Zablgt-2uQ_BafhNyqu9OL4h2WjLstaq5sYjo5SwdfJkO8Ud-pClwDioZrD4o2JZRDbmoHBXCz4lJE8VZmQ-ruSA-im_TpfDejOY01i5yzyt05jp1xlQCG1_2w8Hej-9a-uPjxJ89ZqUs7");'></div>
+
+            <div class="relative group z-50">
+                <button class="relative p-2 text-slate-400 group-hover:text-slate-600 transition-colors focus:outline-none">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                </button>
+
+                <div class="absolute top-full right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden transform origin-top-right group-hover:scale-100 scale-95">
+                    <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                        <h3 class="font-bold text-sm text-slate-800">การแจ้งเตือนล่าสุด</h3>
+                    </div>
+                    
+                    <div class="max-h-72 overflow-y-auto custom-scrollbar">
+                        <a href="#" class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 border-b border-slate-50 transition-colors">
+                            <div class="shrink-0 w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 mt-0.5">
+                                <span class="material-symbols-outlined text-[20px]">emergency</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800 leading-tight">ขอความช่วยเหลือฉุกเฉิน!</p>
+                                <p class="text-xs text-slate-500 mt-1 line-clamp-2">เกิดอุบัติเหตุรถชน มีผู้ได้รับบาดเจ็บ บริเวณสี่แยกไฟแดง...</p>
+                                <p class="text-[10px] font-medium text-primary mt-1.5">2 นาทีที่แล้ว</p>
+                            </div>
+                        </a>
+
+                        <a href="#" class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 border-b border-slate-50 transition-colors">
+                            <div class="shrink-0 w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 mt-0.5">
+                                <span class="material-symbols-outlined text-[20px]">person_add</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800 leading-tight">คำขอลงทะเบียนใหม่</p>
+                                <p class="text-xs text-slate-500 mt-1 line-clamp-2">คุณสมชาย ใจดี ได้ส่งคำขอสมัครเป็นเจ้าหน้าที่อาสาสมัคร</p>
+                                <p class="text-[10px] font-medium text-primary mt-1.5">15 นาทีที่แล้ว</p>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="px-4 py-2 border-t border-slate-100 text-center bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <a href="#" class="text-xs font-bold text-primary">ดูการแจ้งเตือนทั้งหมด</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative group z-50">
+                <div class="bg-center bg-no-repeat bg-cover rounded-full size-9 ring-2 ring-slate-200 cursor-pointer hover:ring-primary transition-all shadow-sm" 
+                     style='background-image: url("{{ $profileImage }}");'>
+                </div>
+                
+                <div class="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                    <div class="px-4 py-2 border-b border-slate-100">
+                        <p class="text-sm font-bold text-slate-800 truncate">{{ Auth::user()->name ?? 'ผู้ดูแลระบบ' }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ Auth::user()->role ?? 'ไม่ระบุสถานะ' }}</p>
+                    </div>
+                    <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg transition-colors" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <span class="material-symbols-outlined text-[18px]">logout</span> ออกจากระบบ
+                    </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                        @csrf
+                    </form>
+                </div>
+            </div>
         </div>
+
     </header>
             @yield('content')
    
