@@ -63,7 +63,7 @@
                 </div>
 
                 <div class="grid grid-cols-1">
-                    <a href="{{ url('login/line') }}" 
+                    <a href="{{ route('login.line') }}" 
                        class="group flex items-center bg-[#00c300] hover:bg-[#00b300] transition-all rounded-lg overflow-hidden shadow-md active:scale-[0.98]">
                         
                         <div class="bg-white/10 p-1 flex items-center justify-center border-r border-black/5">

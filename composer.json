@@ -13,8 +13,10 @@
         "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^6.3.1|^7.0.1",
         "laravel/framework": "^7.29",
+        "laravel/socialite": "^5.25",
         "laravel/tinker": "^2.5",
-        "simplesoftwareio/simple-qrcode": "^4.2"
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "socialiteproviders/line": "^4.1"
     },
     "require-dev": {
         "appzcoder/crud-generator": "^3.3",

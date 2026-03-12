@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 // Route::get('/demo/assign', function () {
 //     return view('demo/assign');
 // });
@@ -49,13 +49,26 @@ Route::get('/demo/all_officer', function () {
 Route::get('/demo/dashboard', function () {
     return view('demo/dashboard');
 });
+
+
 Auth::routes();
 
+Route::get('/', 'HomeController@index')->name('home');
 Route::get('/home', 'HomeController@index')->name('home');
+
+// ส่งผู้ใช้ไปหน้าล็อกอินของ LINE
+Route::get('/login/line', 'Auth\LoginController@redirectToLine')->name('login.line');
+// รับข้อมูลกลับมาจาก LINE หลังจากล็อกอินเสร็จ
+Route::get('/login/line/callback', 'Auth\LoginController@handleLineCallback')->name('login.line.callback');
 
 
 // -------------------------- middleware -------------------------- //
 Route::middleware(['auth'])->group(function () {
+
+    // ============ ลงทะเบียนเจ้าหน้าที่ ============
+    Route::get('/user_officers/scan', 'User_officersController@scan_area')->name('user_officers.scan');
+    Route::get('/user_officers/register', 'User_officersController@register_form')->name('user_officers.register');
+    Route::post('/user_officers/register', 'User_officersController@register_store')->name('user_officers.register_store');
 
     // ประวัติการขอความช่วยเหลือ
     Route::get('/sos/history', 'EmergencysController@history')->name('emergency.history');
@@ -93,16 +106,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Admin, Officer
     Route::middleware(['role:admin,officer'])->group(function () {
-        // ============ หน้าสแกน / เลือกพื้นที่ ============
-        Route::get('/user_officers/scan', 'User_officersController@scan_area')->name('user_officers.scan');
-
-        // ============ ลงทะเบียนเจ้าหน้าที่ ============
-        Route::get('/user_officers/register', 'User_officersController@register_form')->name('user_officers.register');
-        Route::post('/user_officers/register', 'User_officersController@register_store')->name('user_officers.register_store');
-
         // ============  หน้าเปิดสถานะเจ้าหน้าที่ ============
         Route::get('/officer/open_status', 'User_officersController@open_status')->name('officer.open_status');
-
 
         // ============  Map ดำเนินการช่วยเหลือ ============
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
