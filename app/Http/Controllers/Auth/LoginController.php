@@ -80,6 +80,7 @@ class LoginController extends Controller
             if (!$user) {
                 // ถ้าเป็นผู้ใช้ใหม่ ให้สร้างอินสแตนซ์ใหม่รอไว้
                 $user = new User();
+                $user->email = "-";
                 $user->name = $lineUser->getName();
                 $user->provider_id = $lineUser->getId();
                 $user->role = null; 
