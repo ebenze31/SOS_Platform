@@ -78,6 +78,7 @@ class LoginController extends Controller
 
             // หา User ในระบบ
             $user = User::where('provider_id', $lineUser->getId())->first();
+            $isNewUser = false;
 
             if (!$user) {
                 // ถ้าเป็นผู้ใช้ใหม่ ให้สร้างอินสแตนซ์ใหม่รอไว้
