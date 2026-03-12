@@ -116,7 +116,7 @@
                     </div>
                 </div>
 
-                <a href="{{ url('/register/requests') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
+                <a href="{{ url('/command/requests') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-[18px]">how_to_reg</span>
                     คำขอลงทะเบียน
                 </a>
