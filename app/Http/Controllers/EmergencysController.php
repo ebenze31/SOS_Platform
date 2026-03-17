@@ -117,21 +117,22 @@ class EmergencysController extends Controller
             
             $emergency->save();
 
-            $user_commands = User_command::where('status', 'Standby')
-                ->orderBy('number', 'ASC')
-                ->first();
+            // $user_commands = User_command::where('status', 'Standby')
+            //     ->orderBy('number', 'ASC')
+            //     ->first();
 
-            if ($user_commands) {
-                $to_command_id = $user_commands->id;
-            } else {
-                $to_command_id = "No Command";
-            }
+            // if ($user_commands) {
+            //     $to_command_id = $user_commands->id;
+            // } else {
+            //     $to_command_id = "No Command";
+            // }
 
             // 4. บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
             $operation = new Emergency_operation();
             $operation->emergency_id = $emergency->id;
             $operation->status = 'รับแจ้งเหตุ';
-            $operation->notify = $to_command_id;
+            // $operation->notify = $to_command_id;
+            $operation->notify = "none";
             $operation->time_create_sos = Carbon::now();
             $operation->save();
 
@@ -450,6 +451,7 @@ class EmergencysController extends Controller
         $operation->command_by = auth()->id();
         $operation->waiting_reply = $newOfficerId;
         $operation->status = 'สั่งการ';
+        $operation->notify = 'success';
         $operation->time_command = now()->toDateTimeString();
         $operation->officer_no_respond = json_encode($noRespondList);
         $operation->log_command = json_encode($logCommand);

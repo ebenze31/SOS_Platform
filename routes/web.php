@@ -102,6 +102,12 @@ Route::middleware(['auth'])->group(function () {
         // ======== Command Check requests ========
         Route::get('/command/requests', 'CommandController@index')->name('command.requests');
         Route::post('/command/requests/manage', 'CommandController@manage_request')->name('command.requests.manage');
+
+        // ======== Emergency Types ========
+        Route::get('/emergency-types', 'Emergency_typesController@index');
+        Route::post('/emergency-types/store', 'Emergency_typesController@store');
+        Route::post('/emergency-types/destroy', 'Emergency_typesController@destroy');
+        Route::post('/emergency-types/update-status', 'Emergency_typesController@updateStatus');
     });
 
     // Admin, Officer
@@ -117,12 +123,12 @@ Route::middleware(['auth'])->group(function () {
 });
 // ----------------------- End middleware -------------------------- //
 
+// Route::resource('user_officers', 'User_officersController');
+// Route::resource('emergency_types', 'Emergency_typesController');
+// Route::resource('emergencys', 'EmergencysController');
+// Route::resource('emergency_operations', 'Emergency_operationsController');
 Route::resource('data_organizations', 'Data_organizationsController');
 Route::resource('user_commands', 'User_commandsController');
-Route::resource('user_officers', 'User_officersController');
 Route::resource('areas', 'AreasController');
 Route::resource('phone_emergencys', 'Phone_emergencysController');
-Route::resource('emergency_types', 'Emergency_typesController');
 Route::resource('my_log', 'My_logController');
-Route::resource('emergencys', 'EmergencysController');
-Route::resource('emergency_operations', 'Emergency_operationsController');

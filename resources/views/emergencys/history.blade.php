@@ -1,4 +1,4 @@
-@extends('layouts.theme')
+@extends('layouts.theme_user')
 
 @section('content')
 <div class="w-full min-h-[calc(100vh-71.75px)] bg-slate-50 dark:bg-slate-900 mt-[71.75px] py-8 px-4 sm:px-6 lg:px-8 overflow-auto">

@@ -19,3 +19,6 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::post('/webhook', 'LineWebhookController@handle');
+
+Route::get('/check-notifications', 'NotificationController@check');
+Route::post('/mark-notifications-alert', 'NotificationController@markAlert');

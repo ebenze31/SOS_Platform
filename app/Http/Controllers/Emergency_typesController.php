@@ -7,6 +7,8 @@ use App\Http\Requests;
 
 use App\Models\Emergency_type;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class Emergency_typesController extends Controller
 {
@@ -15,20 +17,13 @@ class Emergency_typesController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index(Request $request)
+    public function index()
     {
-        $keyword = $request->get('search');
-        $perPage = 25;
-
-        if (!empty($keyword)) {
-            $emergency_types = Emergency_type::where('name_emergency', 'LIKE', "%$keyword%")
-                ->orWhere('status', 'LIKE', "%$keyword%")
-                ->latest()->paginate($perPage);
-        } else {
-            $emergency_types = Emergency_type::latest()->paginate($perPage);
-        }
-
-        return view('emergency_types.index', compact('emergency_types'));
+        $emergencyTypes = DB::table('emergency_types')
+            ->orderBy('id', 'desc')
+            ->get();
+            
+        return view('emergency_types.index', compact('emergencyTypes'));
     }
 
     /**
@@ -48,14 +43,27 @@ class Emergency_typesController extends Controller
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
+
     public function store(Request $request)
     {
+        $id = $request->input('id');
         
-        $requestData = $request->all();
-        
-        Emergency_type::create($requestData);
+        $data = [
+            'name_emergency' => $request->input('name_emergency'),
+            'status'         => $request->input('status', 'active'),
+            'updated_at'     => Carbon::now(),
+        ];
 
-        return redirect('emergency_types')->with('flash_message', 'Emergency_type added!');
+        if (!empty($id)) {
+            // กรณี แก้ไข (Update)
+            DB::table('emergency_types')->where('id', $id)->update($data);
+            return back()->with('success', 'แก้ไขข้อมูลสำเร็จ!');
+        } else {
+            // กรณี เพิ่มใหม่ (Insert)
+            $data['created_at'] = Carbon::now();
+            DB::table('emergency_types')->insert($data);
+            return back()->with('success', 'เพิ่มประเภทการแจ้งเหตุใหม่สำเร็จ!');
+        }
     }
 
     /**
@@ -112,10 +120,33 @@ class Emergency_typesController extends Controller
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function destroy($id)
+    
+    public function destroy(Request $request)
     {
-        Emergency_type::destroy($id);
+        $id = $request->input('id');
+        
+        if (!empty($id)) {
+            DB::table('emergency_types')->where('id', $id)->delete();
+            return back()->with('success', 'ลบข้อมูลสำเร็จ!');
+        }
+        
+        return back()->with('error', 'ไม่พบข้อมูลที่ต้องการลบ');
+    }
 
-        return redirect('emergency_types')->with('flash_message', 'Emergency_type deleted!');
+    public function updateStatus(Request $request)
+    {
+        $id = $request->input('id');
+        $status = $request->input('status');
+
+        if (!empty($id) && !empty($status)) {
+            DB::table('emergency_types')->where('id', $id)->update([
+                'status' => $status,
+                'updated_at' => Carbon::now(),
+            ]);
+            
+            return response()->json(['success' => true, 'message' => 'อัปเดตสถานะสำเร็จ']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาด'], 400);
     }
 }
