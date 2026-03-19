@@ -146,6 +146,11 @@
                             ประเภทการแจ้งเหตุ
                         </a>
 
+                        <a href="{{ url('/phone-emergencys') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary border-b border-slate-50 transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">phone</span> 
+                            เบอร์โทรฉุกเฉิน
+                        </a>
+
                         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-b-lg transition-colors">
                             <span class="material-symbols-outlined text-[18px]">manage_accounts</span> 
                             จัดการสมาชิก

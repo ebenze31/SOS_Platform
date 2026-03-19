@@ -92,134 +92,227 @@
         </div>
     </div>
 
-    <div id="confirmModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm transition-all duration-300 ">
-        <div class="flex min-h-full items-center justify-center p-4 ">
-            <div class=" relative w-full max-w-md my-8 bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
+        
+        <div class="relative w-full max-w-md bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 flex flex-col max-h-[90vh] transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
 
-                <header class="px-6 md:px-8 py-3 md:py-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1a2632] sticky top-0 z-10 rounded-t-2xl">
-                    <div>
-                        <h1 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight">รายงานเหตุการณ์</h1>
-                    </div>
-                    <button onclick="closeModal()" class="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-sm transition-colors">
-                        <span class="material-symbols-outlined text-xl">close</span>
-                    </button>
-                </header>
+            <header class="shrink-0 px-3 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between rounded-t-2xl">
+                <h1 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">รายงานเหตุการณ์</h1>
+                <button onclick="closeModal()" type="button" class="h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-sm transition-colors">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </header>
 
-                <form action="{{ route('emergency.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-col bg-white dark:bg-[#1a2632] rounded-b-2xl">
-                    @csrf
-                    
-                    <input type="hidden" name="emergency_lat" id="lat_input" value="">
-                    <input type="hidden" name="emergency_lng" id="lng_input" value="">
-                    <input type="hidden" name="emergency_location" id="location_input" value="">
+            <form id="sosForm" action="{{ route('emergency.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-col overflow-hidden min-h-0">
+                @csrf
+                <input type="hidden" name="emergency_lat" id="lat_input" value="">
+                <input type="hidden" name="emergency_lng" id="lng_input" value="">
+                <input type="hidden" name="emergency_location" id="location_input" value="">
 
-                    <section class="px-4 md:px-5 py-3 md:py-3 border-b border-slate-100 dark:border-slate-700/50">
-                        <div class="grid grid-cols-1 gap-4 md:gap-5">
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="reporter-name">ข้อมูลผู้แจ้ง</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                        <span class="material-symbols-outlined text-[18px]">person</span>
-                                    </div>
-                                    <input required name="name_reporter" value="{{ old('name_reporter', auth()->user()->name ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="reporter-name" placeholder="ชื่อผู้แจ้ง" type="text" />
+                <section class="flex-1 overflow-y-auto px-5 py-2 custom-scrollbar">
+                    <div class="grid grid-cols-1 gap-3">
+                        
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">ข้อมูลผู้แจ้ง</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
                                 </div>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                        <span class="material-symbols-outlined text-[18px]">call</span>
-                                    </div>
-                                    <input required name="phone_reporter" value="{{ old('phone_reporter', auth()->user()->phone ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="phone-number" placeholder="เบอร์ติดต่อ" type="tel" />
-                                </div>
+                                <input required name="name_reporter" value="{{ old('name_reporter', auth()->user()->name ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white" placeholder="ชื่อผู้แจ้ง" type="text" />
                             </div>
-
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">ประเภทผู้แจ้ง</label>
-                                <div class="relative">
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                        @foreach(['ผู้ประสบเหตุ', 'ญาติ', 'พลเมืองดี', 'อื่นๆ'] as $type)
-                                        <label class="cursor-pointer relative">
-                                            <input type="radio" name="type_reporter" value="{{ $type }}" class="peer sr-only" required onchange="toggleOtherReporter(this.value)">
-                                            <div class="w-full py-1 px-1 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all text-center peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:ring-1 peer-checked:ring-primary dark:peer-checked:bg-primary/20">
-                                                <span class="text-xs font-medium">{{ $type }}</span>
-                                            </div>
-                                        </label>
-                                        @endforeach
-                                    </div>
-
-                                    {{-- ช่องกรอกอื่นๆ ซ่อนไว้เป็นค่าเริ่มต้น --}}
-                                    <div id="other_reporter_wrapper" class="hidden mt-2">
-                                        <input type="text" id="type_reporter_other" name="type_reporter_other" placeholder="โปรดระบุประเภทผู้แจ้ง..." class="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow">
-                                    </div>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">call</span>
                                 </div>
+                                <input required name="phone_reporter" value="{{ old('phone_reporter', auth()->user()->phone ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white" placeholder="เบอร์ติดต่อ" type="tel" />
                             </div>
-
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">ข้อมูลการแจ้งเหตุ</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                        <span class="material-symbols-outlined text-[18px]">category</span>
-                                    </div>
-                                    <select required name="emergency_type" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow appearance-none" id="topic">
-                                        <option disabled="" selected="" value="">เลือกประเภทเหตุการณ์</option>
-                                        {{-- ดึงข้อมูลจาก DB --}}
-                                        @foreach($emergencyTypes as $type)
-                                            <option value="{{ $type->name_emergency }}" {{ old('emergency_type') == $type->name_emergency ? 'selected' : '' }}>
-                                                {{ $type->name_emergency }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
-                                    </div>
-                                </div>
-                                <div class="relative">
-                                    <textarea required name="emergency_detail" class="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow resize-none" id="description" placeholder="อธิบายรายละเอียดเหตุการณ์" rows="2">{{ old('emergency_detail') }}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">รูปภาพ</label>
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6" id="preview-area">
-                                    <div class="h-9 w-9 md:h-10 md:w-10 mb-2 md:mb-3 rounded-full bg-white shadow-sm flex items-center justify-center text-primary dark:bg-slate-700 dark:text-primary-400 ring-1 ring-slate-900/5 group-hover:scale-110 transition-transform duration-300">
-                                        <span class="material-symbols-outlined text-lg md:text-xl">cloud_upload</span>
-                                    </div>
-                                    <p class="mb-1 text-xs md:text-sm text-slate-600 dark:text-slate-300" id="file-label"><span class="font-semibold">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง</p>
-                                    <p class="text-[10px] md:text-xs text-slate-400 dark:text-slate-500">รองรับไฟล์รูปภาพ (ขนาดสูงสุด 5MB)</p>
-                                </div>
-                                <input name="emergency_photo" id="dropzone-file" type="file" class="hidden" accept="image/*" onchange="previewFile(this)" />
-                            </div>
-
                         </div>
-                    </section>
 
-                    <footer class="px-6 md:px-8 py-4 md:py-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 sticky bottom-0 rounded-b-2xl">
-                        <p class="text-xs text-slate-400 hidden sm:block">กรุณาตรวจสอบข้อมูลให้ถูกต้องก่อนส่ง</p>
-                        <button type="submit" class="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm shadow-blue-900/20 transition-all flex items-center justify-center gap-2">
-                            <span>ส่งข้อมูลแจ้งเหตุ</span>
-                            <span class="material-symbols-outlined text-[18px]">send</span>
-                        </button>
-                    </footer>
-                </form>
-            </div>
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">ประเภทผู้แจ้ง</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                @foreach(['ผู้ประสบเหตุ', 'ญาติ', 'พลเมืองดี', 'อื่นๆ'] as $type)
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="type_reporter" value="{{ $type }}" class="peer sr-only" required onchange="toggleOtherReporter(this.value)">
+                                    <div class="w-full py-0.5 px-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white text-center peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:ring-1 peer-checked:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:hover:bg-slate-800 transition-all">
+                                        <span class="text-xs font-medium">{{ $type }}</span>
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                            <div id="other_reporter_wrapper" class="hidden mt-2">
+                                <input type="text" id="type_reporter_other" name="type_reporter_other" placeholder="โปรดระบุประเภทผู้แจ้ง..." class="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white">
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">ข้อมูลการแจ้งเหตุ</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">category</span>
+                                </div>
+                                <select required name="emergency_type" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white appearance-none">
+                                    <option disabled="" selected="" value="">เลือกประเภทเหตุการณ์</option>
+                                    @foreach($emergencyTypes as $type)
+                                        <option value="{{ $type->name_emergency }}" {{ old('emergency_type') == $type->name_emergency ? 'selected' : '' }}>
+                                            {{ $type->name_emergency }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <textarea required name="emergency_detail" class="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white resize-none" placeholder="อธิบายรายละเอียดเหตุการณ์" rows="2">{{ old('emergency_detail') }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">แนบรูปภาพจุดเกิดเหตุ</label>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="cursor-pointer flex flex-col items-center justify-center p-3 border border-slate-200 bg-slate-50 rounded-lg hover:bg-slate-100 dark:bg-slate-800/50 dark:border-slate-700 transition-colors">
+                                    <span class="material-symbols-outlined text-primary mb-1 text-2xl">photo_camera</span>
+                                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">เปิดกล้องถ่ายภาพ</span>
+                                    <input name="photo_cam" id="input_cam" type="file" class="hidden" accept="image/*" capture="environment" onchange="previewImage(this, 'cam')" />
+                                </label>
+                                
+                                <label class="cursor-pointer flex flex-col items-center justify-center p-3 border border-slate-200 bg-slate-50 rounded-lg hover:bg-slate-100 dark:bg-slate-800/50 dark:border-slate-700 transition-colors">
+                                    <span class="material-symbols-outlined text-primary mb-1 text-2xl">image</span>
+                                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">เลือกจากอัลบั้ม</span>
+                                    <input name="photo_gal" id="input_gal" type="file" class="hidden" accept="image/*" onchange="previewImage(this, 'gal')" />
+                                </label>
+                            </div>
+
+                            <div id="image-preview-container" class="hidden relative mt-2 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm bg-slate-100">
+                                <img id="img-preview" src="" alt="พรีวิวรูปภาพ" class="w-full h-auto max-h-48 object-cover">
+                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 bg-slate-900/60 hover:bg-red-500 text-white rounded-full p-1.5 backdrop-blur-sm transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <footer class="shrink-0 px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 rounded-b-2xl">
+                    <p class="text-xs text-slate-400 hidden sm:block">ตรวจสอบข้อมูลให้ถูกต้องก่อนส่ง</p>
+                    
+                    <button id="submitBtn" type="submit" class="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-blue-700 active:bg-blue-800 disabled:opacity-75 disabled:cursor-not-allowed rounded-lg shadow-sm transition-all flex items-center justify-center gap-2">
+                        <span id="submitText">ส่งข้อมูลแจ้งเหตุ</span>
+                        <span id="submitIcon" class="material-symbols-outlined text-[18px]">send</span>
+                    </button>
+                </footer>
+            </form>
         </div>
     </div>
 
-    {{-- Script สำหรับซ่อน/แสดงช่อง "อื่นๆ" --}}
+    {{-- Script UI (รูปภาพและ Modal) --}}
     <script>
+        const formElement = document.getElementById('sosForm');
+
+        if (formElement) {
+            formElement.addEventListener('submit', function() {
+                const submitBtn = document.getElementById('submitBtn');
+                const submitText = document.getElementById('submitText');
+                const submitIcon = document.getElementById('submitIcon');
+
+                // ล็อคปุ่มห้ามกดซ้ำ
+                submitBtn.disabled = true;
+
+                // เปลี่ยนข้อความ
+                submitText.innerText = 'กำลังส่งข้อมูล...';
+
+                // เปลี่ยนไอคอนเป็นรูปโหลด
+                submitIcon.innerText = 'progress_activity';
+                submitIcon.classList.add('animate-spin');
+            });
+        }
+
+        // จัดการเปิด-ปิด Input อื่นๆ
         function toggleOtherReporter(value) {
             const wrapper = document.getElementById('other_reporter_wrapper');
             const input = document.getElementById('type_reporter_other');
-            
             if (value === 'อื่นๆ') {
                 wrapper.classList.remove('hidden');
-                input.required = true; // บังคับกรอกถ้าเลือกอื่นๆ
+                input.required = true;
                 input.focus();
             } else {
                 wrapper.classList.add('hidden');
                 input.required = false;
-                input.value = ''; // เคลียร์ค่าทิ้ง
+                input.value = '';
             }
         }
+
+        // จัดการพรีวิวรูปภาพ
+        function previewImage(input, source) {
+            const previewContainer = document.getElementById('image-preview-container');
+            const previewImg = document.getElementById('img-preview');
+            
+            // เคลียร์ค่าของอีกปุ่มนึงทิ้ง ป้องกันการอัปโหลดซ้ำซ้อน 2 รูป
+            if (source === 'cam') {
+                const galInput = document.getElementById('input_gal');
+                if(galInput) galInput.value = '';
+            }
+            if (source === 'gal') {
+                const camInput = document.getElementById('input_cam');
+                if(camInput) camInput.value = '';
+            }
+
+            const file = input.files[0];
+            if (file) {
+                // แสดงพรีวิวรูป
+                previewImg.src = URL.createObjectURL(file);
+                previewContainer.classList.remove('hidden');
+
+                // สั่งให้ Scroll เลื่อนลงมาหารูปภาพที่เพิ่งแสดง
+                setTimeout(() => {
+                    previewContainer.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 100);
+            }
+        }
+
+        // ปุ่มกากบาทเพื่อลบภาพทิ้ง
+        function clearImage() {
+            document.getElementById('input_cam').value = '';
+            document.getElementById('input_gal').value = '';
+            document.getElementById('image-preview-container').classList.add('hidden');
+            document.getElementById('img-preview').src = '';
+        }
+
+        // Modal Function (ล็อคพื้นหลัง)
+        function openModal() {
+            const modal = document.getElementById('confirmModal');
+            const modalContent = document.getElementById('modalContent');
+            document.body.style.overflow = 'hidden'; // ล็อค Scroll พื้นหลัง
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('confirmModal');
+            const modalContent = document.getElementById('modalContent');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto'; // คืนค่า Scroll พื้นหลัง
+            }, 300);
+        }
+
+        document.getElementById('confirmModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
     </script>
 
+    {{-- Script Google Maps --}}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initMap&libraries=places" async defer></script>
     <script>
         let map;
@@ -304,40 +397,6 @@
                     document.getElementById('location_input').value = `พิกัด: ${lat}, ${lng}`;
                 });
         }
-
-        function openModal() {
-            const modal = document.getElementById('confirmModal');
-            const modalContent = document.getElementById('modalContent');
-            document.body.style.overflow = 'hidden';
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.remove('scale-95', 'opacity-0');
-                modalContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('confirmModal');
-            const modalContent = document.getElementById('modalContent');
-            modalContent.classList.remove('scale-100', 'opacity-100');
-            modalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-            }, 300);
-        }
-        
-        function previewFile(input) {
-            const file = input.files[0];
-            const label = document.getElementById('file-label');
-            if(file){
-                label.innerHTML = `<span class="text-primary font-bold">${file.name}</span> (อัปโหลดแล้ว)`;
-            }
-        }
-
-        document.getElementById('confirmModal')?.addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
     </script>
 </body>
 @endsection

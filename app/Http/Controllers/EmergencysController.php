@@ -17,6 +17,7 @@ use App\Models\Phone_emergency;
 use App\Models\User_officer;
 use App\Models\Area;
 use App\Models\My_log;
+use Intervention\Image\Facades\Image;
 
 class EmergencysController extends Controller
 {
@@ -57,33 +58,59 @@ class EmergencysController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validate ข้อมูล
+        // Validate ข้อมูล
         $request->validate([
             'name_reporter' => 'required|string|max:255',
             'phone_reporter' => 'required|string|max:20',
             'emergency_type' => 'required',
             'emergency_detail' => 'required',
-            'emergency_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // Max 5MB
+            'photo_cam' => 'nullable|image|mimes:jpeg,png,jpg,gif', 
+            'photo_gal' => 'nullable|image|mimes:jpeg,png,jpg,gif',
         ]);
 
         DB::beginTransaction();
 
         try {
-            // 2. จัดการไฟล์รูปภาพ (ถ้ามี)
+            // อัปเดตเบอร์โทรศัพท์ผู้ใช้เข้าตาราง users
+            if (auth()->check()) {
+                auth()->user()->update([
+                    'phone' => $request->phone_reporter
+                ]);
+            }
+
+            // จัดการไฟล์รูปภาพ (ถ้ามี)
             $photoPath = null;
-            if ($request->hasFile('emergency_photo')) {
-                $file = $request->file('emergency_photo');
-                
-                // ดึงนามสกุลไฟล์เดิม (เช่น jpg, png)
+            // รับไฟล์จากปุ่มถ่ายภาพ หรือ ปุ่มเลือกจากอัลบั้ม
+            $file = $request->file('photo_cam') ?? $request->file('photo_gal');
+            
+            if ($file) {
+                // ดึงนามสกุลไฟล์เดิม
                 $extension = $file->getClientOriginalExtension();
                 
                 // ตั้งชื่อไฟล์
                 $filename = date('Ymd_His') . '_' . rand(100, 999) . '.' . $extension;
                 
-                // บันทึกไปที่ storage/app/public/emergencies
-                $path = $file->storeAs('public/emergencys', $filename);
+                // กำหนด Path ปลายทางที่เป็น Absolute Path (สำหรับ Intervention)
+                $destinationPath = storage_path('app/public/emergencys');
                 
-                // Path สำหรับเรียกใช้งานหน้าเว็บ
+                // สร้างโฟลเดอร์ถ้ายังไม่มี
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0775, true);
+                }
+
+                // Intervention Image ย่อขนาดและลด Quality
+                $img = Image::make($file->getRealPath());
+                
+                // ย่อขนาดให้ความกว้างไม่เกิน 1200px (ความสูงจะปรับตามสัดส่วน)
+                $img->resize(1200, null, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize(); // ป้องกันภาพเล็กถูกขยายจนแตก
+                });
+
+                // เซฟลงโฟลเดอร์ พร้อมลด Quality เหลือ 75%
+                $img->save($destinationPath . '/' . $filename, 75);
+                
+                // Path สำหรับเรียกใช้งานหน้าเว็บ (ดึงผ่าน Storage Symlink)
                 $photoPath = 'storage/emergencys/' . $filename;
             }
 
@@ -94,7 +121,7 @@ class EmergencysController extends Controller
                 $typeReporter = $request->input('type_reporter_other');
             }
 
-            // 3. บันทึกตาราง emergencys
+            // บันทึกตาราง emergencys
             $emergency = new Emergency();
             $emergency->user_id = auth()->id();
             $emergency->name_reporter = $request->name_reporter;
@@ -117,21 +144,10 @@ class EmergencysController extends Controller
             
             $emergency->save();
 
-            // $user_commands = User_command::where('status', 'Standby')
-            //     ->orderBy('number', 'ASC')
-            //     ->first();
-
-            // if ($user_commands) {
-            //     $to_command_id = $user_commands->id;
-            // } else {
-            //     $to_command_id = "No Command";
-            // }
-
-            // 4. บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
+            // บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
             $operation = new Emergency_operation();
             $operation->emergency_id = $emergency->id;
             $operation->status = 'รับแจ้งเหตุ';
-            // $operation->notify = $to_command_id;
             $operation->notify = "none";
             $operation->time_create_sos = Carbon::now();
             $operation->save();
@@ -144,10 +160,6 @@ class EmergencysController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage())->withInput();
         }
-
-        // $requestData = $request->all();
-        // Emergency::create($requestData);
-        // return redirect('emergencys')->with('flash_message', 'Emergency added!');
     }
 
     /**
