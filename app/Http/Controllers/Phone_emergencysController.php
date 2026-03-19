@@ -7,6 +7,8 @@ use App\Http\Requests;
 
 use App\Models\Phone_emergency;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class Phone_emergencysController extends Controller
 {
@@ -15,22 +17,15 @@ class Phone_emergencysController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index(Request $request)
+    public function index()
     {
-        $keyword = $request->get('search');
-        $perPage = 25;
-
-        if (!empty($keyword)) {
-            $phone_emergencys = Phone_emergency::where('name', 'LIKE', "%$keyword%")
-                ->orWhere('phone', 'LIKE', "%$keyword%")
-                ->orWhere('priority', 'LIKE', "%$keyword%")
-                ->orWhere('status', 'LIKE', "%$keyword%")
-                ->latest()->paginate($perPage);
-        } else {
-            $phone_emergencys = Phone_emergency::latest()->paginate($perPage);
-        }
-
-        return view('phone_emergencys.index', compact('phone_emergencys'));
+        // ดึงข้อมูลทั้งหมด เรียงตามลำดับความสำคัญ (priority) จากน้อยไปมาก
+        $phones = DB::table('phone_emergencys')
+            ->orderBy('priority', 'asc')
+            ->orderBy('id', 'desc') // ถ้า priority เท่ากัน ให้อันใหม่ขึ้นก่อน
+            ->get();
+            
+        return view('phone_emergencys.index', compact('phones'));
     }
 
     /**
@@ -52,12 +47,34 @@ class Phone_emergencysController extends Controller
      */
     public function store(Request $request)
     {
-        
-        $requestData = $request->all();
-        
-        Phone_emergency::create($requestData);
+        // Validate ตรวจสอบข้อมูลเบื้องต้น
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:50',
+            'priority' => 'nullable|integer',
+        ]);
 
-        return redirect('phone_emergencys')->with('flash_message', 'Phone_emergency added!');
+        $id = $request->input('id'); 
+        
+        // เตรียมข้อมูลสำหรับบันทึก
+        $data = [
+            'name'       => $request->input('name'),
+            'phone'      => $request->input('phone'),
+            'priority'   => $request->input('priority', 999999), // ถ้าไม่ใส่ ให้เริ่มต้นที่ 999999
+            'status'     => $request->input('status', 'Active'),
+            'updated_at' => Carbon::now(),
+        ];
+
+        if (!empty($id)) {
+            // กรณี แก้ไข (Update)
+            DB::table('phone_emergencys')->where('id', $id)->update($data);
+            return back()->with('success', 'แก้ไขข้อมูลเบอร์โทรฉุกเฉินสำเร็จ!');
+        } else {
+            // กรณี เพิ่มใหม่ (Insert)
+            $data['created_at'] = Carbon::now();
+            DB::table('phone_emergencys')->insert($data);
+            return back()->with('success', 'เพิ่มเบอร์โทรฉุกเฉินใหม่สำเร็จ!');
+        }
     }
 
     /**
@@ -114,10 +131,59 @@ class Phone_emergencysController extends Controller
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
-        Phone_emergency::destroy($id);
+        $id = $request->input('id');
+        
+        if (!empty($id)) {
+            DB::table('phone_emergencys')->where('id', $id)->delete();
+            return back()->with('success', 'ลบข้อมูลสำเร็จ!');
+        }
+        
+        return back()->with('error', 'ไม่พบข้อมูลที่ต้องการลบ');
+    }
 
-        return redirect('phone_emergencys')->with('flash_message', 'Phone_emergency deleted!');
+    public function updateStatus(Request $request)
+    {
+        $id = $request->input('id');
+        $status = $request->input('status');
+
+        if (!empty($id) && !empty($status)) {
+            DB::table('phone_emergencys')->where('id', $id)->update([
+                'status' => $status,
+                'updated_at' => Carbon::now(),
+            ]);
+            
+            return response()->json(['success' => true, 'message' => 'อัปเดตสถานะสำเร็จ']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการส่งข้อมูล'], 400);
+    }
+
+    // อัปเดตลำดับการแสดงผลจากการลาก (Drag & Drop)
+    public function updatePriority(Request $request)
+    {
+        $order = $request->input('order');
+
+        if (!empty($order) && is_array($order)) {
+            DB::beginTransaction();
+            try {
+                foreach ($order as $index => $id) {
+                    DB::table('phone_emergencys')->where('id', $id)->update([
+                        'priority' => $index + 1,
+                        'updated_at' => Carbon::now()
+                    ]);
+                }
+                
+                DB::commit();
+                return response()->json(['success' => true]);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            }
+        }
+
+        return response()->json(['success' => false]);
     }
 }

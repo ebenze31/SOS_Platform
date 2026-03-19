@@ -90,7 +90,7 @@
             
             <div class="hidden sm:flex items-center gap-2">
                 
-                <a href="{{ url('/dashboard') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
+                <a href="{{ url('/demo/dashboard') }}" class="flex items-center justify-center gap-2 w-36 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-[18px]">dashboard</span>
                     Dashboard
                 </a>
