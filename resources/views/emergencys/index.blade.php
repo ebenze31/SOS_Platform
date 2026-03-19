@@ -96,12 +96,11 @@
         <div class="flex min-h-full items-center justify-center p-4 ">
             <div class=" relative w-full max-w-md my-8 bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
 
-                <header class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1a2632] sticky top-0 z-10 rounded-t-2xl">
+                <header class="px-6 md:px-8 py-3 md:py-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1a2632] sticky top-0 z-10 rounded-t-2xl">
                     <div>
                         <h1 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight">รายงานเหตุการณ์</h1>
-                        <p class="text-xs text-slate-400 mt-1 uppercase tracking-wide">แจ้งเหตุฉุกเฉิน</p>
                     </div>
-                    <button onclick="closeModal()" class="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-sm transition-colors">
+                    <button onclick="closeModal()" class="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-sm transition-colors">
                         <span class="material-symbols-outlined text-xl">close</span>
                     </button>
                 </header>
@@ -113,94 +112,82 @@
                     <input type="hidden" name="emergency_lng" id="lng_input" value="">
                     <input type="hidden" name="emergency_location" id="location_input" value="">
 
-                    <section class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50">
-                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">ข้อมูลผู้แจ้ง</h2>
+                    <section class="px-4 md:px-5 py-3 md:py-3 border-b border-slate-100 dark:border-slate-700/50">
                         <div class="grid grid-cols-1 gap-4 md:gap-5">
                             <div class="space-y-1.5">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="reporter-name">ชื่อผู้แจ้ง</label>
+                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="reporter-name">ข้อมูลผู้แจ้ง</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                                         <span class="material-symbols-outlined text-[18px]">person</span>
                                     </div>
-                                    <input required name="name_reporter" value="{{ old('name_reporter', auth()->user()->name ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="reporter-name" placeholder="ชื่อ-นามสกุล" type="text" />
+                                    <input required name="name_reporter" value="{{ old('name_reporter', auth()->user()->name ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="reporter-name" placeholder="ชื่อผู้แจ้ง" type="text" />
                                 </div>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">เบอร์โทรศัพท์</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                                         <span class="material-symbols-outlined text-[18px]">call</span>
                                     </div>
-                                    <input required name="phone_reporter" value="{{ old('phone_reporter', auth()->user()->phone ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="phone-number" placeholder="08X-XXX-XXXX" type="tel" />
+                                    <input required name="phone_reporter" value="{{ old('phone_reporter', auth()->user()->phone ?? '') }}" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow" id="phone-number" placeholder="เบอร์ติดต่อ" type="tel" />
                                 </div>
                             </div>
-                        </div>
 
-                        {{-- เปลี่ยนประเภทผู้แจ้ง --}}
-                        <div class="space-y-3 pt-4">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">ประเภทผู้แจ้ง</label>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                
-                                @foreach(['ผู้ประสบเหตุ', 'ญาติ', 'พลเมืองดี', 'อื่นๆ'] as $type)
-                                <label class="cursor-pointer relative">
-                                    <input type="radio" name="type_reporter" value="{{ $type }}" class="peer sr-only" required onchange="toggleOtherReporter(this.value)">
-                                    <div class="w-full py-2 px-1 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all text-center peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:ring-1 peer-checked:ring-primary dark:peer-checked:bg-primary/20">
-                                        <span class="text-xs font-medium">{{ $type }}</span>
+                            <div class="space-y-1.5">
+                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">ประเภทผู้แจ้ง</label>
+                                <div class="relative">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                        @foreach(['ผู้ประสบเหตุ', 'ญาติ', 'พลเมืองดี', 'อื่นๆ'] as $type)
+                                        <label class="cursor-pointer relative">
+                                            <input type="radio" name="type_reporter" value="{{ $type }}" class="peer sr-only" required onchange="toggleOtherReporter(this.value)">
+                                            <div class="w-full py-1 px-1 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all text-center peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:ring-1 peer-checked:ring-primary dark:peer-checked:bg-primary/20">
+                                                <span class="text-xs font-medium">{{ $type }}</span>
+                                            </div>
+                                        </label>
+                                        @endforeach
                                     </div>
-                                </label>
-                                @endforeach
-                            </div>
 
-                            {{-- ช่องกรอกอื่นๆ ซ่อนไว้เป็นค่าเริ่มต้น --}}
-                            <div id="other_reporter_wrapper" class="hidden mt-2">
-                                <input type="text" id="type_reporter_other" name="type_reporter_other" placeholder="โปรดระบุประเภทผู้แจ้ง..." class="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow">
-                            </div>
-                        </div>
-                    </section>
-                    
-                    <section class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50">
-                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">ประเภทเหตุการณ์</h2>
-                        <div class="space-y-1.5">
-                            <label class="sr-only" for="topic">ประเภท</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                                    <span class="material-symbols-outlined text-[18px]">category</span>
-                                </div>
-                                <select required name="emergency_type" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow appearance-none" id="topic">
-                                    <option disabled="" selected="" value="">เลือกประเภทเหตุการณ์...</option>
-                                    {{-- ดึงข้อมูลจาก DB --}}
-                                    @foreach($emergencyTypes as $type)
-                                        <option value="{{ $type->name_emergency }}" {{ old('emergency_type') == $type->name_emergency ? 'selected' : '' }}>
-                                            {{ $type->name_emergency }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                                    {{-- ช่องกรอกอื่นๆ ซ่อนไว้เป็นค่าเริ่มต้น --}}
+                                    <div id="other_reporter_wrapper" class="hidden mt-2">
+                                        <input type="text" id="type_reporter_other" name="type_reporter_other" placeholder="โปรดระบุประเภทผู้แจ้ง..." class="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </section>
 
-                    <section class="px-6 md:px-8 py-5 md:py-6 border-b border-slate-100 dark:border-slate-700/50">
-                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">รายละเอียดเหตุการณ์</h2>
-                        <div class="space-y-1.5">
-                            <textarea required name="emergency_detail" class="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow resize-none" id="description" placeholder="กรุณาอธิบายเหตุการณ์โดยละเอียด รวมถึงสถานที่และสถานการณ์ปัจจุบัน..." rows="4">{{ old('emergency_detail') }}</textarea>
-                        </div>
-                    </section>
-
-                    <section class="px-6 md:px-8 py-5 md:py-6">
-                        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">แนบรูปภาพเหตุการณ์</h2>
-                        <label for="dropzone-file" class="group relative flex flex-col items-center justify-center w-full h-28 md:h-32 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 hover:border-primary/50 dark:bg-slate-800/30 dark:border-slate-700 dark:hover:bg-slate-800 dark:hover:border-primary/50 transition-all cursor-pointer">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6" id="preview-area">
-                                <div class="h-9 w-9 md:h-10 md:w-10 mb-2 md:mb-3 rounded-full bg-white shadow-sm flex items-center justify-center text-primary dark:bg-slate-700 dark:text-primary-400 ring-1 ring-slate-900/5 group-hover:scale-110 transition-transform duration-300">
-                                    <span class="material-symbols-outlined text-lg md:text-xl">cloud_upload</span>
+                            <div class="space-y-1.5">
+                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">ข้อมูลการแจ้งเหตุ</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                        <span class="material-symbols-outlined text-[18px]">category</span>
+                                    </div>
+                                    <select required name="emergency_type" class="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white transition-shadow appearance-none" id="topic">
+                                        <option disabled="" selected="" value="">เลือกประเภทเหตุการณ์</option>
+                                        {{-- ดึงข้อมูลจาก DB --}}
+                                        @foreach($emergencyTypes as $type)
+                                            <option value="{{ $type->name_emergency }}" {{ old('emergency_type') == $type->name_emergency ? 'selected' : '' }}>
+                                                {{ $type->name_emergency }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                                    </div>
                                 </div>
-                                <p class="mb-1 text-xs md:text-sm text-slate-600 dark:text-slate-300" id="file-label"><span class="font-semibold">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง</p>
-                                <p class="text-[10px] md:text-xs text-slate-400 dark:text-slate-500">รองรับไฟล์รูปภาพ (ขนาดสูงสุด 5MB)</p>
+                                <div class="relative">
+                                    <textarea required name="emergency_detail" class="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500 transition-shadow resize-none" id="description" placeholder="อธิบายรายละเอียดเหตุการณ์" rows="2">{{ old('emergency_detail') }}</textarea>
+                                </div>
                             </div>
-                            <input name="emergency_photo" id="dropzone-file" type="file" class="hidden" accept="image/*" onchange="previewFile(this)" />
-                        </label>
+
+                            <div class="space-y-1.5">
+                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-200" for="phone-number">รูปภาพ</label>
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6" id="preview-area">
+                                    <div class="h-9 w-9 md:h-10 md:w-10 mb-2 md:mb-3 rounded-full bg-white shadow-sm flex items-center justify-center text-primary dark:bg-slate-700 dark:text-primary-400 ring-1 ring-slate-900/5 group-hover:scale-110 transition-transform duration-300">
+                                        <span class="material-symbols-outlined text-lg md:text-xl">cloud_upload</span>
+                                    </div>
+                                    <p class="mb-1 text-xs md:text-sm text-slate-600 dark:text-slate-300" id="file-label"><span class="font-semibold">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง</p>
+                                    <p class="text-[10px] md:text-xs text-slate-400 dark:text-slate-500">รองรับไฟล์รูปภาพ (ขนาดสูงสุด 5MB)</p>
+                                </div>
+                                <input name="emergency_photo" id="dropzone-file" type="file" class="hidden" accept="image/*" onchange="previewFile(this)" />
+                            </div>
+
+                        </div>
                     </section>
 
                     <footer class="px-6 md:px-8 py-4 md:py-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 sticky bottom-0 rounded-b-2xl">
