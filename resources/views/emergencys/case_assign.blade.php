@@ -2,6 +2,16 @@
 
 @section('content')
 
+<div id="statusToast" class="fixed top-20 right-5 z-[100] transform transition-all duration-300 translate-x-full opacity-0 flex items-center gap-3 bg-white border-l-4 border-primary px-4 py-3 rounded-lg shadow-xl min-w-[300px]">
+    <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0" id="toastIconContainer">
+        <span class="material-symbols-outlined text-[18px]" id="toastIcon">notifications</span>
+    </div>
+    <div>
+        <h4 class="text-sm font-bold text-slate-900" id="toastTitle">อัปเดตสถานะ</h4>
+        <p class="text-xs text-slate-500" id="toastMessage">ระบบกำลังทำงาน...</p>
+    </div>
+</div>
+
 <div class="bg-background-light h-[calc(100vh-71.75px)] dark:bg-background-dark text-slate-900 flex flex-col relative mt-[71.75px]">
     <div class="flex-1 bg-slate-50/50 p-4 sm:p-6 z-0 h-full">
         <div class="h-full max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -93,7 +103,7 @@
                 </div>
             </div>
 
-            {{-- สั่งการและมอบหมายงาน --}}
+            {{-- สั่งการและมอบหมายงาน / ติดตามสถานะ --}}
             <div class="lg:col-span-5 xl:col-span-4 flex flex-col h-full gap-6">
                 
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 shrink-0">
@@ -102,8 +112,8 @@
                     </div>
                     <div class="flex bg-slate-100 p-1.5 rounded-lg border border-slate-200 gap-1.5">
                         <div class="w-[70%] py-3 px-2 rounded-md bg-white text-slate-900 shadow-sm border border-slate-200 text-[12px] font-bold transition-all flex items-center justify-center relative overflow-hidden text-center leading-tight">
-                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-md"></div>
-                            {{ $emergency->operation->status ?? 'รอรับเรื่อง' }}
+                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-md" id="status-color-bar"></div>
+                            <span id="current-status-text">{{ $emergency->operation->status ?? 'รอรับเรื่อง' }}</span>
                         </div>
                         <button type="button" onclick="openCompleteModal()" class="w-[30%] py-3 px-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 shadow-sm border border-emerald-200 text-[12px] font-bold transition-all flex items-center justify-center gap-1">
                             เสร็จสิ้น
@@ -112,120 +122,177 @@
                 </div>
 
                 <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative min-h-[400px]">
-                    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-white z-10 shrink-0">
-                        <div>
-                            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">เจ้าหน้าที่</h3>
-                            <p class="text-[10px] text-red-400 font-medium mt-0.5">* อ้างอิงจากพิกัดล่าสุดที่ระบบบันทึกไว้</p>
-                        </div>
+                    
+                    @php
+                        // ตัวแปรเช็คว่ามีคนรับงานและกำลังเดินทางอยู่หรือไม่
+                        $currentOpStatus = $emergency->operation->status ?? '';
+                        $isActiveOperation = in_array($currentOpStatus, ['กำลังเดินทาง', 'ถึงที่เกิดเหตุ', 'เสร็จสิ้น']);
                         
-                        @if($isOutOfArea)
-                        <div class="bg-red-50 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
-                            <span class="material-symbols-outlined text-[16px]">error</span>
-                            <span class="text-[10px] font-bold">ไม่มีจนท.ในพื้นที่</span>
+                        // ค้นหาข้อมูลเจ้าหน้าที่ที่รับงาน จาก collection officers เดิม
+                        $acceptedOfficerId = $emergency->operation->officer_id ?? null;
+                        $acceptedOfficer = collect($officers)->firstWhere('id', $acceptedOfficerId);
+                    @endphp
+
+                    {{-- ================= โหมด 1: รอการมอบหมายงาน (Assign Form) ================= --}}
+                    <div id="assign-officer-section" class="flex flex-col h-full {{ $isActiveOperation ? 'hidden' : '' }}">
+                        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-white z-10 shrink-0">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">เจ้าหน้าที่</h3>
+                                <p class="text-[10px] text-red-400 font-medium mt-0.5">* อ้างอิงจากพิกัดล่าสุดที่ระบบบันทึกไว้</p>
+                            </div>
+                            
+                            @if($isOutOfArea)
+                            <div class="bg-red-50 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                <span class="material-symbols-outlined text-[16px]">error</span>
+                                <span class="text-[10px] font-bold">ไม่มีจนท.ในพื้นที่</span>
+                            </div>
+                            @else
+                            <div class="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                เลือกเจ้าหน้าที่เข้าช่วยเหลือ
+                            </div>
+                            @endif
                         </div>
-                        @else
-                        <div class="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                            เลือกเจ้าหน้าที่เข้าช่วยเหลือ
-                        </div>
-                        @endif
-                    </div>
 
-                    <form action="{{ route('emergency.assign', $emergency->id ?? 0) }}" method="POST" class="flex flex-col flex-1 overflow-hidden" id="assignForm">
-                        @csrf
-                        
-                        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-slate-50/30">
-                            @forelse($officers as $officer)
-                            @php
-                                $refusedList = json_decode($emergency->operation->officer_refuse ?? '[]', true) ?? [];
-                                $isRefused = in_array($officer->id, $refusedList);
-                                $isWaiting = ($emergency->operation->waiting_reply ?? null) == $officer->id;
+                        <form action="{{ route('emergency.assign', $emergency->id ?? 0) }}" method="POST" class="flex flex-col flex-1 overflow-hidden" id="assignForm">
+                            @csrf
+                            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-slate-50/30">
+                                @forelse($officers as $officer)
+                                @php
+                                    $refusedList = json_decode($emergency->operation->officer_refuse ?? '[]', true) ?? [];
+                                    $isRefused = in_array($officer->id, $refusedList);
+                                    $isWaiting = ($emergency->operation->waiting_reply ?? null) == $officer->id;
 
-                                // ตรวจสอบและดึงข้อมูลเวลารอถ้าเจ้าหน้าที่มีสถานะ no_respond ในรอบก่อนหน้า
-                                $logCommands = json_decode($emergency->operation->log_command ?? '[]', true) ?? [];
-                                $isNoRespond = false;
-                                $noRespondTimeMin = 0;
-                                $noRespondTimeSec = 0;
+                                    $logCommands = json_decode($emergency->operation->log_command ?? '[]', true) ?? [];
+                                    $isNoRespond = false;
+                                    $noRespondTimeMin = 0;
+                                    $noRespondTimeSec = 0;
 
-                                // วนลูปจาก log ล่าสุดเพื่อหาสถานะล่าสุดของเจ้าหน้าที่คนนี้
-                                foreach(array_reverse($logCommands) as $log) {
-                                    if(($log['sendTo'] ?? null) == $officer->id) {
-                                        if(($log['status'] ?? '') === 'no_respond') {
-                                            $isNoRespond = true;
-                                            $sumTime = $log['sum_time'] ?? 0;
-                                            $noRespondTimeMin = floor($sumTime / 60);
-                                            $noRespondTimeSec = $sumTime % 60;
+                                    foreach(array_reverse($logCommands) as $log) {
+                                        if(($log['sendTo'] ?? null) == $officer->id) {
+                                            if(($log['status'] ?? '') === 'no_respond') {
+                                                $isNoRespond = true;
+                                                $sumTime = $log['sum_time'] ?? 0;
+                                                $noRespondTimeMin = floor($sumTime / 60);
+                                                $noRespondTimeSec = $sumTime % 60;
+                                            }
+                                            break;
                                         }
-                                        break;
                                     }
-                                }
-                            @endphp
+                                @endphp
 
-                            <label class="relative flex items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:checked]:bg-blue-50/20 {{ $isRefused || $isWaiting ? 'opacity-50 pointer-events-none cursor-not-allowed' : '' }}">
-                                <input name="officer_id" value="{{ $officer->id }}" data-lat="{{ $officer->lat }}" data-lng="{{ $officer->lng }}" class="absolute right-4 top-4 rounded-full border-slate-300 text-primary focus:ring-primary h-5 w-5 cursor-pointer peer assign-radio" type="radio" required {{ $isRefused || $isWaiting ? 'disabled' : '' }} />
-                                <div class="flex items-center gap-4 w-full">
-                                    <div class="size-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 peer-checked:bg-primary peer-checked:text-white transition-colors">
-                                        <span class="material-symbols-outlined text-[24px]">directions_car</span>
-                                    </div>
-                                    <div class="flex-1 pr-8">
-                                        <div class="flex justify-between items-start mb-1">
-                                            <div class="flex items-center gap-2">
-                                                <h4 class="font-bold text-slate-900">{{ $officer->name_officer }}</h4>
-                                                @if($officer->level)
-                                                    <span class="bg-slate-100 text-slate-600 text-[9px] px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ $officer->level }}</span>
+                                <label class="relative flex items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:checked]:bg-blue-50/20 {{ $isRefused || $isWaiting ? 'opacity-50 pointer-events-none cursor-not-allowed' : '' }}">
+                                    <input name="officer_id" value="{{ $officer->id }}" data-lat="{{ $officer->lat }}" data-lng="{{ $officer->lng }}" class="absolute right-4 top-4 rounded-full border-slate-300 text-primary focus:ring-primary h-5 w-5 cursor-pointer peer assign-radio" type="radio" required {{ $isRefused || $isWaiting ? 'disabled' : '' }} />
+                                    <div class="flex items-center gap-4 w-full">
+                                        <div class="size-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 peer-checked:bg-primary peer-checked:text-white transition-colors">
+                                            <span class="material-symbols-outlined text-[24px]">directions_car</span>
+                                        </div>
+                                        <div class="flex-1 pr-8">
+                                            <div class="flex justify-between items-start mb-1">
+                                                <div class="flex items-center gap-2">
+                                                    <h4 class="font-bold text-slate-900">{{ $officer->name_officer }}</h4>
+                                                    @if($officer->level)
+                                                        <span class="bg-slate-100 text-slate-600 text-[9px] px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ $officer->level }}</span>
+                                                    @endif
+                                                </div>
+                                                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                                                    {{ $officer->distance_km }} กม.
+                                                </span>
+                                            </div>
+                                            <div class="flex items-center gap-3 text-xs text-slate-500">
+                                                <span class="flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[14px]">schedule</span> 
+                                                    ~{{ max(1, round($officer->distance_km * 1.5)) }} นาที
+                                                </span>
+                                                
+                                                @if($officer->type)
+                                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <span class="font-medium text-slate-700">{{ $officer->type }}</span>
+                                                @endif
+                                                
+                                                @if($officer->amount_help !== null)
+                                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <span class="font-medium text-slate-500 text-[10px]">ช่วยเหลือแล้ว {{ $officer->amount_help }} ครั้ง</span>
                                                 @endif
                                             </div>
-                                            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                                                {{ $officer->distance_km }} กม.
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center gap-3 text-xs text-slate-500">
-                                            <span class="flex items-center gap-1">
-                                                <span class="material-symbols-outlined text-[14px]">schedule</span> 
-                                                ~{{ max(1, round($officer->distance_km * 1.5)) }} นาที
-                                            </span>
-                                            
-                                            @if($officer->type)
-                                                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                <span class="font-medium text-slate-700">{{ $officer->type }}</span>
-                                            @endif
-                                            
-                                            @if($officer->amount_help !== null)
-                                                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                <span class="font-medium text-slate-500 text-[10px]">ช่วยเหลือแล้ว {{ $officer->amount_help }} ครั้ง</span>
-                                            @endif
-                                        </div>
 
-                                        @if($isWaiting)
-                                            <div class="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-block">
-                                                กำลังรอการตอบรับ...
-                                            </div>
-                                        @elseif($isRefused)
-                                            <div class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 inline-block">
-                                                ปฏิเสธการรับงาน
-                                            </div>
-                                        @elseif($isNoRespond)
-                                            <div class="mt-2 text-[10px] font-bold text-[#f87171] bg-[#f87171]/10 px-2 py-1 rounded-lg border border-[#f87171]/30 inline-block">
-                                                ไม่มีการตอบสนอง เวลารอ {{ $noRespondTimeMin > 0 ? $noRespondTimeMin . ' นาที ' : '' }}{{ $noRespondTimeSec }} วินาที
-                                            </div>
-                                        @endif
+                                            @if($isWaiting)
+                                                <div class="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-block">กำลังรอการตอบรับ...</div>
+                                            @elseif($isRefused)
+                                                <div class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 inline-block">ปฏิเสธการรับงาน</div>
+                                            @elseif($isNoRespond)
+                                                <div class="mt-2 text-[10px] font-bold text-[#f87171] bg-[#f87171]/10 px-2 py-1 rounded-lg border border-[#f87171]/30 inline-block">
+                                                    ไม่มีการตอบสนอง เวลารอ {{ $noRespondTimeMin > 0 ? $noRespondTimeMin . ' นาที ' : '' }}{{ $noRespondTimeSec }} วินาที
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
+                                </label>
+                                @empty
+                                <div class="flex flex-col items-center justify-center py-10 text-slate-400 h-full">
+                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">person_off</span>
+                                    <p class="text-sm font-bold text-slate-600 mb-1">ไม่พบเจ้าหน้าที่แสตนด์บาย</p>
                                 </div>
-                            </label>
-                            @empty
-                            <div class="flex flex-col items-center justify-center py-10 text-slate-400 h-full">
-                                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">person_off</span>
-                                <p class="text-sm font-bold text-slate-600 mb-1">ไม่พบเจ้าหน้าที่แสตนด์บาย</p>
+                                @endforelse
                             </div>
-                            @endforelse
-                        </div>
 
-                        <div class="p-5 border-t border-slate-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 z-20">
-                            <button type="submit" id="submitAssignBtn" class="w-full py-4 bg-primary hover:bg-blue-600 text-white font-bold text-sm uppercase tracking-wide rounded-xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed" disabled>
-                                <span>สั่งการและมอบหมายงาน</span>
-                                <span class="material-symbols-outlined">send</span>
-                            </button>
+                            <div class="p-5 border-t border-slate-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 z-20">
+                                <button type="submit" id="submitAssignBtn" class="w-full py-4 bg-primary hover:bg-blue-600 text-white font-bold text-sm uppercase tracking-wide rounded-xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed" disabled>
+                                    <span>สั่งการและมอบหมายงาน</span>
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {{-- ================= โหมด 2: กำลังปฏิบัติหน้าที่ (Real-time Tracking) ================= --}}
+                    <div id="active-officer-section" class="flex flex-col h-full {{ !$isActiveOperation ? 'hidden' : '' }} bg-slate-50/50 p-5">
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">เจ้าหน้าที่ผู้รับผิดชอบ</h3>
+                        
+                        <div class="bg-white p-5 rounded-xl border border-blue-200 shadow-md relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500 rounded-bl-full opacity-10"></div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="size-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
+                                    <span class="material-symbols-outlined text-[28px]">support_agent</span>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-lg text-slate-900" id="active-officer-name">{{ $acceptedOfficer->name_officer ?? 'ไม่ระบุชื่อ' }}</h4>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded border border-slate-200">{{ $acceptedOfficer->type ?? 'หน่วยกู้ภัย' }}</span>
+                                    </div>
+                                    @if($acceptedOfficer && isset($acceptedOfficer->phone))
+                                    <a href="tel:{{ $acceptedOfficer->phone }}" class="inline-flex items-center gap-1.5 text-blue-600 text-xs font-bold mt-3 hover:underline">
+                                        <span class="material-symbols-outlined text-[14px]">call</span> โทรติดต่อเจ้าหน้าที่
+                                    </a>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <hr class="my-4 border-slate-100">
+
+                            {{-- ส่วนแสดงระยะทางและเวลา (ซ่อนเมื่อ "ถึงที่เกิดเหตุ") --}}
+                            <div id="routing-info" class="grid grid-cols-2 gap-4 {{ $currentOpStatus == 'ถึงที่เกิดเหตุ' || $currentOpStatus == 'เสร็จสิ้น' ? 'hidden' : '' }}">
+                                <div class="bg-blue-50 rounded-lg p-3 border border-blue-100/50">
+                                    <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-1">ระยะทางที่เหลือ</p>
+                                    <p class="text-lg font-bold text-slate-800" id="distance-text">คำนวณ...</p>
+                                </div>
+                                <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100/50">
+                                    <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide mb-1">เวลาโดยประมาณ</p>
+                                    <p class="text-lg font-bold text-slate-800" id="duration-text">คำนวณ...</p>
+                                </div>
+                            </div>
+
+                            {{-- ส่วนแสดงเวลาที่ถึง (โชว์เมื่อ "ถึงที่เกิดเหตุ") --}}
+                            <div id="arrived-info" class="bg-emerald-50 rounded-lg p-4 border border-emerald-200 text-center {{ $currentOpStatus != 'ถึงที่เกิดเหตุ' && $currentOpStatus != 'เสร็จสิ้น' ? 'hidden' : '' }}">
+                                <span class="material-symbols-outlined text-emerald-500 text-3xl mb-1">location_on</span>
+                                <h4 class="font-bold text-emerald-700">เจ้าหน้าที่ถึงที่เกิดเหตุแล้ว</h4>
+                                <p class="text-xs text-emerald-600 mt-1" id="arrived-time-text">
+                                    เวลา: {{ $emergency->operation->arrived_at ? \Carbon\Carbon::parse($emergency->operation->arrived_at)->format('H:i น.') : '-' }}
+                                </p>
+                            </div>
                         </div>
-                    </form>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -268,6 +335,7 @@
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initAssignMap" async defer></script>
 <script>
+    // ================== ส่วนของ UI พื้นฐาน ==================
     function openFullImage(url) {
         window.open(url, '_blank', 'width=1080,height=1080,menubar=no,toolbar=no,location=no,status=no,resizable=yes');
     }
@@ -294,6 +362,7 @@
         }, 300);
     }
 
+    // ================== ระบบเวลา Elapsed Timer ==================
     const sosTime = "{{ $emergency->operation->time_create_sos ? \Carbon\Carbon::parse($emergency->operation->time_create_sos)->toISOString() : $emergency->created_at->toISOString() }}";
     const startTime = new Date(sosTime).getTime();
     
@@ -337,66 +406,26 @@
             dot.classList.add("bg-red-500");
         }
     }
-    
     setInterval(updateTimer, 60000);
     updateTimer();
 
+    // ================== ระบบ Map & Tracking ==================
     let mapInstance;
     let incidentLatLng;
-
-    let currentSelectedRadio = null;
-    const submitBtn = document.getElementById('submitAssignBtn');
+    let officerMarkerMap = null; 
+    let CustomMarker; // ประกาศตัวแปรรับ Class ไว้ข้างนอก
     
-    document.querySelectorAll('.assign-radio').forEach(radio => {
-        radio.addEventListener('click', function(e) {
-            document.querySelectorAll('.officer-pulse').forEach(el => el.classList.add('hidden'));
+    let directionsService;
+    let directionsRenderer;
+    let isRouteDrawn = false;
 
-            if (currentSelectedRadio === this) {
-                this.checked = false;
-                currentSelectedRadio = null;
-                submitBtn.disabled = true;
-                
-                if(mapInstance && incidentLatLng) {
-                    mapInstance.panTo(incidentLatLng);
-                    mapInstance.setZoom(14);
-                }
-            } else {
-                currentSelectedRadio = this;
-                submitBtn.disabled = false;
-
-                const officerId = this.value;
-                const lat = parseFloat(this.dataset.lat);
-                const lng = parseFloat(this.dataset.lng);
-
-                const targetMarker = document.getElementById(`officer-marker-${officerId}`);
-                if (targetMarker) {
-                    targetMarker.querySelector('.officer-pulse').classList.remove('hidden');
-                }
-
-                if(mapInstance && lat && lng) {
-                    const bounds = new google.maps.LatLngBounds();
-                    bounds.extend(incidentLatLng);
-                    bounds.extend({ lat: lat, lng: lng });
-                    mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
-                }
-            }
-        });
-    });
+    let pollingInterval = null;
+    let currentOpStatus = "{{ $currentOpStatus ?? '' }}";
+    const operationId = "{{ $emergency->operation->id ?? '' }}";
 
     function initAssignMap() {
-        const incidentLat = {{ $emergency->emergency_lat ?? 13.7563 }};
-        const incidentLng = {{ $emergency->emergency_lng ?? 100.5018 }};
-        incidentLatLng = { lat: incidentLat, lng: incidentLng };
-
-        mapInstance = new google.maps.Map(document.getElementById("assign-map"), {
-            zoom: 14,
-            center: incidentLatLng,
-            disableDefaultUI: true, 
-            zoomControl: true,
-            mapTypeId: 'roadmap',
-        });
-
-        class CustomMarker extends google.maps.OverlayView {
+        // สร้าง Class ภายในฟังก์ชันนี้ เพื่อให้มั่นใจว่าโหลด google.maps เสร็จแล้ว 100%
+        CustomMarker = class extends google.maps.OverlayView {
             constructor(position, map, htmlContent) {
                 super();
                 this.position = position;
@@ -413,6 +442,7 @@
             }
             draw() {
                 const overlayProjection = this.getProjection();
+                if(!overlayProjection) return;
                 const position = overlayProjection.fromLatLngToDivPixel(this.position);
                 if (this.div) {
                     this.div.style.left = position.x + 'px';
@@ -425,8 +455,33 @@
                     this.div = null;
                 }
             }
-        }
+            updatePosition(newLatLng) {
+                this.position = newLatLng;
+                this.draw();
+            }
+        };
 
+        const incidentLat = {{ $emergency->emergency_lat ?? 13.7563 }};
+        const incidentLng = {{ $emergency->emergency_lng ?? 100.5018 }};
+        incidentLatLng = new google.maps.LatLng(incidentLat, incidentLng);
+
+        mapInstance = new google.maps.Map(document.getElementById("assign-map"), {
+            zoom: 14,
+            center: incidentLatLng,
+            disableDefaultUI: true, 
+            zoomControl: true,
+            mapTypeId: 'roadmap',
+        });
+
+        // สร้าง Services สำหรับวาดเส้นทาง
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: mapInstance,
+            suppressMarkers: true,
+            polylineOptions: { strokeColor: "#3b82f6", strokeWeight: 5, strokeOpacity: 0.8 }
+        });
+
+        // หมุดจุดเกิดเหตุ
         const incidentHtml = `
             <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-50">
                 <div class="relative flex h-10 w-10">
@@ -438,36 +493,181 @@
                 <div class="mt-2 bg-slate-900/90 backdrop-blur text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg border border-slate-700 whitespace-nowrap">
                     จุดเกิดเหตุ
                 </div>
-            </div>
-        `;
+            </div>`;
         new CustomMarker(incidentLatLng, mapInstance, incidentHtml);
 
-        const officersData = @json($officers);
-        
-        officersData.forEach(officer => {
-            if (officer.lat && officer.lng) {
-                let displayName = officer.name_officer;
-                if (displayName.length > 8) {
-                    displayName = displayName.substring(0, 8) + '..';
+        // เช็คว่าอยู่ในโหมดไหน (Assign Form หรือ Tracking)
+        if (['กำลังเดินทาง', 'ถึงที่เกิดเหตุ'].includes(currentOpStatus)) {
+            // ---> โหมด Tracking เจ้าหน้าที่
+            startTracking();
+        } else {
+            // ---> โหมด Assign (ดึงรายชื่อ Standby มาวาดหมุด)
+            const officersData = @json($officers);
+            officersData.forEach(officer => {
+                if (officer.lat && officer.lng) {
+                    let displayName = officer.name_officer;
+                    if (displayName.length > 8) displayName = displayName.substring(0, 8) + '..';
+                    
+                    const officerHtml = `
+                        <div id="officer-marker-${officer.id}" class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-40">
+                            <div class="relative flex h-9 w-9">
+                                <span class="officer-pulse hidden animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60"></span>
+                                <span class="relative inline-flex rounded-full h-9 w-9 bg-blue-600 border-2 border-white shadow-lg items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-[18px]">directions_car</span>
+                                </span>
+                            </div>
+                            <div class="mt-1 bg-white text-slate-900 text-[11px] font-bold px-2.5 py-1 rounded shadow-md border border-slate-200 whitespace-nowrap">
+                                ${displayName}
+                            </div>
+                        </div>`;
+                    new CustomMarker(new google.maps.LatLng(officer.lat, officer.lng), mapInstance, officerHtml);
                 }
-                
-                const officerHtml = `
-                    <div id="officer-marker-${officer.id}" class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-40">
-                        <div class="relative flex h-9 w-9">
-                            <span class="officer-pulse hidden animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60"></span>
-                            <span class="relative inline-flex rounded-full h-9 w-9 bg-blue-600 border-2 border-white shadow-lg items-center justify-center text-white">
-                                <span class="material-symbols-outlined text-[18px]">directions_car</span>
-                            </span>
-                        </div>
-                        <div class="mt-1 bg-white text-slate-900 text-[11px] font-bold px-2.5 py-1 rounded shadow-md border border-slate-200 whitespace-nowrap">
-                            ${displayName}
-                        </div>
-                    </div>
-                `;
-                new CustomMarker({ lat: parseFloat(officer.lat), lng: parseFloat(officer.lng) }, mapInstance, officerHtml);
+            });
+            initAssignClickEvents();
+        }
+    }
+
+    // ================== ระบบคลิก Radio เลือกเจ้าหน้าที่ ==================
+    function initAssignClickEvents() {
+        let currentSelectedRadio = null;
+        const submitBtn = document.getElementById('submitAssignBtn');
+        
+        document.querySelectorAll('.assign-radio').forEach(radio => {
+            radio.addEventListener('click', function(e) {
+                document.querySelectorAll('.officer-pulse').forEach(el => el.classList.add('hidden'));
+
+                if (currentSelectedRadio === this) {
+                    this.checked = false;
+                    currentSelectedRadio = null;
+                    submitBtn.disabled = true;
+                    if(mapInstance && incidentLatLng) {
+                        mapInstance.panTo(incidentLatLng);
+                        mapInstance.setZoom(14);
+                    }
+                } else {
+                    currentSelectedRadio = this;
+                    submitBtn.disabled = false;
+
+                    const officerId = this.value;
+                    const lat = parseFloat(this.dataset.lat);
+                    const lng = parseFloat(this.dataset.lng);
+
+                    const targetMarker = document.getElementById(`officer-marker-${officerId}`);
+                    if (targetMarker) {
+                        targetMarker.querySelector('.officer-pulse').classList.remove('hidden');
+                    }
+
+                    if(mapInstance && lat && lng) {
+                        const bounds = new google.maps.LatLngBounds();
+                        bounds.extend(incidentLatLng);
+                        bounds.extend(new google.maps.LatLng(lat, lng));
+                        mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+                    }
+                }
+            });
+        });
+    }
+
+    // ================== ระบบ Tracking เจ้าหน้าที่ (ดึงข้อมูลทุก 10 วิ) ==================
+    function startTracking() {
+        if (!operationId) return;
+        fetchTrackingData(); 
+        pollingInterval = setInterval(fetchTrackingData, 10000); // 10 วินาที
+    }
+
+    function drawRouteToIncident(startLat, startLng) {
+        if (isRouteDrawn) return; 
+        const startLatLng = new google.maps.LatLng(startLat, startLng);
+
+        directionsService.route({
+            origin: startLatLng,
+            destination: incidentLatLng,
+            travelMode: google.maps.TravelMode.DRIVING
+        }, (response, status) => {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(response);
+                isRouteDrawn = true;
+                const leg = response.routes[0].legs[0];
+                document.getElementById('distance-text').innerText = leg.distance.text;
+                document.getElementById('duration-text').innerText = leg.duration.text;
+            } else {
+                console.error('Directions request failed due to ' + status);
             }
         });
     }
-</script>
 
+    async function fetchTrackingData() {
+        try {
+            const response = await fetch(`/api/emergency/tracking/${operationId}`);
+            const data = await response.json();
+
+            // อัปเดตพิกัดเจ้าหน้าที่ (ถ้ายังไม่ถึงที่เกิดเหตุ)
+            if (data.lat && data.lng && currentOpStatus === 'กำลังเดินทาง') {
+                const newLatLng = new google.maps.LatLng(data.lat, data.lng);
+                
+                if (!officerMarkerMap) {
+                    const officerHtml = `
+                        <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-1000">
+                            <span class="relative inline-flex rounded-full h-10 w-10 bg-blue-600 border-[3px] border-white shadow-xl items-center justify-center text-white">
+                                <span class="material-symbols-outlined text-[20px]">directions_car</span>
+                            </span>
+                        </div>`;
+                    officerMarkerMap = new CustomMarker(newLatLng, mapInstance, officerHtml);
+                    
+                    if(data.start_lat && data.start_lng) {
+                        drawRouteToIncident(data.start_lat, data.start_lng);
+                    }
+                } else {
+                    officerMarkerMap.updatePosition(newLatLng); // หมุดเลื่อน
+                }
+            }
+
+            // เช็คสถานะเปลี่ยน
+            if (data.status !== currentOpStatus) {
+                currentOpStatus = data.status;
+                showToast(`สถานะถูกเปลี่ยนเป็น: ${currentOpStatus}`, 'info');
+                document.getElementById('current-status-text').innerText = currentOpStatus;
+
+                if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
+                    if (officerMarkerMap) officerMarkerMap.onRemove(); // ลบหมุดรถ
+                    directionsRenderer.setMap(null); // ซ่อนเส้นทาง
+                    
+                    document.getElementById('routing-info').classList.add('hidden');
+                    document.getElementById('arrived-info').classList.remove('hidden');
+                    if(data.arrived_time) {
+                        document.getElementById('arrived-time-text').innerText = 'เวลา: ' + data.arrived_time;
+                    }
+                } else if (currentOpStatus === 'เสร็จสิ้น') {
+                    showToast('ภารกิจเสร็จสิ้นเรียบร้อย', 'success');
+                    clearInterval(pollingInterval);
+                }
+            }
+        } catch (error) {
+            console.error('Tracking Error:', error);
+        }
+    }
+
+    // ================== ระบบแจ้งเตือน (Toast) ==================
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('statusToast');
+        document.getElementById('toastMessage').innerText = message;
+        const iconContainer = document.getElementById('toastIconContainer');
+        const icon = document.getElementById('toastIcon');
+
+        if(type === 'success') {
+            iconContainer.className = 'h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0';
+            icon.innerText = 'check_circle';
+            toast.className = 'fixed top-20 right-5 z-[100] transform transition-all duration-300 translate-x-0 opacity-100 flex items-center gap-3 bg-white border-l-4 border-emerald-500 px-4 py-3 rounded-lg shadow-xl min-w-[300px]';
+        } else {
+            iconContainer.className = 'h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0';
+            icon.innerText = 'notifications_active';
+            toast.className = 'fixed top-20 right-5 z-[100] transform transition-all duration-300 translate-x-0 opacity-100 flex items-center gap-3 bg-white border-l-4 border-primary px-4 py-3 rounded-lg shadow-xl min-w-[300px]';
+        }
+
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0', 'opacity-100');
+            toast.classList.add('translate-x-full', 'opacity-0');
+        }, 4000);
+    }
+</script>
 @endsection

@@ -22,3 +22,5 @@ Route::post('/webhook', 'LineWebhookController@handle');
 
 Route::get('/check-notifications', 'NotificationController@check');
 Route::post('/mark-notifications-alert', 'NotificationController@markAlert');
+
+Route::get('/emergency/tracking/{operation_id}', 'EmergencysController@trackingData');

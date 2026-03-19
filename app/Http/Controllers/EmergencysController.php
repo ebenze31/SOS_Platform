@@ -678,4 +678,19 @@ class EmergencysController extends Controller
 
         return view('emergencys.history', compact('emergencies'));
     }
+
+    public function trackingData($id)
+    {
+        $operation = DB::table('emergency_operations')->where('id', $id)->first();
+        $officer = DB::table('user_officers')->where('id', $operation->officer_id)->first();
+
+        return response()->json([
+            'status' => $operation->status,
+            'lat' => $officer->lat ?? null,   
+            'lng' => $officer->lng ?? null,
+            'start_lat' => $operation->start_lat ?? null,
+            'start_lng' => $operation->start_lng ?? null,
+            'arrived_time' => $operation->arrived_at ? Carbon::parse($operation->arrived_at)->format('H:i น.') : null
+        ]);
+    }
 }
