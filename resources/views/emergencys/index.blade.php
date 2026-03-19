@@ -31,7 +31,7 @@
                             <div id="map" class="aspect-[16/9] md:aspect-auto md:h-[400px] w-full bg-slate-200"></div>
                             
                             {{-- Loading Overlay --}}
-                            <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-slate-100/80 z-10">
+                            <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-slate-100/80 z-30">
                                 <div class="flex flex-col items-center">
                                     <span class="material-symbols-outlined animate-spin text-3xl text-primary mb-2">refresh</span>
                                     <span class="text-xs font-bold text-slate-500">กำลังโหลดแผนที่...</span>
@@ -55,7 +55,7 @@
                             </div>
                         </div>
                         <div class="flex w-full md:w-auto flex-col sm:flex-row items-center gap-3 mt-3">
-                            <button onclick="openModal()" class="flex w-full min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-white shadow-lg transition-all hover:bg-blue-700 active:scale-[0.98] order-1 sm:order-2">
+                            <button onclick="checkGPSAndOpenModal()" class="flex w-full min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-white shadow-lg transition-all hover:bg-blue-700 active:scale-[0.98] order-1 sm:order-2">
                                 <span>ยืนยันและส่งข้อมูล</span>
                                 <span class="material-symbols-outlined text-lg">send</span>
                             </button>
@@ -208,6 +208,24 @@
         </div>
     </div>
 
+
+    <div id="gpsAlertModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="relative w-full max-w-sm bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 flex flex-col transform transition-all duration-300 scale-95 opacity-0 text-center" id="gpsAlertModalContent">
+            <div class="p-6">
+                <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 mb-4">
+                    <span class="material-symbols-outlined text-4xl text-red-600 dark:text-red-500">location_off</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">ไม่พบพิกัด GPS</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">กรุณาเปิดการระบุตำแหน่ง (GPS) หรือทำการเลื่อนหมุดบนแผนที่ เพื่อระบุจุดเกิดเหตุก่อนดำเนินการต่อ</p>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/80 rounded-b-2xl">
+                <button onclick="closeGpsAlertModal()" type="button" class="w-full rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors">
+                    ตกลง เข้าใจแล้ว
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Script UI (รูปภาพและ Modal) --}}
     <script>
         const formElement = document.getElementById('sosForm');
@@ -316,60 +334,78 @@
     <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initMap&libraries=places" async defer></script>
     <script>
         let map;
-        let marker;
+        let marker = null;
         let geocoder;
 
         function initMap() {
-            const defaultLocation = { lat: 13.7563, lng: 100.5018 };
+            // ตั้งค่าเริ่มต้นเป็นประเทศไทย (ซูมระดับ 6)
+            const thailandCenter = { lat: 15.8700, lng: 100.9925 };
 
             map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 15,
-                center: defaultLocation,
+                zoom: 6,
+                center: thailandCenter,
                 disableDefaultUI: true,
                 zoomControl: true,
             });
 
             geocoder = new google.maps.Geocoder();
 
-            marker = new google.maps.Marker({
-                position: defaultLocation,
-                map: map,
-                draggable: true,
-                animation: google.maps.Animation.DROP,
-            });
-
-            marker.addListener("dragend", () => {
-                const position = marker.getPosition();
-                updateLocationData(position.lat(), position.lng());
-            });
-
             document.getElementById('map-loading').style.display = 'none';
+            
+            // เริ่มต้นค้นหาพิกัด GPS ทันที
             getCurrentLocation();
+        }
+
+        function createMarker(position) {
+            if (!marker) {
+                marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    draggable: true, // อนุญาตให้ลากขยับหมุดได้
+                    animation: google.maps.Animation.DROP,
+                });
+
+                marker.addListener("dragend", () => {
+                    const pos = marker.getPosition();
+                    updateLocationData(pos.lat(), pos.lng());
+                });
+            } else {
+                // ถ้ามีหมุดอยู่แล้ว แค่ย้ายตำแหน่ง
+                marker.setPosition(position);
+            }
+            
+            // อัปเดตข้อมูลพิกัดลงใน Input ซ่อน และแสดงข้อความ
+            updateLocationData(typeof position.lat === 'function' ? position.lat() : position.lat, 
+                               typeof position.lng === 'function' ? position.lng() : position.lng);
         }
 
         function getCurrentLocation() {
             const statusText = document.getElementById('location-text');
             
             if (navigator.geolocation) {
-                statusText.textContent = "กำลังค้นหาตำแหน่ง...";
+                statusText.textContent = "กำลังค้นหาตำแหน่ง GPS...";
                 
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
+                        // กรณี: หา GPS เจอ!
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
-                        
                         const pos = { lat: lat, lng: lng };
+                        
                         map.setCenter(pos);
-                        marker.setPosition(pos);
-
-                        updateLocationData(lat, lng);
+                        map.setZoom(15);
+                        createMarker(pos);
                     },
-                    () => {
-                        statusText.textContent = "ไม่สามารถระบุตำแหน่งได้ (โปรดตรวจสอบการอนุญาต GPS)";
-                    }
+                    (error) => {
+                        // หา GPS ไม่เจอ หรือผู้ใช้กดไม่อนุญาต (Block)
+                        console.warn("GPS Error:", error.message);
+                        statusText.textContent = "กรุณาอนุญาตการเข้าถึง GPS";
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
                 );
             } else {
-                statusText.textContent = "เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง";
+                // บราว์เซอร์เก่ามาก ไม่รองรับ GPS
+                statusText.textContent = "อุปกรณ์ของคุณไม่รองรับการระบุตำแหน่ง";
             }
         }
 
@@ -397,6 +433,46 @@
                     document.getElementById('location_input').value = `พิกัด: ${lat}, ${lng}`;
                 });
         }
+
+        // ตรวจสอบพิกัดก่อนเปิดฟอร์ม
+        function checkGPSAndOpenModal() {
+            const lat = document.getElementById('lat_input').value;
+            const lng = document.getElementById('lng_input').value;
+
+            if (!lat || !lng || lat === "" || lng === "") {
+                // ถ้าไม่มีพิกัด ให้เปิด Modal แจ้งเตือน
+                openGpsAlertModal();
+            } else {
+                // ถ้ามีพิกัดครบ ให้เปิด Modal ฟอร์มตามปกติ
+                openModal();
+            }
+        }
+
+        function openGpsAlertModal() {
+            const modal = document.getElementById('gpsAlertModal');
+            const modalContent = document.getElementById('gpsAlertModalContent');
+            document.body.style.overflow = 'hidden'; 
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeGpsAlertModal() {
+            const modal = document.getElementById('gpsAlertModal');
+            const modalContent = document.getElementById('gpsAlertModalContent');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto'; 
+            }, 300);
+        }
+
+        document.getElementById('gpsAlertModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeGpsAlertModal();
+        });
     </script>
 </body>
 @endsection

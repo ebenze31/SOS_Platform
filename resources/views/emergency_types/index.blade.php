@@ -50,7 +50,6 @@
                 <table class="w-full text-left border-collapse" id="dataTable">
                     <thead>
                         <tr class="bg-gray-50/50 border-b border-border-color text-xs uppercase tracking-wider text-text-sub font-semibold">
-                            <th class="px-6 py-4 w-[10%] min-w-[80px]">ID</th>
                             <th class="px-6 py-4 w-[50%] min-w-[200px]">ชื่อประเภทการแจ้งเหตุ</th>
                             <th class="px-6 py-4 w-[20%] min-w-[150px]">สถานะ</th>
                             <th class="px-6 py-4 w-[20%] text-right min-w-[120px]">การจัดการ</th>
@@ -59,7 +58,6 @@
                     <tbody class="divide-y divide-border-color bg-white">
                         @forelse($emergencyTypes as $type)
                         <tr class="group hover:bg-primary-light/30 transition-colors {{ $type->status == 'Inactive' ? 'bg-gray-50/30' : '' }}">
-                            <td class="px-6 py-4 align-middle text-sm text-text-sub">{{ $type->id }}</td>
                             <td class="px-6 py-4 align-middle search-target">
                                 <div class="font-bold text-sm {{ $type->status == 'Inactive' ? 'text-gray-400' : 'text-text-main' }}">
                                     {{ $type->name_emergency }}

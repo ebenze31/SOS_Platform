@@ -11,6 +11,8 @@ use App\Models\Emergency_operation;
 use Illuminate\Http\Request;
 use App\Models\Area;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class User_officersController extends Controller
 {
@@ -308,5 +310,51 @@ class User_officersController extends Controller
             'photo_url' => asset($operation->photo_succeed),
             'remark' => $operation->remark_by_helper
         ]);
+    }
+
+    public function showStatus()
+    {
+        $user_id = Auth::id();
+        $officer = DB::table('user_officers')->where('user_id', $user_id)->first();
+
+        // ดักจับกรณีที่ User นี้ยังไม่ได้ลงทะเบียนเป็นเจ้าหน้าที่
+        if (!$officer) {
+            return redirect('/')->with('error', 'คุณยังไม่ได้ลงทะเบียนเป็นเจ้าหน้าที่ระบบครับ');
+        }
+
+        return view('user_officers.switch_status', compact('officer'));
+    }
+
+    public function updateStatusStandby(Request $request)
+    {
+        $status = $request->input('status');
+        $lat = $request->input('lat');
+        $lng = $request->input('lng');
+        $user_id = auth()->id();
+
+        // กันเหนียว เผื่อมีคนพยายามยิง API แก้สถานะตอนติดเคส
+        $officer = DB::table('user_officers')->where('user_id', $user_id)->first();
+        if($officer && $officer->status == 'Helping') {
+            return response()->json(['success' => false, 'message' => 'คุณติดเคสอยู่ ไม่สามารถเปลี่ยนสถานะได้']);
+        }
+
+        if (in_array($status, ['Standby', 'None'])) {
+            // เตรียมข้อมูลอัปเดต
+            $updateData = ['status' => $status];
+            
+            // ถ้ามีการส่งพิกัดมาด้วย ให้อัปเดตพิกัดด้วย
+            if ($lat != null && $lng != null) {
+                $updateData['lat'] = $lat;
+                $updateData['lng'] = $lng;
+            }
+
+            DB::table('user_officers')
+                ->where('user_id', $user_id)
+                ->update($updateData);
+
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'สถานะไม่ถูกต้อง'], 400);
     }
 }
