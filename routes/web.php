@@ -49,7 +49,15 @@ Route::get('/demo/all_officer', function () {
 Route::get('/demo/dashboard', function () {
     return view('demo/dashboard');
 });
-
+Route::get('/demo/history', function () {
+    return view('demo/history');
+});
+Route::get('/demo/switch_status', function () {
+    return view('demo/switch_status');
+});
+Route::get('/demo/profile', function () {
+    return view('demo/profile');
+});
 
 Auth::routes();
 
