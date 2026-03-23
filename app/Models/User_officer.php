@@ -26,7 +26,7 @@ class User_officer extends Model
      *
      * @var array
      */
-    protected $fillable = ['name_officer', 'type', 'vehicle_type', 'level', 'amount_help', 'status', 'lat', 'lng', 'user_id', 'area_id','status_register'];
+    protected $fillable = ['name_officer', 'type', 'vehicle_type', 'level', 'amount_help', 'status', 'lat', 'lng', 'user_id', 'area_id','status_register','amount_refuse'];
 
     public function user()
     {

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\User;
 
 class Emergency extends Model
 {
@@ -30,5 +31,10 @@ class Emergency extends Model
     public function operation()
     {
         return $this->hasOne(Emergency_operation::class, 'emergency_id', 'id')->latest();
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 }

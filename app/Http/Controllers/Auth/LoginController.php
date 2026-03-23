@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\My_log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
@@ -50,6 +51,31 @@ class LoginController extends Controller
         return 'username';
     }
 
+    // --- ตรวจสอบสถานะสำหรับการล็อกอินแบบปกติ (Username/Password) ---
+    protected function credentials(Request $request)
+    {
+        // ดึงข้อมูล username และ password ตามปกติ พร้อมเพิ่มเงื่อนไข status
+        return array_merge($request->only($this->username(), 'password'), ['status' => 'Active']);
+    }
+
+    // Override ฟังก์ชัน sendFailedLoginResponse เพื่อจัดการข้อความแจ้งเตือนเมื่อ Login ไม่ผ่าน
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        // เช็คก่อนว่า username/password ถูกไหม แต่ status ไม่ใช่ Active
+        $user = User::where($this->username(), $request->{$this->username()})->first();
+
+        if ($user && Hash::check($request->password, $user->password) && $user->status !== 'Active') {
+            throw ValidationException::withMessages([
+                $this->username() => ['บัญชีของคุณถูกระงับชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'],
+            ]);
+        }
+
+        // กรณีอื่นๆ (รหัสผิด หรือไม่มีบัญชี)
+        throw ValidationException::withMessages([
+            $this->username() => [trans('auth.failed')],
+        ]);
+    }
+
     protected function authenticated(Request $request, $user)
     {
         $role = $user->role;
@@ -74,69 +100,60 @@ class LoginController extends Controller
     {
         try {
             $lineUser = Socialite::driver('line')->user();
-            $lineAvatarUrl = $lineUser->getAvatar(); // ดึง URL รูปจาก LINE
+            $lineAvatarUrl = $lineUser->getAvatar(); 
 
-            // หา User ในระบบ
             $user = User::where('provider_id', $lineUser->getId())->first();
             $isNewUser = false;
 
             if (!$user) {
-                // ถ้าเป็นผู้ใช้ใหม่ ให้สร้างอินสแตนซ์ใหม่รอไว้
+                $isNewUser = true; // ตั้งค่าเป็น true สำหรับผู้ใช้ใหม่
                 $user = new User();
-                $user->email = "-";
                 $user->name = $lineUser->getName();
                 $user->provider_id = $lineUser->getId();
                 $user->role = null; 
-                // ถ้า LINE ส่งอีเมลมาก็ใช้เลย ถ้าไม่ส่งมา ให้ใช้อีเมลจำลอง
                 $user->email = $lineUser->getEmail() ?? $lineUser->getId() . '@line.me';
-                // สุ่มรหัสผ่านยาวๆ 24 ตัวอักษร แล้วเข้ารหัสให้ปลอดภัย (ให้ผ่านเงื่อนไข DB)
                 $user->password = Hash::make(Str::random(24));
+                
+                // --- ตั้งค่าสถานะเป็น Active สำหรับการสมัครด้วย LINE ครั้งแรก ---
+                $user->status = 'Active';
+                $user->save();
+            } else {
+                // --- ตรวจสอบสถานะสำหรับการล็อกอินด้วย LINE (คนมีบัญชีอยู่แล้ว) ---
+                if ($user->status !== 'Active') {
+                    // ถ้าไม่ใช่ Active ให้เด้งกลับไปหน้าล็อกอินพร้อมข้อความแจ้งเตือน
+                    return redirect('/login')->withErrors(['username' => 'บัญชีของคุณถูกระงับชั่วคราว กรุณาติดต่อผู้ดูแลระบบ']);
+                }
             }
 
-            // ==========================================
             // จัดการรูปโปรไฟล์ (Avatar & Photo)
-            // ==========================================
-            // เช็คว่า LINE ส่งรูปมาให้ และ URL ไม่ตรงกับของเดิมที่บันทึกไว้ใน DB
             if (!empty($lineAvatarUrl) && $user->avatar !== $lineAvatarUrl) {
-
-                // ถ้ามีไฟล์รูปเก่าอยู่ใน Server ให้ลบก่อน
                 if (!empty($user->photo) && file_exists(public_path($user->photo))) {
-                    unlink(public_path($user->photo)); // ลบไฟล์เก่า
+                    unlink(public_path($user->photo)); 
                 }
 
-                // สร้างโฟลเดอร์สำหรับเก็บรูป
                 $destinationPath = public_path('avatars');
                 if (!file_exists($destinationPath)) {
                     mkdir($destinationPath, 0755, true);
                 }
 
-                // โหลดรูปจาก LINE มาบันทึกลงเครื่อง
-                // ตั้งชื่อไฟล์ใหม่โดยใช้ ID_Timestamp เพื่อป้องกันชื่อซ้ำและปัญหารูปแคช (Cache)
                 $filename = 'avatars/' . $lineUser->getId() . '_' . time() . '.jpg';
                 $imageContent = file_get_contents($lineAvatarUrl);
 
                 if ($imageContent !== false) {
                     file_put_contents(public_path($filename), $imageContent);
-
-                    // อัปเดตข้อมูลลง Object
                     $user->avatar = $lineAvatarUrl;
                     $user->photo = $filename;
+                    $user->save(); // บันทึกรูปที่อัปเดต
                 }
             }
-
-            // บันทึกข้อมูล
-            $user->save();
 
             // ล็อกอิน
             Auth::login($user);
 
-            // ==========================================
             // บันทึกประวัติลง My_log
-            // ==========================================
             $title = $isNewUser ? 'ผู้ใช้สมัครสมาชิกใหม่ด้วย LINE' : 'ผู้ใช้เข้าสู่ระบบด้วย LINE';
             $textContent = 'ชื่อ: ' . $user->name . ' (Provider ID: ' . $user->provider_id . ')';
 
-            // ตัดคำถ้าเกิน 250 ตัวอักษร
             if (mb_strlen($textContent, 'UTF-8') > 250) {
                 $textContent = mb_substr($textContent, 0, 247, 'UTF-8') . '...';
             }
@@ -144,12 +161,8 @@ class LoginController extends Controller
             $log = new My_log();
             $log->title = $title;
             $log->content = $textContent; 
-            
-            // เก็บข้อมูล Array ดิบของ LINE (เช่น displayName, userId, pictureUrl) เป็น JSON
-            // $lineUser->user จะให้ข้อมูล Array ดิบจาก Socialite
             $log->event_arr = json_encode($lineUser->user, JSON_UNESCAPED_UNICODE);
             $log->save();
-            // ==========================================
 
             // แยกตาม Role
             if ($user->role === 'admin') {
@@ -161,7 +174,6 @@ class LoginController extends Controller
             }
 
         } catch (\Exception $e) {
-            // เก็บ Log แบบ Error หากระบบพัง
             $errorLog = new My_log();
             $errorLog->title = 'เกิดข้อผิดพลาด: LINE Login';
             $errorLog->content = mb_substr($e->getMessage(), 0, 250, 'UTF-8');

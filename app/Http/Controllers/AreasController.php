@@ -154,6 +154,23 @@ class AreasController extends Controller
                          ->with('success', 'สร้างพื้นที่เรียบร้อยแล้ว');
     }
 
+    public function area_main(Request $request)
+    {
+        $query = Area::withCount('operations');
+
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name_area', 'like', '%' . $search . '%')
+                  ->orWhere('type', 'like', '%' . $search . '%');
+            });
+        }
+
+        $areas = $query->orderBy('id', 'desc')->paginate(10);
+
+        return view('areas.area_main', compact('areas'));
+    }
+
     public function manage_area($id)
     {
         $area = Area::findOrFail($id);
@@ -185,4 +202,25 @@ class AreasController extends Controller
 
         return redirect()->back()->with('success', 'บันทึกการแก้ไขข้อมูลพื้นที่เรียบร้อยแล้ว');
     }
+
+    public function toggle_status(Request $request, $id)
+    {
+        try {
+            $area = Area::findOrFail($id);
+            $area->status = $request->status;
+            $area->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'อัปเดตสถานะเรียบร้อยแล้ว'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

@@ -15,26 +15,30 @@ class CheckRole
      */
     public function handle($request, Closure $next)
     {
-        // ตรวจสอบ Login
         if (!Auth::check()) {
             return redirect()->guest('/login'); 
         }
 
-        $role = Auth::user()->role;
-        $allowed_list = array_slice(func_get_args(), 2);
+        $user = Auth::user();
 
-        // Login แล้ว เช็ค Role มีสิทธิ์เข้าหน้านี้หรือไม่
-        if (in_array($role, $allowed_list, true)) {
-            return $next($request); // มีสิทธิ์ -> ปล่อยผ่านให้ไปหน้าที่ต้องการ
+        // --- เพิ่มการตรวจสอบสถานะของผู้ใช้ที่ Login แล้ว ---
+        if ($user->status !== 'Active') {
+            Auth::logout();
+            return redirect('/login')->withErrors(['username' => 'บัญชีของคุณถูกระงับชั่วคราว กรุณาติดต่อผู้ดูแลระบบ']);
         }
 
-        // ไม่มีสิทธิ์ ไปหน้า Default ตาม Role ของผู้ใช้
+        $role = $user->role;
+        $allowed_list = array_slice(func_get_args(), 2);
+
+        if (in_array($role, $allowed_list, true)) {
+            return $next($request); 
+        }
+
         if ($role === 'admin') {
             return redirect('/monitor');
         } elseif ($role === 'officer') {
             return redirect('/officer/open_status');
         } else {
-            // กรณี role เป็น null หรืออื่นๆ
             return redirect('/sos');
         }
     }

@@ -2,13 +2,14 @@
 
 @section('content')
 
-<div id="statusToast" class="fixed top-20 right-5 z-[100] transform transition-all duration-300 translate-x-full opacity-0 flex items-center gap-3 bg-white border-l-4 border-primary px-4 py-3 rounded-lg shadow-xl min-w-[300px]">
-    <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0" id="toastIconContainer">
-        <span class="material-symbols-outlined text-[18px]" id="toastIcon">notifications</span>
+{{-- Toast แจ้งเตือน --}}
+<div id="statusToast" class="fixed top-20 left-1/2 z-[100] transform transition-all duration-300 -translate-x-1/2 -translate-y-[150%] opacity-0 flex items-center gap-3 bg-white border-b-4 border-primary px-5 py-3 rounded-xl shadow-2xl min-w-[320px]">
+    <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0" id="toastIconContainer">
+        <span class="material-symbols-outlined text-[20px]" id="toastIcon">notifications_active</span>
     </div>
     <div>
-        <h4 class="text-sm font-bold text-slate-900" id="toastTitle">อัปเดตสถานะ</h4>
-        <p class="text-xs text-slate-500" id="toastMessage">ระบบกำลังทำงาน...</p>
+        <h4 class="text-sm font-bold text-slate-900" id="toastTitle">อัปเดตสถานะการทำงาน</h4>
+        <p class="text-xs text-slate-500 font-medium mt-0.5" id="toastMessage">ระบบกำลังทำงาน...</p>
     </div>
 </div>
 
@@ -112,8 +113,8 @@
                     </div>
                     <div class="flex bg-slate-100 p-1.5 rounded-lg border border-slate-200 gap-1.5">
                         <div class="w-[70%] py-3 px-2 rounded-md bg-white text-slate-900 shadow-sm border border-slate-200 text-[12px] font-bold transition-all flex items-center justify-center relative overflow-hidden text-center leading-tight">
-                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-md" id="status-color-bar"></div>
-                            <span id="current-status-text">{{ $emergency->operation->status ?? 'รอรับเรื่อง' }}</span>
+                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-400 rounded-l-md transition-colors duration-300" id="status-color-bar"></div>
+                            <span id="current-status-text">{{ $emergency->operation->status ?? 'รับแจ้งเหตุ' }}</span>
                         </div>
                         <button type="button" onclick="openCompleteModal()" class="w-[30%] py-3 px-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 shadow-sm border border-emerald-200 text-[12px] font-bold transition-all flex items-center justify-center gap-1">
                             เสร็จสิ้น
@@ -129,7 +130,7 @@
                         $isActiveOperation = in_array($currentOpStatus, ['กำลังเดินทาง', 'ถึงที่เกิดเหตุ', 'เสร็จสิ้น']);
                         
                         // ค้นหาข้อมูลเจ้าหน้าที่ที่รับงาน จาก collection officers เดิม
-                        $acceptedOfficerId = $emergency->operation->officer_id ?? null;
+                        $acceptedOfficerId = $emergency->operation->user_officers_id ?? null;
                         $acceptedOfficer = collect($officers)->firstWhere('id', $acceptedOfficerId);
                     @endphp
 
@@ -159,7 +160,11 @@
                                 @forelse($officers as $officer)
                                 @php
                                     $refusedList = json_decode($emergency->operation->officer_refuse ?? '[]', true) ?? [];
-                                    $isRefused = in_array($officer->id, $refusedList);
+                                    $noRespondList = json_decode($emergency->operation->officer_no_respond ?? '[]', true) ?? [];
+                                    
+                                    // รวมคนที่ไม่ตอบสนองและปฏิเสธเข้าด้วยกัน
+                                    $isCannotAssign = in_array($officer->id, $refusedList) || in_array($officer->id, $noRespondList);
+                                    
                                     $isWaiting = ($emergency->operation->waiting_reply ?? null) == $officer->id;
 
                                     $logCommands = json_decode($emergency->operation->log_command ?? '[]', true) ?? [];
@@ -178,10 +183,16 @@
                                             break;
                                         }
                                     }
+                                    
+                                    // หากกำลังรออยู่ เอาเวลาส่งคำสั่งมาเพื่อใช้นับ
+                                    $commandTimeStr = '';
+                                    if ($isWaiting && !empty($emergency->operation->time_command)) {
+                                        $commandTimeStr = \Carbon\Carbon::parse($emergency->operation->time_command)->toISOString();
+                                    }
                                 @endphp
 
-                                <label class="relative flex items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:checked]:bg-blue-50/20 {{ $isRefused || $isWaiting ? 'opacity-50 pointer-events-none cursor-not-allowed' : '' }}">
-                                    <input name="officer_id" value="{{ $officer->id }}" data-lat="{{ $officer->lat }}" data-lng="{{ $officer->lng }}" class="absolute right-4 top-4 rounded-full border-slate-300 text-primary focus:ring-primary h-5 w-5 cursor-pointer peer assign-radio" type="radio" required {{ $isRefused || $isWaiting ? 'disabled' : '' }} />
+                                <label class="relative flex items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:checked]:bg-blue-50/20 {{ $isCannotAssign ? 'opacity-50 pointer-events-none cursor-not-allowed' : '' }}">
+                                    <input name="officer_id" value="{{ $officer->id }}" data-lat="{{ $officer->lat }}" data-lng="{{ $officer->lng }}" class="absolute right-4 top-4 rounded-full border-slate-300 text-primary focus:ring-primary h-5 w-5 cursor-pointer peer assign-radio" type="radio" required {{ $isCannotAssign ? 'disabled' : '' }} />
                                     <div class="flex items-center gap-4 w-full">
                                         <div class="size-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 peer-checked:bg-primary peer-checked:text-white transition-colors">
                                             <span class="material-symbols-outlined text-[24px]">directions_car</span>
@@ -216,10 +227,14 @@
                                             </div>
 
                                             @if($isWaiting)
-                                                <div class="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-block">กำลังรอการตอบรับ...</div>
-                                            @elseif($isRefused)
+                                                <div class="mt-2 text-[11px] font-bold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-300 flex items-center gap-2">
+                                                    <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                                    กำลังรอการตอบรับ... 
+                                                    <span class="waiting-timer" data-time="{{ $commandTimeStr }}">0 วิ</span>
+                                                </div>
+                                            @elseif(in_array($officer->id, $refusedList))
                                                 <div class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 inline-block">ปฏิเสธการรับงาน</div>
-                                            @elseif($isNoRespond)
+                                            @elseif($isNoRespond || in_array($officer->id, $noRespondList))
                                                 <div class="mt-2 text-[10px] font-bold text-[#f87171] bg-[#f87171]/10 px-2 py-1 rounded-lg border border-[#f87171]/30 inline-block">
                                                     ไม่มีการตอบสนอง เวลารอ {{ $noRespondTimeMin > 0 ? $noRespondTimeMin . ' นาที ' : '' }}{{ $noRespondTimeSec }} วินาที
                                                 </div>
@@ -333,8 +348,38 @@
     </div>
 </div>
 
+{{-- ================= Modal แจ้งเตือนเจ้าหน้าที่ปฏิเสธงาน ================= --}}
+<div id="refusedModal" class="hidden fixed inset-0 z-[110] overflow-y-auto bg-black/60 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1a2632] rounded-2xl w-full max-w-sm shadow-2xl relative border border-red-200 dark:border-red-900/50 transform scale-95 transition-all duration-300" id="refusedModalContent">
+            <div class="p-6 text-center space-y-4">
+                <div class="mx-auto size-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center mb-4 shadow-inner">
+                    <span class="material-symbols-outlined text-4xl animate-bounce">warning</span>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">เจ้าหน้าที่ปฏิเสธเคส!</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">เจ้าหน้าที่ที่คุณมอบหมายได้ปฏิเสธการรับงาน กรุณาสั่งการและมอบหมายงานให้เจ้าหน้าที่ท่านอื่นโดยด่วน</p>
+                <button type="button" onclick="closeRefusedModal()" class="mt-4 w-full px-5 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30 rounded-xl transition-all active:scale-95">
+                    รับทราบและสั่งการใหม่
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initAssignMap" async defer></script>
 <script>
+    const emergencyId = "{{ $emergency->id }}";
+    const operationId = "{{ $emergency->operation->id ?? '' }}";
+    let currentOpStatus = "{{ $emergency->operation->status ?? 'รับแจ้งเหตุ' }}";
+    let pollingInterval = null;
+
+    let initialOfficerLat = null;
+    let initialOfficerLng = null;
+    let startMarkerObj = null;
+
+    // เก็บ ID คนที่แจ้งเตือนไปแล้ว (ดึงค่าเริ่มต้นจากตอนโหลดหน้าเว็บ เผื่อรีเฟรชจะได้ไม่เด้งซ้ำ)
+    let notifiedRefusedOfficers = @json(json_decode($emergency->operation->officer_refuse ?? '[]', true) ?? []).map(Number);
+
     // ================== ส่วนของ UI พื้นฐาน ==================
     function openFullImage(url) {
         window.open(url, '_blank', 'width=1080,height=1080,menubar=no,toolbar=no,location=no,status=no,resizable=yes');
@@ -409,22 +454,412 @@
     setInterval(updateTimer, 60000);
     updateTimer();
 
-    // ================== ระบบ Map & Tracking ==================
+    // ================== ระบบนับเวลาสำหรับคนที่กำลังรอการตอบรับ ==================
+    function updateWaitingTimers() {
+        const timers = document.querySelectorAll('.waiting-timer');
+        if (timers.length === 0) return;
+
+        const now = new Date().getTime();
+
+        timers.forEach(timer => {
+            const commandTimeStr = timer.getAttribute('data-time');
+            if (!commandTimeStr) return;
+
+            const commandTime = new Date(commandTimeStr).getTime();
+            const distance = now - commandTime;
+            
+            if (distance < 0) return;
+
+            const totalSeconds = Math.floor(distance / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            let timeString = "";
+            if (minutes > 0) {
+                timeString += minutes + " นาที ";
+            }
+            timeString += seconds + " วิ";
+
+            timer.innerHTML = timeString;
+        });
+    }
+    
+    // อัปเดตทุกๆ 1 วินาที
+    setInterval(updateWaitingTimers, 1000);
+    updateWaitingTimers(); // เรียกใช้ครั้งแรกทันที
+
+    // ================== ระบบแจ้งเตือน Toast ==================
+    function showToast(statusText, type = 'info') {
+
+        if (statusText === 'สั่งการ') {
+            return; 
+        }
+
+        const toast = document.getElementById('statusToast');
+        const toastTitle = document.getElementById('toastTitle');
+            toastTitle.innerText = `${statusText}`;
+        document.getElementById('toastMessage').innerText = `อัปเดตสถานะการทำงาน`;
+        const iconContainer = document.getElementById('toastIconContainer');
+        const icon = document.getElementById('toastIcon');
+
+        // รีเซ็ตคลาสสี
+        toast.className = 'fixed top-20 left-1/2 z-[100] transform transition-all duration-300 -translate-x-1/2 flex items-center gap-3 bg-white px-5 py-3 rounded-xl shadow-2xl min-w-[320px]';
+
+        if(type === 'success') {
+            iconContainer.className = 'h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0';
+            icon.innerText = 'check_circle';
+            toast.classList.add('border-b-4', 'border-emerald-500');
+        } else if(type === 'warning') {
+            iconContainer.className = 'h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0';
+            icon.innerText = 'assignment_ind';
+            toast.classList.add('border-b-4', 'border-amber-500');
+        } else {
+            iconContainer.className = 'h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0';
+            icon.innerText = 'notifications_active';
+            toast.classList.add('border-b-4', 'border-blue-500');
+        }
+
+        // โชว์ Toast เลื่อนลงมา
+        toast.classList.remove('-translate-y-[150%]', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+
+        const audio = new Audio("{{ url('/sounds/Update_Status.mp3') }}");
+        audio.play().catch(error => {
+            console.log("Browser block autoplay:", error);
+        });
+
+        setTimeout(() => {
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('-translate-y-[150%]', 'opacity-0');
+        }, 4000);
+    }
+
+    // ฟังก์ชันจัดสีแถบ Status
+    function updateStatusUI(status) {
+        document.getElementById('current-status-text').innerText = status;
+        const colorBar = document.getElementById('status-color-bar');
+        
+        // ล้างคลาสสีเดิม
+        colorBar.className = 'absolute left-0 top-0 bottom-0 w-1 rounded-l-md transition-colors duration-300';
+
+        switch(status) {
+            case 'รับแจ้งเหตุ': colorBar.classList.add('bg-slate-400'); break;
+            case 'สั่งการ': colorBar.classList.add('bg-amber-500'); break;
+            case 'กำลังไปช่วยเหลือ': colorBar.classList.add('bg-blue-500'); break;
+            case 'ถึงที่เกิดเหตุ': colorBar.classList.add('bg-purple-500'); break;
+            case 'เสร็จสิ้น': colorBar.classList.add('bg-emerald-500'); break;
+            default: colorBar.classList.add('bg-slate-400');
+        }
+    }
+
+    function getStatusColorType(status) {
+        if(status === 'เสร็จสิ้น') return 'success';
+        if(status === 'สั่งการ') return 'warning';
+        return 'info';
+    }
+
+    // ================== ระบบ Polling ตรวจสอบการดำเนินการ ==================
+    document.addEventListener('DOMContentLoaded', () => {
+        updateStatusUI(currentOpStatus); // เซ็ตสีเริ่มต้นตอนโหลดหน้า
+        startOperationPolling();
+    });
+
+    function startOperationPolling() {
+        if(pollingInterval) clearInterval(pollingInterval);
+        fetchOperationData(); // ดึงรอบแรก
+        pollingInterval = setInterval(fetchOperationData, 5000); // วนทุก 5 วิ
+    }
+
+    async function fetchOperationData() {
+        try {
+            const response = await fetch("{{ url('/api/emergency') }}"+`/${emergencyId}/operation`);
+            if(!response.ok) return;
+            const data = await response.json();
+
+            // ================== ตรวจสอบ Status เปลี่ยนแปลง ==================
+            if (data.status && data.status !== currentOpStatus) {
+                // จำสถานะก่อนหน้าไว้เช็คเงื่อนไข
+                const previousStatus = currentOpStatus;
+                
+                currentOpStatus = data.status;
+                updateStatusUI(currentOpStatus);
+                showToast(currentOpStatus, getStatusColorType(currentOpStatus));
+
+                if (previousStatus === 'สั่งการ' && currentOpStatus === 'กำลังไปช่วยเหลือ') {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 4000);
+                    return;
+                }
+
+                if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
+                    if (officerMarkerMap) officerMarkerMap.onRemove();
+                    if (directionsRenderer) directionsRenderer.setMap(null);
+                    if (startMarkerObj) startMarkerObj.onRemove(); // ลบหมุดจุดเริ่มต้นออกด้วย
+                    
+                    const routingInfo = document.getElementById('routing-info');
+                    const arrivedInfo = document.getElementById('arrived-info');
+                    if(routingInfo) routingInfo.classList.add('hidden');
+                    if(arrivedInfo) arrivedInfo.classList.remove('hidden');
+                    
+                    if(data.time_to_the_scene) {
+                        const time = new Date(data.time_to_the_scene).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                        document.getElementById('arrived-time-text').innerText = 'เวลา: ' + time + ' น.';
+                    }
+                } else if (currentOpStatus === 'เสร็จสิ้น') {
+                    clearInterval(pollingInterval); 
+                }
+            }
+
+            // ================== กำลังไปช่วยเหลือ (จับพิกัด + วาดเส้น + เลื่อนรถ) ==================
+            if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
+                const currentLat = parseFloat(data.officer_lat);
+                const currentLng = parseFloat(data.officer_lng);
+
+                if (currentLat && currentLng) {
+                    if (initialOfficerLat === null && initialOfficerLng === null) {
+                        // รับค่าครั้งแรก เก็บเป็นจุด Start ไว้ก่อน แต่ยังไม่ตีเส้น
+                        initialOfficerLat = currentLat;
+                        initialOfficerLng = currentLng;
+                        updateOfficerLocationOnMap(currentLat, currentLng);
+                        
+                    } else {
+                        // ถ้ามีการขยับจากจุดเริ่มต้น (ตรวจสอบการเปลี่ยนแปลง)
+                        if (!isRouteDrawn && (currentLat !== initialOfficerLat || currentLng !== initialOfficerLng)) {
+                            // ตีเส้นสีฟ้า คำนวณเวลา และปักธงเริ่ม (ทำแค่ครั้งเดียว)
+                            drawRouteToIncident(initialOfficerLat, initialOfficerLng);
+                        }
+                        // ปักหมุดรถใหม่ทุกๆ 5 วิ (ขยับรถอิสระ)
+                        updateOfficerLocationOnMap(currentLat, currentLng);
+                    }
+                }
+            }
+
+            // ================== ตรวจสอบการปฏิเสธเพื่อเด้ง Modal แบบ Real-time ==================
+            if (data.officer_refuse && Array.isArray(data.officer_refuse)) {
+                let hasNewRefusal = false;
+                data.officer_refuse.forEach(refusedId => {
+                    const parsedId = parseInt(refusedId);
+                    if (!notifiedRefusedOfficers.includes(parsedId)) {
+                        hasNewRefusal = true;
+                        notifiedRefusedOfficers.push(parsedId);
+                    }
+                });
+                
+                if (hasNewRefusal) {
+                    openRefusedModal();
+                }
+            }
+
+            // ================== ตรวจสอบสถานะของเจ้าหน้าที่เพื่อจัดการ UI (หน้าสั่งการ) ==================
+            if (['รับแจ้งเหตุ', 'สั่งการ'].includes(currentOpStatus)) {
+                document.querySelectorAll('.assign-radio').forEach(radio => {
+                    const officerId = parseInt(radio.value);
+                    const labelContainer = radio.closest('label');
+                    const infoContainer = labelContainer.querySelector('.flex-1.pr-8');
+
+                    const checkInArray = (arr, val) => arr && Array.isArray(arr) && arr.some(item => String(item) === String(val));
+                    
+                    const isRefused = checkInArray(data.officer_refuse, officerId);
+                    const isNoRespond = checkInArray(data.officer_no_respond, officerId);
+                    const isWaiting = (String(data.waiting_reply) === String(officerId));
+
+                    let waitMin = 0;
+                    let waitSec = 0;
+                    if (data.log_command && Array.isArray(data.log_command)) {
+                        const logs = [...data.log_command].reverse();
+                        const officerLog = logs.find(l => String(l.sendTo) === String(officerId));
+                        if (officerLog && officerLog.sum_time) {
+                            const sumTime = parseInt(officerLog.sum_time);
+                            waitMin = Math.floor(sumTime / 60);
+                            waitSec = sumTime % 60;
+                        }
+                    }
+
+                    let timeText = waitMin > 0 ? `${waitMin} นาที ` : '';
+                    timeText += `${waitSec} วินาที`;
+
+                    labelContainer.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed', 'ring-2', 'ring-blue-300');
+                    radio.disabled = false;
+
+                    if (isWaiting) {
+                        radio.disabled = true;
+                        labelContainer.classList.add('pointer-events-none', 'cursor-not-allowed', 'ring-2', 'ring-blue-300');
+                    } else if (isRefused) {
+                        radio.disabled = true;
+                        labelContainer.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                        const targetMarker = document.getElementById(`officer-marker-${officerId}`);
+                        if (targetMarker) targetMarker.querySelector('.officer-pulse').classList.add('hidden');
+                    } else if (isNoRespond) {
+                        // กดส่งใหม่ได้
+                    }
+
+                    let statusDiv = infoContainer.querySelector('.status-wrapper');
+                    
+                    if (!statusDiv) {
+                        const bladeStatus = infoContainer.querySelector('.mt-2');
+                        let preserveTime = new Date().toISOString(); 
+                        if (bladeStatus) {
+                            const timerSpan = bladeStatus.querySelector('.waiting-timer');
+                            if (timerSpan) preserveTime = timerSpan.getAttribute('data-time');
+                            bladeStatus.remove();
+                        }
+                        
+                        statusDiv = document.createElement('div');
+                        statusDiv.className = 'status-wrapper';
+                        statusDiv.dataset.commandTime = preserveTime;
+                        infoContainer.appendChild(statusDiv);
+                    }
+
+                    if (isWaiting) {
+                        if (!statusDiv.querySelector('.waiting-timer')) {
+                            statusDiv.innerHTML = `
+                                <div class="mt-2 text-[11px] font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-300 flex items-center gap-2 shadow-sm">
+                                    <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                    กำลังรอการตอบรับ... 
+                                    <span class="waiting-timer" data-time="${statusDiv.dataset.commandTime}">0 วิ</span>
+                                </div>`;
+                        }
+                    } else if (isRefused) {
+                        statusDiv.innerHTML = `<div class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 inline-block shadow-sm">ปฏิเสธเคส เวลารอ ${timeText}</div>`;
+                    } else if (isNoRespond) {
+                        statusDiv.innerHTML = `<div class="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-block shadow-sm">ไม่มีการตอบสนอง เวลารอ ${timeText}</div>`;
+                    } else {
+                        statusDiv.innerHTML = ''; 
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('Polling Error:', error);
+        }
+    }
+
+    // ================== ฟังก์ชันย่อยสำหรับ Map ==================
+
+    // เลื่อนตำแหน่งรถอย่างเดียว
+    function updateOfficerLocationOnMap(lat, lng) {
+        const newLatLng = new google.maps.LatLng(lat, lng);
+        if (!officerMarkerMap) {
+            const officerHtml = `
+                <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-1000">
+                    <span class="relative inline-flex rounded-full h-10 w-10 bg-blue-600 border-[3px] border-white shadow-xl items-center justify-center text-white">
+                        <span class="material-symbols-outlined text-[20px]">directions_car</span>
+                    </span>
+                </div>`;
+            officerMarkerMap = new CustomMarker(newLatLng, mapInstance, officerHtml);
+        } else {
+            officerMarkerMap.updatePosition(newLatLng);
+        }
+    }
+
+    // ตีเส้น 1 ครั้ง + คำนวณเวลา + สร้างหมุดธงเริ่มต้น
+    function drawRouteToIncident(startLat, startLng) {
+        if (isRouteDrawn) return; 
+        const startLatLng = new google.maps.LatLng(startLat, startLng);
+
+        // ปักหมุดธงจุดเริ่มต้น (Start Point)
+        const startHtml = `
+            <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-30">
+                <span class="relative inline-flex rounded-full h-8 w-8 bg-slate-800 border-[2px] border-white shadow-md items-center justify-center text-white">
+                    <span class="material-symbols-outlined text-[16px]">flag</span>
+                </span>
+                <div class="mt-1 bg-slate-800 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                    จุดเริ่มต้น
+                </div>
+            </div>`;
+        startMarkerObj = new CustomMarker(startLatLng, mapInstance, startHtml);
+
+        // ร้องขอเส้นทางจาก Google Maps ทำแค่ครั้งเดียว
+        directionsService.route({
+            origin: startLatLng,
+            destination: incidentLatLng,
+            travelMode: google.maps.TravelMode.DRIVING
+        }, (response, status) => {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(response);
+                isRouteDrawn = true;
+                
+                const leg = response.routes[0].legs[0];
+                const polyline = response.routes[0].overview_polyline; // เส้นทาง
+                
+                // อัปเดตหน้าจอ
+                const distanceText = document.getElementById('distance-text');
+                const durationText = document.getElementById('duration-text');
+                if(distanceText) distanceText.innerText = leg.distance.text;
+                if(durationText) durationText.innerText = leg.duration.text;
+                
+                // ปรับ Zoom กล้อง
+                if(mapInstance) {
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(incidentLatLng);
+                    bounds.extend(startLatLng);
+                    mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+                }
+
+                // อัปเดต Log_command
+                fetch(`{{ url('/api/emergency') }}/${emergencyId}/update-route-log`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        start_lat: startLat,
+                        start_lng: startLng,
+                        incident_lat: incidentLatLng.lat(),
+                        incident_lng: incidentLatLng.lng(),
+                        distance_text: leg.distance.text,
+                        distance_value: leg.distance.value,
+                        duration_text: leg.duration.text,
+                        duration_value: leg.duration.value,
+                        polyline: polyline
+                    })
+                }).then(res => res.json())
+                  .then(data => console.log('Log Updated:', data))
+                  .catch(err => console.error('Error updating log:', err));
+            }
+        });
+    }
+
+    function openRefusedModal() {
+        const modal = document.getElementById('refusedModal');
+        const content = document.getElementById('refusedModalContent');
+        modal.classList.remove('hidden');
+        
+        // เล่นเสียงแจ้งเตือน
+        const audio = new Audio("{{ url('/sounds/Update_Status.mp3') }}");
+        audio.play().catch(e => console.log("Browser block autoplay:", e));
+
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeRefusedModal() {
+        const modal = document.getElementById('refusedModal');
+        const content = document.getElementById('refusedModalContent');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // ================== ระบบ Map & หมุด ==================
     let mapInstance;
     let incidentLatLng;
     let officerMarkerMap = null; 
-    let CustomMarker; // ประกาศตัวแปรรับ Class ไว้ข้างนอก
+    let CustomMarker; 
     
     let directionsService;
     let directionsRenderer;
     let isRouteDrawn = false;
 
-    let pollingInterval = null;
-    let currentOpStatus = "{{ $currentOpStatus ?? '' }}";
-    const operationId = "{{ $emergency->operation->id ?? '' }}";
-
     function initAssignMap() {
-        // สร้าง Class ภายในฟังก์ชันนี้ เพื่อให้มั่นใจว่าโหลด google.maps เสร็จแล้ว 100%
         CustomMarker = class extends google.maps.OverlayView {
             constructor(position, map, htmlContent) {
                 super();
@@ -473,7 +908,6 @@
             mapTypeId: 'roadmap',
         });
 
-        // สร้าง Services สำหรับวาดเส้นทาง
         directionsService = new google.maps.DirectionsService();
         directionsRenderer = new google.maps.DirectionsRenderer({
             map: mapInstance,
@@ -496,12 +930,11 @@
             </div>`;
         new CustomMarker(incidentLatLng, mapInstance, incidentHtml);
 
-        // เช็คว่าอยู่ในโหมดไหน (Assign Form หรือ Tracking)
-        if (['กำลังเดินทาง', 'ถึงที่เกิดเหตุ'].includes(currentOpStatus)) {
-            // ---> โหมด Tracking เจ้าหน้าที่
-            startTracking();
+        // เช็คว่ามอบหมายงานไปแล้วหรือยัง
+        if (['กำลังไปช่วยเหลือ', 'ถึงที่เกิดเหตุ'].includes(currentOpStatus)) {
+            // ไม่ต้องแสดงรายชื่อคนอื่น ให้รอการอัปเดตจาก Polling จัดการหมุด
         } else {
-            // ---> โหมด Assign (ดึงรายชื่อ Standby มาวาดหมุด)
+            // วาดหมุดเจ้าหน้าที่ Standby สำหรับให้เลือก
             const officersData = @json($officers);
             officersData.forEach(officer => {
                 if (officer.lat && officer.lng) {
@@ -527,7 +960,7 @@
         }
     }
 
-    // ================== ระบบคลิก Radio เลือกเจ้าหน้าที่ ==================
+    // ================== ฟังก์ชันย่อยสำหรับ Map ==================
     function initAssignClickEvents() {
         let currentSelectedRadio = null;
         const submitBtn = document.getElementById('submitAssignBtn');
@@ -568,13 +1001,6 @@
         });
     }
 
-    // ================== ระบบ Tracking เจ้าหน้าที่ (ดึงข้อมูลทุก 10 วิ) ==================
-    function startTracking() {
-        if (!operationId) return;
-        fetchTrackingData(); 
-        pollingInterval = setInterval(fetchTrackingData, 10000); // 10 วินาที
-    }
-
     function drawRouteToIncident(startLat, startLng) {
         if (isRouteDrawn) return; 
         const startLatLng = new google.maps.LatLng(startLat, startLng);
@@ -588,86 +1014,32 @@
                 directionsRenderer.setDirections(response);
                 isRouteDrawn = true;
                 const leg = response.routes[0].legs[0];
-                document.getElementById('distance-text').innerText = leg.distance.text;
-                document.getElementById('duration-text').innerText = leg.duration.text;
-            } else {
-                console.error('Directions request failed due to ' + status);
+                const distanceText = document.getElementById('distance-text');
+                const durationText = document.getElementById('duration-text');
+                if(distanceText) distanceText.innerText = leg.distance.text;
+                if(durationText) durationText.innerText = leg.duration.text;
             }
         });
     }
 
-    async function fetchTrackingData() {
-        try {
-            const response = await fetch(`/api/emergency/tracking/${operationId}`);
-            const data = await response.json();
-
-            // อัปเดตพิกัดเจ้าหน้าที่ (ถ้ายังไม่ถึงที่เกิดเหตุ)
-            if (data.lat && data.lng && currentOpStatus === 'กำลังเดินทาง') {
-                const newLatLng = new google.maps.LatLng(data.lat, data.lng);
-                
-                if (!officerMarkerMap) {
-                    const officerHtml = `
-                        <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-1000">
-                            <span class="relative inline-flex rounded-full h-10 w-10 bg-blue-600 border-[3px] border-white shadow-xl items-center justify-center text-white">
-                                <span class="material-symbols-outlined text-[20px]">directions_car</span>
-                            </span>
-                        </div>`;
-                    officerMarkerMap = new CustomMarker(newLatLng, mapInstance, officerHtml);
-                    
-                    if(data.start_lat && data.start_lng) {
-                        drawRouteToIncident(data.start_lat, data.start_lng);
-                    }
-                } else {
-                    officerMarkerMap.updatePosition(newLatLng); // หมุดเลื่อน
-                }
+    // เลื่อนตำแหน่งรถและวาดเส้นทาง
+    function updateOfficerLocationOnMap(lat, lng, startLat, startLng) {
+        const newLatLng = new google.maps.LatLng(lat, lng);
+        if (!officerMarkerMap) {
+            const officerHtml = `
+                <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-1000">
+                    <span class="relative inline-flex rounded-full h-10 w-10 bg-blue-600 border-[3px] border-white shadow-xl items-center justify-center text-white">
+                        <span class="material-symbols-outlined text-[20px]">directions_car</span>
+                    </span>
+                </div>`;
+            officerMarkerMap = new CustomMarker(newLatLng, mapInstance, officerHtml);
+            
+            if(startLat && startLng) {
+                drawRouteToIncident(startLat, startLng);
             }
-
-            // เช็คสถานะเปลี่ยน
-            if (data.status !== currentOpStatus) {
-                currentOpStatus = data.status;
-                showToast(`สถานะถูกเปลี่ยนเป็น: ${currentOpStatus}`, 'info');
-                document.getElementById('current-status-text').innerText = currentOpStatus;
-
-                if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
-                    if (officerMarkerMap) officerMarkerMap.onRemove(); // ลบหมุดรถ
-                    directionsRenderer.setMap(null); // ซ่อนเส้นทาง
-                    
-                    document.getElementById('routing-info').classList.add('hidden');
-                    document.getElementById('arrived-info').classList.remove('hidden');
-                    if(data.arrived_time) {
-                        document.getElementById('arrived-time-text').innerText = 'เวลา: ' + data.arrived_time;
-                    }
-                } else if (currentOpStatus === 'เสร็จสิ้น') {
-                    showToast('ภารกิจเสร็จสิ้นเรียบร้อย', 'success');
-                    clearInterval(pollingInterval);
-                }
-            }
-        } catch (error) {
-            console.error('Tracking Error:', error);
-        }
-    }
-
-    // ================== ระบบแจ้งเตือน (Toast) ==================
-    function showToast(message, type = 'info') {
-        const toast = document.getElementById('statusToast');
-        document.getElementById('toastMessage').innerText = message;
-        const iconContainer = document.getElementById('toastIconContainer');
-        const icon = document.getElementById('toastIcon');
-
-        if(type === 'success') {
-            iconContainer.className = 'h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0';
-            icon.innerText = 'check_circle';
-            toast.className = 'fixed top-20 right-5 z-[100] transform transition-all duration-300 translate-x-0 opacity-100 flex items-center gap-3 bg-white border-l-4 border-emerald-500 px-4 py-3 rounded-lg shadow-xl min-w-[300px]';
         } else {
-            iconContainer.className = 'h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0';
-            icon.innerText = 'notifications_active';
-            toast.className = 'fixed top-20 right-5 z-[100] transform transition-all duration-300 translate-x-0 opacity-100 flex items-center gap-3 bg-white border-l-4 border-primary px-4 py-3 rounded-lg shadow-xl min-w-[300px]';
+            officerMarkerMap.updatePosition(newLatLng);
         }
-
-        setTimeout(() => {
-            toast.classList.remove('translate-x-0', 'opacity-100');
-            toast.classList.add('translate-x-full', 'opacity-0');
-        }, 4000);
     }
 </script>
 @endsection

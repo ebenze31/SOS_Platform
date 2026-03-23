@@ -37,11 +37,11 @@ use Illuminate\Support\Facades\Route;
 // Route::get('/demo/register_form', function () {
 //     return view('demo/register_form');
 // });
+// Route::get('/demo/area_main', function () {
+//     return view('demo/area_main');
+// });
 Route::get('/demo/main_officer', function () {
     return view('demo/main_officer');
-});
-Route::get('/demo/area_main', function () {
-    return view('demo/area_main');
 });
 Route::get('/demo/all_officer', function () {
     return view('demo/all_officer');
@@ -96,10 +96,12 @@ Route::middleware(['auth'])->group(function () {
     // Admin
     Route::middleware(['role:admin'])->group(function () {
         // ================= Areas =================
+        Route::get('/area/area_main', 'AreasController@area_main');
         Route::get('/area/create_polygon', 'AreasController@create_polygon')->name('area.create_polygon');
         Route::post('/area/store_polygon', 'AreasController@store_polygon')->name('area.store_polygon');
         Route::get('/area/{id}/manage', 'AreasController@manage_area')->name('area.manage_area');
         Route::post('/area/{id}/manage/update', 'AreasController@update_manage_area')->name('area.update_manage');
+        Route::post('/area/{id}/toggle-status', 'AreasController@toggle_status')->name('area.toggle_status');
 
         // ============ Command monitor ============
         Route::get('/monitor', 'EmergencysController@monitor')->name('emergency.monitor');
@@ -123,6 +125,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/phone-emergencys/destroy', 'Phone_emergencysController@destroy');
         Route::post('/phone-emergencys/update-status', 'Phone_emergencysController@updateStatus');
         Route::post('/phone-emergencys/update-priority', 'Phone_emergencysController@updatePriority');
+
+        // ======== การจัดการสมาชิก ========
+        Route::get('/members', 'MemberController@index')->name('members.index');
+        Route::post('/members/command', 'MemberController@storeCommand')->name('members.command.store');
+        Route::post('/members/toggle-status/{id}', 'MemberController@toggleStatus')->name('members.toggle-status');
+        Route::post('/members/command/toggle-status/{id}', 'MemberController@toggleCommandStatus')->name('members.command.toggle-status');
+        Route::post('/members/officer/toggle-status/{id}', 'MemberController@toggleOfficerStatus')->name('members.officer.toggle-status');
     });
 
     // Admin, Officer

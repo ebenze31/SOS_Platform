@@ -27,5 +27,8 @@ class Area extends Model
      */
     protected $fillable = ['name_area', 'type', 'polygon', 'status', 'creator'];
 
-    
+    public function operations()
+    {
+        return $this->hasMany(Emergency_operation::class, 'area_id', 'id');
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\User;
 
 class Emergency_operation extends Model
 {
@@ -34,6 +35,11 @@ class Emergency_operation extends Model
 
     public function officer()
     {
-        return $this->belongsTo(User_command::class, 'notify', 'id');
+        return $this->belongsTo(User_officer::class, 'user_officers_id', 'id');
+    }
+
+    public function commander()
+    {
+        return $this->belongsTo(User_command::class, 'command_by', 'id');
     }
 }

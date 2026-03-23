@@ -693,4 +693,75 @@ class EmergencysController extends Controller
             'arrived_time' => $operation->arrived_at ? Carbon::parse($operation->arrived_at)->format('H:i น.') : null
         ]);
     }
+
+    public function getOperationData($emergency_id)
+    {
+        // ค้นหาข้อมูล Operation จาก emergency_id
+        $operation = DB::table('emergency_operations')->where('emergency_id', $emergency_id)->first();
+
+        if (!$operation) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
+
+        // ค้นหาข้อมูลเจ้าหน้าที่เพื่อดึงพิกัดล่าสุด
+        $officer = null;
+        if (!empty($operation->user_officers_id)) {
+            $officer = DB::table('user_officers')->where('id', $operation->user_officers_id)->first();
+        }
+
+        return response()->json([
+            'status' => $operation->status,
+            'officer_lat' => $officer->lat ?? null,   
+            'officer_lng' => $officer->lng ?? null,
+            'start_lat' => $operation->start_lat ?? null,
+            'start_lng' => $operation->start_lng ?? null,
+            'time_to_the_scene' => $operation->time_to_the_scene,
+            'waiting_reply' => $operation->waiting_reply,
+            'officer_refuse' => json_decode($operation->officer_refuse, true) ?? [],
+            'officer_no_respond' => json_decode($operation->officer_no_respond, true) ?? [],
+            'log_command' => json_decode($operation->log_command, true) ?? []
+        ]);
+    }
+
+    public function updateRouteLog(Request $request, $emergency_id)
+    {
+        $operation = Emergency_operation::where('emergency_id', $emergency_id)->first();
+        
+        if (!$operation) {
+            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูล Operation'], 404);
+        }
+
+        // แปลง JSON string ใน Database เป็น Array
+        $logs = json_decode($operation->log_command, true) ?? [];
+        $updated = false;
+        
+        // วนลูปหาอันที่เป็น go_to_help
+        foreach ($logs as &$log) {
+            if (isset($log['status']) && $log['status'] === 'go_to_help') {
+                $log['time_go_to_help'] = now()->toIso8601String();
+                $log['start_lat'] = $request->start_lat;
+                $log['start_lng'] = $request->start_lng;
+                $log['incident_lat'] = $request->incident_lat;
+                $log['incident_lng'] = $request->incident_lng;
+                $log['distance_text'] = $request->distance_text;
+                $log['distance_value'] = $request->distance_value;
+                $log['duration_text'] = $request->duration_text;
+                $log['duration_value'] = $request->duration_value;
+                if ($request->has('polyline')) {
+                    $log['polyline'] = $request->polyline;
+                }
+                
+                $updated = true;
+                break;
+            }
+        }
+
+        if ($updated) {
+            $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
+            $operation->save();
+            return response()->json(['success' => true, 'message' => 'อัปเดตข้อมูลเส้นทางเรียบร้อยแล้ว']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'ไม่พบสถานะ go_to_help ใน Log'], 404);
+    }
 }

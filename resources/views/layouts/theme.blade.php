@@ -119,7 +119,7 @@
                     
                     <div class="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-left group-hover:scale-100 scale-95">
                         
-                        <a href="{{ url('/demo/area_main') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-t-lg border-b border-slate-50 transition-colors">
+                        <a href="{{ url('/area/area_main') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-t-lg border-b border-slate-50 transition-colors">
                             <span class="material-symbols-outlined text-[18px]">format_list_bulleted</span> 
                             พื้นที่ทั้งหมด
                         </a>
@@ -151,7 +151,7 @@
                             เบอร์โทรฉุกเฉิน
                         </a>
 
-                        <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-b-lg transition-colors">
+                        <a href="{{ url('/members') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-b-lg transition-colors">
                             <span class="material-symbols-outlined text-[18px]">manage_accounts</span> 
                             จัดการสมาชิก
                         </a>
