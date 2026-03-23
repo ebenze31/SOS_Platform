@@ -366,7 +366,6 @@
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initAssignMap" async defer></script>
 <script>
     const emergencyId = "{{ $emergency->id }}";
     const operationId = "{{ $emergency->operation->id ?? '' }}";
@@ -593,9 +592,10 @@
                 }
 
                 if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
-                    if (officerMarkerMap) officerMarkerMap.onRemove();
-                    if (directionsRenderer) directionsRenderer.setMap(null);
-                    if (startMarkerObj) startMarkerObj.onRemove(); // ลบหมุดจุดเริ่มต้นออกด้วย
+
+                    if (officerMarkerMap && typeof officerMarkerMap.onRemove === 'function') officerMarkerMap.onRemove();
+                    if (directionsRenderer && typeof directionsRenderer.setMap === 'function') directionsRenderer.setMap(null);
+                    if (startMarkerObj && typeof startMarkerObj.onRemove === 'function') startMarkerObj.onRemove();
                     
                     const routingInfo = document.getElementById('routing-info');
                     const arrivedInfo = document.getElementById('arrived-info');
@@ -739,6 +739,9 @@
 
     // เลื่อนตำแหน่งรถอย่างเดียว
     function updateOfficerLocationOnMap(lat, lng) {
+
+        if (!CustomMarker || !mapInstance) return;
+
         const newLatLng = new google.maps.LatLng(lat, lng);
         if (!officerMarkerMap) {
             const officerHtml = `
@@ -755,6 +758,9 @@
 
     // ตีเส้น 1 ครั้ง + คำนวณเวลา + สร้างหมุดธงเริ่มต้น
     function drawRouteToIncident(startLat, startLng) {
+
+        if (!CustomMarker || !mapInstance || isRouteDrawn) return;
+
         if (isRouteDrawn) return; 
         const startLatLng = new google.maps.LatLng(startLat, startLng);
 
@@ -1042,4 +1048,6 @@
         }
     }
 </script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initAssignMap" async defer></script>
 @endsection
