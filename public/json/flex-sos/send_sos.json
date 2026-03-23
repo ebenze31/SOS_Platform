@@ -196,7 +196,7 @@
         "action": {
           "type": "uri",
           "label": "Map",
-          "uri": "https://maps.google.com/?q={emergency_lat},{emergency_lng}"
+          "uri": "https://maps.google.com/?q={emergency_lat},{emergency_lng}?openExternalBrowser=1"
         },
         "offsetStart": "41%"
       },

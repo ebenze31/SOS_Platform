@@ -110,7 +110,7 @@
           "action": {
             "type": "uri",
             "label": "action",
-            "uri": "{action_url}"
+            "uri": "{action_url}?openExternalBrowser=1"
           }
         }
       ],
