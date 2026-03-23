@@ -2,207 +2,224 @@
   "type": "flex",
   "altText": "มีการขอความช่วยเหลือใหม่",
   "contents": {
-    "type": "bubble",
-    "size": "giga",
-    "body": {
-      "type": "box",
-      "layout": "vertical",
-      "contents": [
-        {
-          "type": "image",
-          "url": "https://i.ibb.co/HfJ7DwH2/Group-48.png",
-          "size": "full",
-          "aspectRatio": "1440:2100",
-          "aspectMode": "cover"
+  "type": "bubble",
+  "size": "giga",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "image",
+        "url": "https://i.ibb.co/N2SV89Zp/send-sos2.png",
+        "size": "full",
+        "aspectRatio": "1440:2184",
+        "aspectMode": "cover"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "{emergency_type}",
+            "color": "#0f172a",
+            "size": "lg",
+            "wrap": true,
+            "weight": "bold",
+            "align": "center",
+            "maxLines": 1
+          }
+        ],
+        "position": "absolute",
+        "offsetTop": "8%",
+        "offsetStart": "4.5%",
+        "width": "90%",
+        "height": "5%",
+        "justifyContent": "space-around",
+        "alignItems": "flex-start"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "{emergency_location}",
+            "color": "#0f172a",
+            "size": "md",
+            "wrap": true,
+            "weight": "regular",
+            "align": "start",
+            "maxLines": 1
+          }
+        ],
+        "position": "absolute",
+        "offsetTop": "19%",
+        "offsetStart": "4.5%",
+        "width": "90%",
+        "height": "5%",
+        "justifyContent": "space-around",
+        "alignItems": "flex-start"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "{emergency_detail}",
+            "color": "#344256",
+            "size": "md",
+            "wrap": true,
+            "weight": "regular",
+            "align": "center",
+            "maxLines": 2
+          }
+        ],
+        "position": "absolute",
+        "offsetTop": "33%",
+        "offsetStart": "8%",
+        "width": "86%",
+        "height": "10%",
+        "justifyContent": "flex-start",
+        "alignItems": "flex-start"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "{type_reporter}",
+            "color": "#1d4ed8",
+            "size": "sm",
+            "wrap": false,
+            "maxLines": 1
+          }
+        ],
+        "position": "absolute",
+        "offsetTop": "61.5%",
+        "offsetStart": "7%",
+        "alignItems": "flex-start",
+        "justifyContent": "center",
+        "paddingTop": "2px",
+        "paddingBottom": "2px",
+        "paddingStart": "5px",
+        "paddingEnd": "5px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "{name_reporter}",
+            "color": "#4b5769",
+            "size": "md",
+            "wrap": false,
+            "weight": "bold",
+            "maxLines": 1
+          }
+        ],
+        "position": "absolute",
+        "offsetTop": "70%",
+        "offsetStart": "7%",
+        "alignItems": "flex-start",
+        "justifyContent": "center",
+        "width": "85%"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "{phone_reporter}",
+            "color": "#dd2f2f",
+            "size": "md",
+            "wrap": false,
+            "weight": "bold",
+            "maxLines": 1
+          }
+        ],
+        "position": "absolute",
+        "offsetTop": "78.5%",
+        "offsetStart": "7%",
+        "alignItems": "flex-start",
+        "justifyContent": "center",
+        "width": "75%"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [],
+        "position": "absolute",
+        "offsetTop": "77%",
+        "width": "10%",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "height": "6.2%",
+        "action": {
+          "type": "uri",
+          "label": "Call",
+          "uri": "tel:{phone_reporter}"
         },
-        {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "text",
-              "text": "{emergency_type}",
-              "color": "#0f172a",
-              "size": "lg",
-              "wrap": true,
-              "weight": "bold",
-              "align": "center",
-              "maxLines": 1
-            }
-          ],
-          "position": "absolute",
-          "offsetTop": "8%",
-          "offsetStart": "4.5%",
-          "width": "90%",
-          "height": "5%",
-          "justifyContent": "space-around",
-          "alignItems": "flex-start"
+        "offsetEnd": "6.3%"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [],
+        "position": "absolute",
+        "offsetTop": "89%",
+        "width": "18.5%",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "height": "9%",
+        "action": {
+          "type": "message",
+          "label": "decline",
+          "text": "decline"
         },
-        {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "text",
-              "text": "{emergency_location}",
-              "color": "#0f172a",
-              "size": "md",
-              "wrap": true,
-              "weight": "regular",
-              "align": "start",
-              "maxLines": 1
-            }
-          ],
-          "position": "absolute",
-          "offsetTop": "20%",
-          "offsetStart": "4.5%",
-          "width": "90%",
-          "height": "5%",
-          "justifyContent": "space-around",
-          "alignItems": "flex-start"
+        "offsetStart": "4%"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [],
+        "position": "absolute",
+        "offsetTop": "89%",
+        "width": "18.5%",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "height": "9%",
+        "action": {
+          "type": "uri",
+          "label": "Map",
+          "uri": "https://maps.google.com/?q={emergency_lat},{emergency_lng}"
         },
-        {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "text",
-              "text": "{emergency_detail}",
-              "color": "#344256",
-              "size": "md",
-              "wrap": true,
-              "weight": "regular",
-              "align": "center",
-              "maxLines": 2
-            }
-          ],
-          "position": "absolute",
-          "offsetTop": "34%",
-          "offsetStart": "8%",
-          "width": "86%",
-          "height": "10%",
-          "justifyContent": "flex-start",
-          "alignItems": "flex-start"
+        "offsetStart": "41%"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [],
+        "position": "absolute",
+        "offsetTop": "89%",
+        "width": "37.5%",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "height": "9%",
+        "action": {
+          "type": "postback",
+          "label": "Accept",
+          "data": "action=accept&operation_id={operation_id}"
         },
-        {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "text",
-              "text": "{type_reporter}",
-              "color": "#1d4ed8",
-              "size": "sm",
-              "wrap": false,
-              "maxLines": 1
-            }
-          ],
-          "position": "absolute",
-          "offsetTop": "64.2%",
-          "offsetStart": "7%",
-          "alignItems": "flex-start",
-          "justifyContent": "center",
-          "paddingTop": "2px",
-          "paddingBottom": "2px",
-          "paddingStart": "5px",
-          "paddingEnd": "5px"
-        },
-        {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "text",
-              "text": "{name_reporter}",
-              "color": "#4b5769",
-              "size": "md",
-              "wrap": false,
-              "weight": "bold",
-              "maxLines": 1
-            }
-          ],
-          "position": "absolute",
-          "offsetTop": "73%",
-          "offsetStart": "7%",
-          "alignItems": "flex-start",
-          "justifyContent": "center",
-          "width": "85%"
-        },
-        {
-          "type": "box",
-          "layout": "horizontal",
-          "contents": [
-            {
-              "type": "text",
-              "text": "{phone_reporter}",
-              "color": "#dd2f2f",
-              "size": "md",
-              "wrap": false,
-              "weight": "bold",
-              "maxLines": 1
-            }
-          ],
-          "position": "absolute",
-          "offsetTop": "82%",
-          "offsetStart": "7%",
-          "alignItems": "flex-start",
-          "justifyContent": "center",
-          "width": "75%"
-        },
-        {
-          "type": "box",
-          "layout": "horizontal",
-          "contents": [],
-          "position": "absolute",
-          "offsetTop": "80%",
-          "width": "10%",
-          "alignItems": "center",
-          "justifyContent": "center",
-          "height": "6.2%",
-          "action": {
-            "type": "uri",
-            "label": "Call",
-            "uri": "tel:{phone_reporter}"
-          },
-          "offsetEnd": "6.3%"
-        },
-        {
-          "type": "box",
-          "layout": "horizontal",
-          "contents": [],
-          "position": "absolute",
-          "offsetTop": "92.9%",
-          "width": "26%",
-          "alignItems": "center",
-          "justifyContent": "center",
-          "height": "5.5%",
-          "action": {
-            "type": "uri",
-            "label": "Map",
-            "uri": "https://maps.google.com/?q={emergency_lat},{emergency_lng}"
-          },
-          "offsetStart": "42.5%"
-        },
-        {
-          "type": "box",
-          "layout": "horizontal",
-          "contents": [],
-          "position": "absolute",
-          "offsetTop": "92.9%",
-          "width": "26%",
-          "alignItems": "center",
-          "justifyContent": "center",
-          "height": "5.5%",
-          "action": {
-            "type": "postback",
-            "label": "Accept",
-            "data": "action=accept&operation_id={operation_id}"
-          },
-          "offsetStart": "71%"
-        }
-      ],
-      "position": "relative",
-      "paddingAll": "0px"
-    }
+        "offsetStart": "60%"
+      }
+    ],
+    "position": "relative",
+    "paddingAll": "0px"
   }
+}
 }
