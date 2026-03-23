@@ -8,12 +8,12 @@
             <h1 class="text-2xl font-bold text-slate-900">จัดการสมาชิก</h1>
             <p class="text-sm text-slate-500 mt-1">ตรวจสอบและจัดการข้อมูลผู้ใช้งานและเจ้าหน้าที่ในระบบ</p>
         </div>
-        
+        @if(auth()->check() && auth()->user()->role == 'admin' && auth()->user()->userCommand && auth()->user()->userCommand->command_role == 'supervisor')
             <button onclick="openModal('createCommandModal')" class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-[18px]">person_add</span>
                 สร้างสมาชิกศูนย์ควบคุม
             </button>
-        
+        @endif
     </div>
 
     <div class="flex items-center gap-2 mb-6 border-b border-slate-200 pb-px">
