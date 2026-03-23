@@ -127,9 +127,8 @@
                     @php
                         // ตัวแปรเช็คว่ามีคนรับงานและกำลังเดินทางอยู่หรือไม่
                         $currentOpStatus = $emergency->operation->status ?? '';
-                        $isActiveOperation = in_array($currentOpStatus, ['กำลังเดินทาง', 'ถึงที่เกิดเหตุ', 'เสร็จสิ้น']);
                         
-                        // ค้นหาข้อมูลเจ้าหน้าที่ที่รับงาน จาก collection officers เดิม
+                        $isActiveOperation = in_array($currentOpStatus, ['กำลังไปช่วยเหลือ', 'ถึงที่เกิดเหตุ', 'เสร็จสิ้น']);
                         $acceptedOfficerId = $emergency->operation->user_officers_id ?? null;
                         $acceptedOfficer = collect($officers)->firstWhere('id', $acceptedOfficerId);
                     @endphp
