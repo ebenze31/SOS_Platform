@@ -735,14 +735,24 @@ class EmergencysController extends Controller
         if (!empty($operation->user_officers_id)) {
             $officer = DB::table('user_officers')->where('id', $operation->user_officers_id)->first();
             
-            // ================= ตรวจสอบเวลา last_update_location =================
-            if ($officer && $officer->last_update_location) {
-                // คำนวณนาทีที่ผ่านไปนับจากที่อัปเดตพิกัดล่าสุด
-                $lastUpdate = Carbon::parse($officer->last_update_location);
-                $locationDiffMinutes = now()->diffInMinutes($lastUpdate); 
+            if ($officer) {
+                // ตรวจสอบพิกัด
+                $isLocationOld = false;
                 
-                // เช็คสถานะ "กำลังไปช่วยเหลือ" และพิกัดไม่อัปเดตเกิน 3 นาที
-                if ($operation->status === 'กำลังไปช่วยเหลือ' && $locationDiffMinutes >= 3) {
+                if (empty($officer->last_update_location)) {
+                    // ไม่มีพิกัด
+                    $isLocationOld = true; 
+                } else {
+                    // มีพิกัด แต่เช็คว่าเกิน 3 นาทีไหม
+                    $lastUpdate = Carbon::parse($officer->last_update_location);
+                    $locationDiffMinutes = now()->diffInMinutes($lastUpdate); 
+                    if ($locationDiffMinutes >= 3) {
+                        $isLocationOld = true;
+                    }
+                }
+                
+                // ถ้าสถานะ "กำลังไปช่วยเหลือ" และ "พิกัดเก่า/ไม่มีพิกัด"
+                if ($operation->status === 'กำลังไปช่วยเหลือ' && $isLocationOld) {
                     
                     // เช็คเวลาแจ้งเตือนครั้งล่าสุดจาก Database (line_notified_at)
                     $lastNotified = $officer->line_notified_at ? Carbon::parse($officer->line_notified_at) : null;
