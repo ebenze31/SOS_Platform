@@ -339,13 +339,23 @@ class User_officersController extends Controller
         }
 
         if (in_array($status, ['Standby', 'None'])) {
+            
+            // --- บังคับรับค่าพิกัดเมื่อต้องการเปิด Standby ---
+            if ($status === 'Standby' && (empty($lat) || empty($lng))) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'ระบบต้องการพิกัด GPS ปัจจุบันเพื่อเข้าสู่สถานะพร้อมปฏิบัติงาน'
+                ]);
+            }
+
             // เตรียมข้อมูลอัปเดต
             $updateData = ['status' => $status];
             
-            // ถ้ามีการส่งพิกัดมาด้วย ให้อัปเดตพิกัดด้วย
-            if ($lat != null && $lng != null) {
+            // ถ้ามีการส่งพิกัดมาด้วย ให้อัปเดตพิกัด + เวลาล่าสุด
+            if (!empty($lat) && !empty($lng)) {
                 $updateData['lat'] = $lat;
                 $updateData['lng'] = $lng;
+                $updateData['last_update_location'] = now(); // บันทึกเวลาที่ได้พิกัดล่าสุด
             }
 
             DB::table('user_officers')

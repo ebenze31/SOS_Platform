@@ -159,32 +159,89 @@
         toggle.addEventListener('change', function () {
             
             const isReady = this.checked;
-            updateUI(isReady);
+            
+            // ล็อกปุ่มไว้ก่อน ป้องกันการกดซ้ำรัวๆ ขณะรอ GPS
+            toggle.disabled = true; 
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        const currentLat = position.coords.latitude;
-                        const currentLng = position.coords.longitude;
-                        
-                        // เมื่อได้พิกัดใหม่ -> เลื่อนแผนที่ และย้ายหมุด
-                        if(map && officerMarker) {
-                            const newPos = { lat: currentLat, lng: currentLng };
-                            map.panTo(newPos);
-                            officerMarker.position = newPos;
-                        }
+            if (isReady) {
+                // กรณีเปิดสถานะ (Standby) -> บังคับหาพิกัด
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            const currentLat = position.coords.latitude;
+                            const currentLng = position.coords.longitude;
+                            
+                            // เลื่อนแผนที่และย้ายหมุด
+                            if(map && officerMarker) {
+                                const newPos = { lat: currentLat, lng: currentLng };
+                                map.panTo(newPos);
+                                officerMarker.position = newPos;
+                            }
 
-                        sendUpdateToServer(isReady, currentLat, currentLng);
-                    },
-                    function(error) {
-                        console.warn("ไม่สามารถดึงตำแหน่งได้: ", error);
-                        sendUpdateToServer(isReady, null, null);
-                    },
-                    { enableHighAccuracy: true, timeout: 5000 }
-                );
+                            // ได้พิกัดแล้ว ส่งไปเซิร์ฟเวอร์
+                            sendUpdateToServer(isReady, currentLat, currentLng);
+                        },
+                        function(error) {
+                            console.warn("ไม่สามารถดึงตำแหน่งได้: ", error);
+                            alert('กรุณาอนุญาตให้เบราว์เซอร์เข้าถึงตำแหน่ง (Location) ของคุณก่อนเปิดสถานะ');
+                            
+                            // ดึงพิกัดไม่สำเร็จ ให้เด้งสวิตช์ ปิด
+                            toggle.checked = false; 
+                            toggle.disabled = false;
+                            updateUI(false);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                } else {
+                    alert('อุปกรณ์ของคุณไม่รองรับการระบุตำแหน่ง GPS');
+                    toggle.checked = false;
+                    toggle.disabled = false;
+                    updateUI(false);
+                }
             } else {
+                // กรณีปิดสถานะ (None) -> ไม่ต้องรอ GPS ก็ส่งไปปิดได้เลย
                 sendUpdateToServer(isReady, null, null);
             }
+        });
+    }
+
+    function sendUpdateToServer(isReady, lat, lng) {
+        const newStatus = isReady ? 'Standby' : 'None';
+            
+        fetch("{{ url('/officer/update-status') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                status: newStatus,
+                lat: lat,
+                lng: lng
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            toggle.disabled = false; // ปลดล็อกปุ่ม
+            
+            if(data.success) {
+                // เซิร์ฟเวอร์อัปเดตผ่าน ค่อยเปลี่ยนสี UI
+                updateUI(isReady);
+            } else {
+                alert('ผิดพลาด: ' + data.message);
+                // ถ้าเซิร์ฟเวอร์ปฏิเสธ ให้เด้งสวิตช์กลับ
+                toggle.checked = !isReady;
+                updateUI(!isReady);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('ขาดการเชื่อมต่อกับเซิร์ฟเวอร์');
+            
+            toggle.disabled = false;
+            toggle.checked = !isReady;
+            updateUI(!isReady);
         });
     }
 
