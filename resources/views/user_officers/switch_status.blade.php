@@ -32,6 +32,14 @@
     <div class="relative flex h-[calc(100vh-61px)] w-full flex-col overflow-hidden">
         
         <div id="map" class="absolute inset-0 z-0"></div>
+                
+        <div id="gps-loading" class="absolute inset-0 z-10 hidden flex-col items-center justify-center bg-slate-900/30 backdrop-blur-sm transition-all duration-300">
+            <div class="h-14 w-14 animate-spin rounded-full border-4 border-white border-t-primary mb-4 shadow-lg"></div>
+            <div class="bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 animate-pulse">
+                <span class="material-symbols-outlined text-primary">my_location</span>
+                <span class="text-slate-700 font-bold">กำลังค้นหาตำแหน่ง GPS...</span>
+            </div>
+        </div>
         
         <div class="absolute inset-0 z-10 pointer-events-none"></div>
         
@@ -106,76 +114,175 @@
     const toggleLabel = document.getElementById('toggle-label');
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
+    const gpsLoading = document.getElementById('gps-loading');
 
     const currentStatus = "{{ $officer->status }}";
+    
+    // ดึงพิกัดตั้งต้นจาก DB (ถ้ามี)
+    let initialLat = parseFloat("{{ $officer->lat ?? 'null' }}");
+    let initialLng = parseFloat("{{ $officer->lng ?? 'null' }}");
+    
     let map, officerMarker, markerElement;
     let locationInterval = null;
 
-    function initMap() {
-        const initialLat = parseFloat("{{ $officer->lat ?? 13.7563 }}");
-        const initialLng = parseFloat("{{ $officer->lng ?? 100.5018 }}");
-        const position = { lat: initialLat, lng: initialLng };
+    // --- ฟังก์ชันสร้างและวาดแผนที่ ---
+    function renderMap(lat, lng) {
+        const position = { lat: lat, lng: lng };
+        
+        // ถ้าแผนที่ยังไม่เคยสร้าง ให้สร้างใหม่
+        if (!map) {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 15,
+                center: position,
+                disableDefaultUI: true,
+                mapId: "DEMO_MAP_ID" 
+            });
 
-        map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15,
-            center: position,
-            disableDefaultUI: true,
-            mapId: "DEMO_MAP_ID" 
-        });
-
-        const officerHtml = `
-            <div id="officer-marker-{{ $officer->id }}" class="relative flex flex-col items-center cursor-pointer transition-transform hover:scale-110 z-40">
-                <div class="relative flex h-9 w-9">
-                    <span class="officer-pulse hidden animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60"></span>
-                    <span class="relative inline-flex rounded-full h-9 w-9 bg-blue-600 border-2 border-white shadow-lg items-center justify-center text-white">
-                        <span class="material-symbols-outlined text-[18px]">directions_car</span>
-                    </span>
+            const officerHtml = `
+                <div id="officer-marker-{{ $officer->id }}" class="relative flex flex-col items-center cursor-pointer transition-transform hover:scale-110 z-40">
+                    <div class="relative flex h-9 w-9">
+                        <span class="officer-pulse hidden animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60"></span>
+                        <span class="relative inline-flex rounded-full h-9 w-9 bg-blue-600 border-2 border-white shadow-lg items-center justify-center text-white">
+                            <span class="material-symbols-outlined text-[18px]">directions_car</span>
+                        </span>
+                    </div>
+                    <div class="mt-1 bg-white text-slate-900 text-[11px] font-bold px-2.5 py-1 rounded shadow-md border border-slate-200 whitespace-nowrap">
+                        {{ $officer->name_officer }}
+                    </div>
                 </div>
-                <div class="mt-1 bg-white text-slate-900 text-[11px] font-bold px-2.5 py-1 rounded shadow-md border border-slate-200 whitespace-nowrap">
-                    {{ $officer->name_officer }}
-                </div>
-            </div>
-        `;
+            `;
 
-        const div = document.createElement('div');
-        div.innerHTML = officerHtml.trim();
-        markerElement = div.firstChild;
+            const div = document.createElement('div');
+            div.innerHTML = officerHtml.trim();
+            markerElement = div.firstChild;
 
-        officerMarker = new google.maps.marker.AdvancedMarkerElement({
-            map: map,
-            position: position,
-            content: markerElement,
-        });
+            officerMarker = new google.maps.marker.AdvancedMarkerElement({
+                map: map,
+                position: position,
+                content: markerElement,
+            });
 
-        if (currentStatus === 'Standby' || currentStatus === 'Helping') {
-            markerElement.querySelector('.officer-pulse').classList.remove('hidden');
+            if (currentStatus === 'Standby' || currentStatus === 'Helping') {
+                markerElement.querySelector('.officer-pulse').classList.remove('hidden');
+            }
+        } else {
+            // ถ้ามีแผนที่อยู่แล้ว ให้เลื่อนจุดศูนย์กลางและย้ายหมุดแทน
+            map.panTo(position);
+            officerMarker.position = position;
         }
     }
 
+    // --- ฟังก์ชันหลักที่ทำงานตอนโหลดหน้าเว็บ ---
+    function initMap() {
+        // ถ้ายอมรับว่าให้ดึง GPS ได้ทันทีที่โหลดหน้าเว็บ (เฉพาะคนที่สถานะเปิดอยู่ หรือยังไม่มีพิกัดเลย)
+        if (currentStatus === 'Standby' || currentStatus === 'Helping' || isNaN(initialLat)) {
+            
+            // แสดงหน้าจอโหลด GPS ก่อนเลย
+            if(gpsLoading) {
+                gpsLoading.classList.remove('hidden');
+                gpsLoading.classList.add('flex');
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const currentLat = position.coords.latitude;
+                        const currentLng = position.coords.longitude;
+                        
+                        // ได้พิกัดปัจจุบันแล้ว ปิดหน้าจอโหลด
+                        if(gpsLoading) {
+                            gpsLoading.classList.add('hidden');
+                            gpsLoading.classList.remove('flex');
+                        }
+
+                        // วาดแผนที่ที่จุดปัจจุบัน
+                        renderMap(currentLat, currentLng);
+                        
+                        // ถ้าเขากำลัง Standby/Helping อยู่ ให้ยิง API ไปเซฟพิกัดใหม่ลง DB ด้วยเลย (แก้ปัญหาเข้าแล้วออกไว)
+                        if (currentStatus === 'Standby' || currentStatus === 'Helping') {
+                            syncLocationToServer(currentLat, currentLng);
+                            startLocationTracking(); // เริ่มลูป 1 นาที
+                        }
+                    },
+                    function(error) {
+                        // ถ้าหา GPS ไม่เจอ ให้ใช้พิกัดเดิมจาก DB (ถ้ามี) ในการวาดแผนที่แทนหน้าจอขาวๆ
+                        if(gpsLoading) {
+                            gpsLoading.classList.add('hidden');
+                            gpsLoading.classList.remove('flex');
+                        }
+                        console.warn("ไม่สามารถดึงตำแหน่งตอนโหลดเว็บได้: ", error);
+                        
+                        // วาดแผนที่ที่พิกัดเดิม (ถ้าใน DB มีค่า)
+                        if (!isNaN(initialLat) && !isNaN(initialLng)) {
+                            renderMap(initialLat, initialLng);
+                        } else {
+                            // ถ้าใน DB ก็ไม่มีค่าด้วย ให้แสดงพิกัด Default (กรุงเทพ)
+                            renderMap(13.7563, 100.5018);
+                            alert('ไม่สามารถหาพิกัดได้ กรุณาเปิด GPS');
+                        }
+                        
+                        if (currentStatus === 'Standby' || currentStatus === 'Helping') {
+                            startLocationTracking(); // ยังคงพยายามลูปหา GPS ต่อไป
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                // เบราว์เซอร์ไม่รองรับ
+                if(gpsLoading) {
+                    gpsLoading.classList.add('hidden');
+                    gpsLoading.classList.remove('flex');
+                }
+                if (!isNaN(initialLat)) {
+                    renderMap(initialLat, initialLng);
+                } else {
+                    renderMap(13.7563, 100.5018);
+                }
+            }
+        } else {
+            // ถ้าสถานะเป็น ปิด (None) ก็ใช้พิกัดจาก DB วาดแผนที่ได้เลย ไม่ต้องบังคับหา GPS 
+            if (!isNaN(initialLat) && !isNaN(initialLng)) {
+                renderMap(initialLat, initialLng);
+            } else {
+                renderMap(13.7563, 100.5018);
+            }
+        }
+    }
+
+    // --- การทำงานของปุ่มเปิด/ปิด ---
     if(toggle && currentStatus !== 'Helping') {
         toggle.addEventListener('change', function () {
             
             const isReady = this.checked;
-            
-            // ล็อกปุ่มไว้ก่อน
             toggle.disabled = true; 
 
             if (isReady) {
+                if(gpsLoading) {
+                    gpsLoading.classList.remove('hidden');
+                    gpsLoading.classList.add('flex');
+                }
+
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         function(position) {
+                            
+                            if(gpsLoading) {
+                                gpsLoading.classList.add('hidden');
+                                gpsLoading.classList.remove('flex');
+                            }
+
                             const currentLat = position.coords.latitude;
                             const currentLng = position.coords.longitude;
                             
-                            if(map && officerMarker) {
-                                const newPos = { lat: currentLat, lng: currentLng };
-                                map.panTo(newPos);
-                                officerMarker.position = newPos;
-                            }
-
+                            renderMap(currentLat, currentLng);
                             sendUpdateToServer(isReady, currentLat, currentLng);
                         },
                         function(error) {
+                            if(gpsLoading) {
+                                gpsLoading.classList.add('hidden');
+                                gpsLoading.classList.remove('flex');
+                            }
+
                             console.warn("ไม่สามารถดึงตำแหน่งได้: ", error);
                             alert('กรุณาอนุญาตให้เบราว์เซอร์เข้าถึงตำแหน่ง (Location) ของคุณก่อนเปิดสถานะ');
                             
@@ -186,6 +293,11 @@
                         { enableHighAccuracy: true, timeout: 10000 }
                     );
                 } else {
+                    if(gpsLoading) {
+                        gpsLoading.classList.add('hidden');
+                        gpsLoading.classList.remove('flex');
+                    }
+
                     alert('อุปกรณ์ของคุณไม่รองรับการระบุตำแหน่ง GPS');
                     toggle.checked = false;
                     toggle.disabled = false;
@@ -197,6 +309,7 @@
         });
     }
 
+    // --- API ยิงเปิด/ปิดสถานะ ---
     function sendUpdateToServer(isReady, lat, lng) {
         const newStatus = isReady ? 'Standby' : 'None';
             
@@ -215,7 +328,7 @@
         })
         .then(response => response.json())
         .then(data => {
-            toggle.disabled = false; // ปลดล็อกปุ่ม
+            toggle.disabled = false; 
             
             if(data.success) {
                 updateUI(isReady);
@@ -235,8 +348,21 @@
         });
     }
 
-    // ================= ระบบ Background Tracking =================
+    // --- API ยิงอัปเดตเฉพาะพิกัด (พื้นหลัง) ---
+    function syncLocationToServer(lat, lng) {
+        fetch("{{ url('/officer/update-location') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ lat: lat, lng: lng })
+        }).catch(e => console.log("Background tracking sync failed"));
+    }
 
+
+    // ================= ระบบ Background Tracking =================
     function startLocationTracking() {
         if (locationInterval) clearInterval(locationInterval);
 
@@ -250,19 +376,8 @@
                         if (map && officerMarker) {
                             officerMarker.position = { lat: currentLat, lng: currentLng };
                         }
-
-                        fetch("{{ url('/officer/update-location') }}", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({ 
-                                lat: currentLat, 
-                                lng: currentLng 
-                            })
-                        }).catch(e => console.log("Background tracking sync failed"));
+                        
+                        syncLocationToServer(currentLat, currentLng);
                     },
                     function(error) {
                         console.warn("Background tracking error: ", error);
@@ -279,13 +394,9 @@
             locationInterval = null;
         }
     }
-
-    // เริ่มทำงานทันทีที่โหลดหน้าเว็บ
-    if (currentStatus === 'Standby' || currentStatus === 'Helping') {
-        startLocationTracking();
-    }
     // =========================================================
 
+    // --- อัปเดตหน้าตาปุ่ม ---
     function updateUI(isReady) {
         if (isReady) {
             toggleLabel.classList.remove('bg-slate-400');
