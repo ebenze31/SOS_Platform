@@ -101,7 +101,6 @@
 </div>
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initMap&libraries=marker" async defer></script>
-
 <script>
     const toggle = document.getElementById('status-toggle');
     const toggleLabel = document.getElementById('toggle-label');
@@ -110,6 +109,7 @@
 
     const currentStatus = "{{ $officer->status }}";
     let map, officerMarker, markerElement;
+    let locationInterval = null;
 
     function initMap() {
         const initialLat = parseFloat("{{ $officer->lat ?? 13.7563 }}");
@@ -119,7 +119,7 @@
         map = new google.maps.Map(document.getElementById("map"), {
             zoom: 15,
             center: position,
-            disableDefaultUI: true, // ซ่อนปุ่มของ Google Maps
+            disableDefaultUI: true,
             mapId: "DEMO_MAP_ID" 
         });
 
@@ -137,19 +137,16 @@
             </div>
         `;
 
-        // แปลง HTML String เป็น DOM Element
         const div = document.createElement('div');
         div.innerHTML = officerHtml.trim();
         markerElement = div.firstChild;
 
-        // วางหมุดลงแผนที่ด้วย AdvancedMarkerElement
         officerMarker = new google.maps.marker.AdvancedMarkerElement({
             map: map,
             position: position,
             content: markerElement,
         });
 
-        // ถ้าสถานะเป็น Standby หรือ Helping ให้โชว์คลื่นน้ำตั้งแต่โหลดหน้าเว็บ
         if (currentStatus === 'Standby' || currentStatus === 'Helping') {
             markerElement.querySelector('.officer-pulse').classList.remove('hidden');
         }
@@ -160,32 +157,28 @@
             
             const isReady = this.checked;
             
-            // ล็อกปุ่มไว้ก่อน ป้องกันการกดซ้ำรัวๆ ขณะรอ GPS
+            // ล็อกปุ่มไว้ก่อน
             toggle.disabled = true; 
 
             if (isReady) {
-                // กรณีเปิดสถานะ (Standby) -> บังคับหาพิกัด
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         function(position) {
                             const currentLat = position.coords.latitude;
                             const currentLng = position.coords.longitude;
                             
-                            // เลื่อนแผนที่และย้ายหมุด
                             if(map && officerMarker) {
                                 const newPos = { lat: currentLat, lng: currentLng };
                                 map.panTo(newPos);
                                 officerMarker.position = newPos;
                             }
 
-                            // ได้พิกัดแล้ว ส่งไปเซิร์ฟเวอร์
                             sendUpdateToServer(isReady, currentLat, currentLng);
                         },
                         function(error) {
                             console.warn("ไม่สามารถดึงตำแหน่งได้: ", error);
                             alert('กรุณาอนุญาตให้เบราว์เซอร์เข้าถึงตำแหน่ง (Location) ของคุณก่อนเปิดสถานะ');
                             
-                            // ดึงพิกัดไม่สำเร็จ ให้เด้งสวิตช์ ปิด
                             toggle.checked = false; 
                             toggle.disabled = false;
                             updateUI(false);
@@ -199,7 +192,6 @@
                     updateUI(false);
                 }
             } else {
-                // กรณีปิดสถานะ (None) -> ไม่ต้องรอ GPS ก็ส่งไปปิดได้เลย
                 sendUpdateToServer(isReady, null, null);
             }
         });
@@ -226,11 +218,9 @@
             toggle.disabled = false; // ปลดล็อกปุ่ม
             
             if(data.success) {
-                // เซิร์ฟเวอร์อัปเดตผ่าน ค่อยเปลี่ยนสี UI
                 updateUI(isReady);
             } else {
                 alert('ผิดพลาด: ' + data.message);
-                // ถ้าเซิร์ฟเวอร์ปฏิเสธ ให้เด้งสวิตช์กลับ
                 toggle.checked = !isReady;
                 updateUI(!isReady);
             }
@@ -245,37 +235,56 @@
         });
     }
 
-    function sendUpdateToServer(isReady, lat, lng) {
-        const newStatus = isReady ? 'Standby' : 'None';
-            
-        fetch("{{ url('/officer/update-status') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ 
-                status: newStatus,
-                lat: lat,
-                lng: lng
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(!data.success) {
-                alert('ไม่สามารถอัปเดตสถานะได้: ' + data.message);
-                toggle.checked = !isReady;
-                updateUI(!isReady);
+    // ================= ระบบ Background Tracking =================
+
+    function startLocationTracking() {
+        if (locationInterval) clearInterval(locationInterval);
+
+        locationInterval = setInterval(() => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const currentLat = position.coords.latitude;
+                        const currentLng = position.coords.longitude;
+                        
+                        if (map && officerMarker) {
+                            officerMarker.position = { lat: currentLat, lng: currentLng };
+                        }
+
+                        fetch("{{ url('/officer/update-location') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ 
+                                lat: currentLat, 
+                                lng: currentLng 
+                            })
+                        }).catch(e => console.log("Background tracking sync failed"));
+                    },
+                    function(error) {
+                        console.warn("Background tracking error: ", error);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('ขาดการเชื่อมต่อกับเซิร์ฟเวอร์');
-            toggle.checked = !isReady;
-            updateUI(!isReady);
-        });
+        }, 60000); 
     }
+
+    function stopLocationTracking() {
+        if (locationInterval) {
+            clearInterval(locationInterval);
+            locationInterval = null;
+        }
+    }
+
+    // เริ่มทำงานทันทีที่โหลดหน้าเว็บ
+    if (currentStatus === 'Standby' || currentStatus === 'Helping') {
+        startLocationTracking();
+    }
+    // =========================================================
 
     function updateUI(isReady) {
         if (isReady) {
@@ -284,18 +293,18 @@
             statusDot.classList.remove('bg-red-500');
             statusDot.classList.add('bg-safety-green');
             statusText.textContent = 'พร้อมปฏิบัติงาน';
-            
-            // เปิดเอฟเฟกต์คลื่นน้ำ
             if(markerElement) markerElement.querySelector('.officer-pulse').classList.remove('hidden');
+            
+            startLocationTracking();
         } else {
             toggleLabel.classList.remove('bg-primary');
             toggleLabel.classList.add('bg-slate-400');
             statusDot.classList.remove('bg-safety-green');
             statusDot.classList.add('bg-red-500');
             statusText.textContent = 'ไม่พร้อมปฏิบัติงาน';
-            
-            // ปิดเอฟเฟกต์คลื่นน้ำ
             if(markerElement) markerElement.querySelector('.officer-pulse').classList.add('hidden');
+            
+            stopLocationTracking();
         }
     }
 </script>

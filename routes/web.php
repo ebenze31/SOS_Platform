@@ -139,6 +139,7 @@ Route::middleware(['auth'])->group(function () {
         // ============  หน้าเปิดสถานะเจ้าหน้าที่ ============
         Route::get('/officer/open_status', 'User_officersController@showStatus')->name('officer.status');
         Route::post('/officer/update-status', 'User_officersController@updateStatusStandby');
+        Route::post('/officer/update-location', 'User_officersController@updateLocationOnly');
 
         // ============  Map ดำเนินการช่วยเหลือ ============
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
