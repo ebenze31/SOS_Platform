@@ -87,22 +87,34 @@ class LineWebhookController extends Controller
                     $operation = Emergency_operation::find($operationId);
 
                     if ($operation) {
+                        // ป้องกันกรณีเคสถูกคนอื่นรับไปแล้ว หรือถูกยกเลิกไปแล้ว
+                        if ($operation->status !== 'สั่งการ') {
+                            $this->replyText($event['replyToken'], "ขออภัย เคสนี้ถูกดำเนินการไปแล้ว หรือไม่อยู่ในสถานะที่รับงานได้");
+                            return;
+                        }
                         
                         // --- อัปเดตตาราง emergency_operations ---
                         $operation->waiting_reply = null;
                         $operation->status = 'กำลังไปช่วยเหลือ';
                         $operation->user_officers_id = $officer->id;
-                        $operation->time_go_to_help = date('Y-m-d H:i:s');
+                        $operation->time_go_to_help = now();
+
+                        // --- อัปเดตตาราง user_officers ---
+                        $officer->line_notified_at = now();
+                        $officer->save();
 
                         // --- อัปเดตคอลัมน์ log_command ---
                         $logs = json_decode($operation->log_command, true) ?? [];
                         
                         foreach ($logs as &$logItem) {
-                            // เช็ค Log ของเจ้าหน้าที่คนนี้ (sendTo = officer id) และสถานะยังเป็น pending หรือ no_respond
+                            // เช็ค Log ของเจ้าหน้าที่คนนี้ และสถานะยังเป็น pending หรือ no_respond
                             if ($logItem['sendTo'] == $officer->id && in_array($logItem['status'], ['pending', 'no_respond'])) {
                                 $logItem['status'] = 'go_to_help';
                                 
-                                // คำนวณเวลาที่ใช้ไป (sum_time) หน่วยเป็นวินาที
+                                // เก็บเวลาที่กดรับงานจริงๆ ไว้ด้วย
+                                $logItem['time_accepted'] = now()->toIso8601String();
+                                
+                                // คำนวณเวลาที่ใช้ไป (sum_time) ตั้งแต่สั่งการจนถึงตอนกดรับ
                                 $startTime = strtotime($logItem['datetime']);
                                 $logItem['sum_time'] = time() - $startTime;
                             }
@@ -227,5 +239,60 @@ class LineWebhookController extends Controller
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_exec($ch);
         curl_close($ch);
+    }
+
+    public static function sendLineNotice($userId, $text)
+    {
+        $url = 'https://api.line.me/v2/bot/message/push';
+        
+        $data = [
+            'to' => $userId,
+            'messages' => [
+                ['type' => 'text', 'text' => $text]
+            ],
+        ];
+
+        $headers = [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . env('CHANNEL_ACCESS_TOKEN')
+        ];
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $result = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        $textContent = $text;
+        
+        // ตัดคำถ้าเกิน 250 ตัวอักษร
+        if (mb_strlen($textContent, 'UTF-8') > 250) {
+            $textContent = mb_substr($textContent, 0, 247, 'UTF-8') . '...';
+        }
+
+        // จัดรูปแบบข้อมูลที่จะเก็บลง event_arr
+        $logData = [
+            'action' => 'push_message',
+            'request' => $data,
+            'response' => json_decode($result, true) ?? $result,
+            'curl_error' => $curlError
+        ];
+
+        $log = new My_log();
+        $log->title = 'ระบบส่งข้อความแจ้งเตือน (Push)';
+        $log->content = $textContent; 
+        $log->event_arr = json_encode($logData, JSON_UNESCAPED_UNICODE);
+        $log->save();
+        // ==========================================
+
+        // เก็บ Log ลงไฟล์ของ Laravel เผื่อกรณี Error ระดับระบบ
+        if ($curlError) {
+            Log::error('Line Push Error: ' . $curlError);
+        }
+
+        return $result;
     }
 }

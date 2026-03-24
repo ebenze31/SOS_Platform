@@ -397,7 +397,7 @@ class EmergencysController extends Controller
 
         $emergency = Emergency::with('operation')->findOrFail($id);
         $operation = $emergency->operation;
-        $newOfficerId = $request->officer_id;
+        $newOfficerId = (int) $request->officer_id;
         
         $officer = User_officer::with('user')->findOrFail($newOfficerId);
 
@@ -407,7 +407,7 @@ class EmergencysController extends Controller
         
         // ตรวจสอบว่ามีเจ้าหน้าที่เดิมที่กำลังรอการตอบรับอยู่หรือไม่
         if (!empty($operation->waiting_reply)) {
-            $previousOfficerId = $operation->waiting_reply;
+            $previousOfficerId = (int) $operation->waiting_reply;
             
             // หาเวลาที่ใช้รอสำหรับเจ้าหน้าที่คนก่อนหน้า
             $timeCommandStr = $operation->time_command ?? now()->toISOString();
@@ -421,39 +421,64 @@ class EmergencysController extends Controller
             
             // อัปเดตสถานะเจ้าหน้าที่เดิมใน log_command
             foreach ($logCommand as &$log) {
-                if ($log['sendTo'] == $previousOfficerId && $log['status'] == 'pending') {
+                if ($log['sendTo'] === $previousOfficerId && $log['status'] === 'pending') {
                     $log['status'] = 'no_respond';
                     $log['sum_time'] = $sumTimeSeconds;
                 }
             }
+            unset($log); // ล้างค่า Reference ป้องกันเขียนทับตัวสุดท้าย
         }
 
         // สร้าง Operating Code หากยังไม่มี
         if (empty($operation->operating_code)) {
-            // ดึง area_id จากการถอดรหัสพื้นที่ที่ครอบคลุมของเคส หรือใช้พื้นที่ของเจ้าหน้าที่
+
             $areaIdForCode = 0;
             $areasArray = json_decode($officer->area_id, true) ?? [];
             if (!empty($areasArray)) {
                 $areaIdForCode = $areasArray[0]; 
             }
             
+            // วันที่
             $datePrefix = now()->format('ymd');
             
-            // ค้นหาจำนวนเคสที่เกิดขึ้นในวันนี้เพื่อสร้าง Running Number
-            $todayCasesCount = Emergency_operation::whereDate('created_at', now()->toDateString())->count();
-            $runningNumber = str_pad($todayCasesCount + 1, 4, '0', STR_PAD_LEFT);
-            
-            // แปลงรหัสพื้นที่ให้เป็นตัวเลข 3 หลักด้วยการเติม 0 ด้านหน้า
+            // รหัสพื้นที่ 3 หลัก
             $formattedAreaId = str_pad($areaIdForCode, 3, '0', STR_PAD_LEFT);
             
+            // หาลำดับ (Running Number) ตามเดือนปัจจุบัน และ Area ปัจจุบัน
+            $currentYear = now()->year;
+            $currentMonth = now()->month;
+
+            // ค้นหาเคสล่าสุดของ "เดือนนี้" และ "พื้นที่นี้"
+            $latestOperation = Emergency_operation::whereYear('created_at', $currentYear)
+                ->whereMonth('created_at', $currentMonth)
+                ->where('area_id', $areaIdForCode)
+                ->whereNotNull('operating_code')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            $runningNumberValue = 1; // ค่าเริ่มต้นถ้ายังไม่มีเคสเลยในเดือนนี้
+
+            if ($latestOperation && !empty($latestOperation->operating_code)) {
+                // แยกข้อความ แล้วเอาตัวเลขชุดสุดท้ายมา +1
+                $parts = explode('-', $latestOperation->operating_code);
+                if (isset($parts[2])) {
+                    $runningNumberValue = intval($parts[2]) + 1;
+                }
+            }
+            
+            // แปลงตัวเลขให้เป็น 4 หลัก
+            $runningNumber = str_pad($runningNumberValue, 4, '0', STR_PAD_LEFT);
+            
+            // รวมโค้ด
             $operation->operating_code = "{$datePrefix}-{$formattedAreaId}-{$runningNumber}";
-            // บันทึกพื้นที่รับผิดชอบของเคสนี้
+            
+            // บันทึกพื้นที่รับผิดชอบของเคสนี้ลงไปเพื่อใช้อ้างอิงในอนาคต
             $operation->area_id = $areaIdForCode;
         }
 
         // เพิ่มการส่งงานให้เจ้าหน้าที่คนใหม่ลงใน Log
         $logCommand[] = [
-            'datetime' => now()->toDateTimeString(),
+            'datetime' => now()->toIso8601String(),
             'sendTo'   => $newOfficerId,
             'status'   => 'pending',
             'sum_time' => 0
@@ -466,7 +491,7 @@ class EmergencysController extends Controller
         $operation->notify = 'success';
         $operation->time_command = now()->toDateTimeString();
         $operation->officer_no_respond = json_encode($noRespondList);
-        $operation->log_command = json_encode($logCommand);
+        $operation->log_command = json_encode($logCommand, JSON_UNESCAPED_UNICODE); 
         
         $operation->save();
 
@@ -705,14 +730,50 @@ class EmergencysController extends Controller
 
         // ค้นหาข้อมูลเจ้าหน้าที่เพื่อดึงพิกัดล่าสุด
         $officer = null;
+        $locationDiffMinutes = null;
+
         if (!empty($operation->user_officers_id)) {
             $officer = DB::table('user_officers')->where('id', $operation->user_officers_id)->first();
+            
+            // ================= ตรวจสอบเวลา last_update_location =================
+            if ($officer && $officer->last_update_location) {
+                // คำนวณนาทีที่ผ่านไปนับจากที่อัปเดตพิกัดล่าสุด
+                $lastUpdate = Carbon::parse($officer->last_update_location);
+                $locationDiffMinutes = now()->diffInMinutes($lastUpdate); 
+                
+                // เช็คสถานะ "กำลังไปช่วยเหลือ" และพิกัดไม่อัปเดตเกิน 3 นาที
+                if ($operation->status === 'กำลังไปช่วยเหลือ' && $locationDiffMinutes >= 3) {
+                    
+                    // เช็คเวลาแจ้งเตือนครั้งล่าสุดจาก Database (line_notified_at)
+                    $lastNotified = $officer->line_notified_at ? Carbon::parse($officer->line_notified_at) : null;
+                    
+                    // ถ้ายังไม่เคยส่งเลย หรือ ส่งครั้งล่าสุดผ่านไปแล้วอย่างน้อย 3 นาที
+                    if (!$lastNotified || now()->diffInMinutes($lastNotified) >= 3) {
+                        
+                        // ค้นหา Provider ID จากตาราง users
+                        $user = DB::table('users')->where('id', $officer->user_id)->first();
+                        
+                        if ($user && !empty($user->provider_id)) {
+                                    
+                            $message = "⚠️ แจ้งเตือนจากศูนย์ควบคุม\nกรุณากดปุ่มดำเนินการ เพื่อให้ศูนย์ควบคุมสามารถติดตามตำแหน่งปัจจุบันของท่านได้ครับ";
+                            
+                            \App\Http\Controllers\LineWebhookController::sendLineNotice($user->provider_id, $message);
+                            
+                            // อัปเดตเวลาที่ส่ง LINE ลง Database ทันที ป้องกันการส่งซ้ำ
+                            DB::table('user_officers')
+                                ->where('id', $officer->id)
+                                ->update(['line_notified_at' => now()]);
+                        }
+                    }
+                }
+            }
         }
 
         return response()->json([
             'status' => $operation->status,
             'officer_lat' => $officer->lat ?? null,   
             'officer_lng' => $officer->lng ?? null,
+            'location_diff_minutes' => $locationDiffMinutes,
             'start_lat' => $operation->start_lat ?? null,
             'start_lng' => $operation->start_lng ?? null,
             'time_to_the_scene' => $operation->time_to_the_scene,

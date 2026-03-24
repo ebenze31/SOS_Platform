@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User_officer;
 use App\Models\Area;
+use Illuminate\Support\Facades\DB;
+use App\User;
 
 class CommandController extends Controller
 {
@@ -69,6 +71,18 @@ class CommandController extends Controller
                     if (!in_array((string)$request->area_id, $existingAreas)) {
                         $existingAreas[] = (string)$request->area_id;
                     }
+
+                    // --- จัดการ Role ของ User ---
+                    if ($officer->user_id) {
+                        $user = User::find($officer->user_id);
+                        if ($user) {
+                            if (empty($user->role)) {
+                                $user->role = 'officer';
+                                $user->save();
+                            }
+                        }
+                    }
+
                 } else {
                     $statusArray[$index]['status'] = 'Reject';
                     $statusArray[$index]['remark'] = $request->remark;

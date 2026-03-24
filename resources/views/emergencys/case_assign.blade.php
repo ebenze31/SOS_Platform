@@ -576,7 +576,6 @@
 
             // ================== ตรวจสอบ Status เปลี่ยนแปลง ==================
             if (data.status && data.status !== currentOpStatus) {
-                // จำสถานะก่อนหน้าไว้เช็คเงื่อนไข
                 const previousStatus = currentOpStatus;
                 
                 currentOpStatus = data.status;
@@ -591,7 +590,6 @@
                 }
 
                 if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
-
                     if (officerMarkerMap && typeof officerMarkerMap.onRemove === 'function') officerMarkerMap.onRemove();
                     if (directionsRenderer && typeof directionsRenderer.setMap === 'function') directionsRenderer.setMap(null);
                     if (startMarkerObj && typeof startMarkerObj.onRemove === 'function') startMarkerObj.onRemove();
@@ -610,31 +608,32 @@
                 }
             }
 
-            // ================== กำลังไปช่วยเหลือ (จับพิกัด + วาดเส้น + เลื่อนรถ) ==================
+            // ================== กำลังไปช่วยเหลือ (จับพิกัด + วาดเส้นตามเวลาอัปเดต) ==================
             if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
                 const currentLat = parseFloat(data.officer_lat);
                 const currentLng = parseFloat(data.officer_lng);
+                const diffMinutes = data.location_diff_minutes;
 
                 if (currentLat && currentLng) {
                     if (initialOfficerLat === null && initialOfficerLng === null) {
-                        // รับค่าครั้งแรก เก็บเป็นจุด Start ไว้ก่อน แต่ยังไม่ตีเส้น
+                        // รับค่าครั้งแรก เก็บเป็นจุด Start ไว้ก่อน (ยังไม่วาดเส้น)
                         initialOfficerLat = currentLat;
                         initialOfficerLng = currentLng;
                         updateOfficerLocationOnMap(currentLat, currentLng);
                         
                     } else {
-                        // ถ้ามีการขยับจากจุดเริ่มต้น (ตรวจสอบการเปลี่ยนแปลง)
-                        if (!isRouteDrawn && (currentLat !== initialOfficerLat || currentLng !== initialOfficerLng)) {
-                            // ตีเส้นสีฟ้า คำนวณเวลา และปักธงเริ่ม (ทำแค่ครั้งเดียว)
+                        // ถ้ายังไม่เคยตีเส้น และพิกัดอัปเดตล่าสุดไม่เกิน 5 นาที ให้ตีเส้นได้เลย
+                        if (!isRouteDrawn && diffMinutes !== null && diffMinutes <= 5) {
                             drawRouteToIncident(initialOfficerLat, initialOfficerLng);
                         }
-                        // ปักหมุดรถใหม่ทุกๆ 5 วิ (ขยับรถอิสระ)
+                        
+                        // ปักหมุดรถใหม่ทุกรอบ เพื่ออัปเดตจุดเผื่อมีการขยับ
                         updateOfficerLocationOnMap(currentLat, currentLng);
                     }
                 }
             }
 
-            // ================== ตรวจสอบการปฏิเสธเพื่อเด้ง Modal แบบ Real-time ==================
+            // ================== ตรวจสอบการปฏิเสธเพื่อเด้ง Modal ==================
             if (data.officer_refuse && Array.isArray(data.officer_refuse)) {
                 let hasNewRefusal = false;
                 data.officer_refuse.forEach(refusedId => {
@@ -650,7 +649,7 @@
                 }
             }
 
-            // ================== ตรวจสอบสถานะของเจ้าหน้าที่เพื่อจัดการ UI (หน้าสั่งการ) ==================
+            // ================== จัดการ UI หน้าสั่งการ ==================
             if (['รับแจ้งเหตุ', 'สั่งการ'].includes(currentOpStatus)) {
                 document.querySelectorAll('.assign-radio').forEach(radio => {
                     const officerId = parseInt(radio.value);
@@ -689,8 +688,6 @@
                         labelContainer.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
                         const targetMarker = document.getElementById(`officer-marker-${officerId}`);
                         if (targetMarker) targetMarker.querySelector('.officer-pulse').classList.add('hidden');
-                    } else if (isNoRespond) {
-                        // กดส่งใหม่ได้
                     }
 
                     let statusDiv = infoContainer.querySelector('.status-wrapper');
