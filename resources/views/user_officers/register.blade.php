@@ -54,7 +54,7 @@
                                 <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">คุณสามารถเริ่มงานในพื้นที่นี้ได้ทันที</p>
                                 
                                 {{-- ปุ่มไปหน้าเปิดสถานะ --}}
-                                <a href="{{ route('user_officers.scan') }}" class="w-full inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 active:scale-[0.98] text-sm">
+                                <a href="{{ route('officer.status') }}" class="w-full inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 active:scale-[0.98] text-sm">
                                     <span class="material-symbols-outlined text-[18px]">power_settings_new</span>
                                     <span>ไปหน้าเปิดสถานะการทำงาน</span>
                                 </a>
