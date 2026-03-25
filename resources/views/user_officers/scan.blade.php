@@ -1,4 +1,4 @@
-@extends('layouts.theme')
+@extends('layouts.theme_user')
 
 @section('content')
 
@@ -15,7 +15,7 @@
                 <div class="flex p-1 bg-background-light dark:bg-background-dark rounded-xl border border-border-light dark:border-border-dark">
                     <button
                         id="tab-scan"
-                        class="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg bg-surface-light dark:bg-surface-dark text-primary shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-200"
+                        class="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all duration-200 font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
                         type="button"
                         onclick="switchTab('scan')"
                     >
@@ -24,7 +24,7 @@
                     </button>
                     <button
                         id="tab-manual"
-                        class="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-200"
+                        class="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all duration-200 bg-surface-light dark:bg-surface-dark text-primary shadow-sm ring-1 ring-black/5 dark:ring-white/10 font-semibold"
                         type="button"
                         onclick="switchTab('manual')"
                     >
@@ -34,7 +34,7 @@
                 </div>
             </div>
 
-            <div id="view-scan" class="px-6 pb-8">
+            <div id="view-scan" class="hidden px-6 pb-8">
                 <div class="relative w-full aspect-square bg-black rounded-xl overflow-hidden shadow-inner ring-1 ring-border-light dark:ring-border-dark mb-4">
                     
                     <div id="qr-reader" class="absolute inset-0 w-full h-full object-cover"></div>
@@ -70,7 +70,7 @@
                 </div>
             </div>
 
-            <div id="view-manual" class="hidden px-6 pb-8">
+            <div id="view-manual" class="px-6 pb-8">
                 <form action="{{ route('user_officers.register') }}" method="GET" class="space-y-4">
 
                     <div class="space-y-1.5">
@@ -211,7 +211,7 @@
     /* ── เริ่มต้นระบบตอนโหลดหน้าเว็บ ── */
     document.addEventListener("DOMContentLoaded", function() {
         html5QrCode = new Html5Qrcode("qr-reader");
-        startCamera();
+        // startCamera();
     });
 
     /* ── ฟังก์ชันเปิดกล้อง ── */

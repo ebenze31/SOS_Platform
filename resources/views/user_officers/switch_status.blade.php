@@ -385,7 +385,7 @@
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
             }
-        }, 60000); 
+        }, 8000); 
     }
 
     function stopLocationTracking() {

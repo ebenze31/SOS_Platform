@@ -783,10 +783,20 @@ class EmergencysController extends Controller
             'status' => $operation->status,
             'officer_lat' => $officer->lat ?? null,   
             'officer_lng' => $officer->lng ?? null,
+            'photo_by_officer' => $operation->photo_by_officer ?? null,
+            'time_create_sos' => $operation->time_create_sos ?? null,
+            'time_command' => $operation->time_command ?? null,
+            'time_go_to_help' => $operation->time_go_to_help ?? null,
+            'time_to_the_scene' => $operation->time_to_the_scene ?? null,
+            'time_sos_success' => $operation->time_sos_success ?? null,
+            'time_sum_sos' => $operation->time_sum_sos ?? null,
+            'remark_photo_by_officer' => $operation->remark_photo_by_officer ?? null,
+            'photo_succeed' => $operation->photo_succeed ?? null,
+            'remark_by_helper' => $operation->remark_by_helper ?? null,
+            'officer_last_update' => $officer->last_update_location ?? null, 
             'location_diff_minutes' => $locationDiffMinutes,
             'start_lat' => $operation->start_lat ?? null,
             'start_lng' => $operation->start_lng ?? null,
-            'time_to_the_scene' => $operation->time_to_the_scene,
             'waiting_reply' => $operation->waiting_reply,
             'officer_refuse' => json_decode($operation->officer_refuse, true) ?? [],
             'officer_no_respond' => json_decode($operation->officer_no_respond, true) ?? [],
@@ -794,45 +804,38 @@ class EmergencysController extends Controller
         ]);
     }
 
-    public function updateRouteLog(Request $request, $emergency_id)
+    public function updateRouteLog(Request $request, $id)
     {
-        $operation = Emergency_operation::where('emergency_id', $emergency_id)->first();
+        $operation = Emergency_operation::where('emergency_id', $id)->first();
         
         if (!$operation) {
-            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูล Operation'], 404);
+            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูล Operation']);
         }
 
-        // แปลง JSON string ใน Database เป็น Array
         $logs = json_decode($operation->log_command, true) ?? [];
-        $updated = false;
-        
-        // วนลูปหาอันที่เป็น go_to_help
-        foreach ($logs as &$log) {
-            if (isset($log['status']) && $log['status'] === 'go_to_help') {
-                $log['time_go_to_help'] = now()->toIso8601String();
-                $log['start_lat'] = $request->start_lat;
-                $log['start_lng'] = $request->start_lng;
-                $log['incident_lat'] = $request->incident_lat;
-                $log['incident_lng'] = $request->incident_lng;
-                $log['distance_text'] = $request->distance_text;
-                $log['distance_value'] = $request->distance_value;
-                $log['duration_text'] = $request->duration_text;
-                $log['duration_value'] = $request->duration_value;
-                if ($request->has('polyline')) {
-                    $log['polyline'] = $request->polyline;
-                }
+        $isUpdated = false;
+
+        // วนลูปจากหลังมาหน้า (หา log ล่าสุดที่เจ้าหน้าที่เพิ่งกดรับงาน)
+        for ($i = count($logs) - 1; $i >= 0; $i--) {
+            // อัปเดตเฉพาะ log ที่สถานะเป็น accept หรือ on_way
+            if (in_array($logs[$i]['status'], ['accept', 'on_way'])) {
+                $logs[$i]['start_lat'] = $request->start_lat;
+                $logs[$i]['start_lng'] = $request->start_lng;
+                $logs[$i]['route_distance_text'] = $request->distance_text;
+                $logs[$i]['route_duration_text'] = $request->duration_text;
+                $logs[$i]['route_polyline'] = $request->polyline;
                 
-                $updated = true;
+                $isUpdated = true;
                 break;
             }
         }
 
-        if ($updated) {
+        // เซฟกลับลง Database
+        if ($isUpdated) {
             $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
             $operation->save();
-            return response()->json(['success' => true, 'message' => 'อัปเดตข้อมูลเส้นทางเรียบร้อยแล้ว']);
         }
 
-        return response()->json(['success' => false, 'message' => 'ไม่พบสถานะ go_to_help ใน Log'], 404);
+        return response()->json(['success' => true]);
     }
 }

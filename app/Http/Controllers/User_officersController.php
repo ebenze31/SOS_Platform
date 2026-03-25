@@ -391,4 +391,22 @@ class User_officersController extends Controller
 
         return response()->json(['success' => false], 400);
     }
+
+    public function officer_history()
+    {
+        $user_id = Auth::id();
+        $officer = User_officer::where('user_id', $user_id)->first();
+
+        // ตรวจสอบว่า user นี้เป็นเจ้าหน้าที่หรือไม่
+        if (!$officer) {
+            return redirect()->back()->with('error', 'ไม่พบข้อมูลเจ้าหน้าที่');
+        }
+
+        $operations = Emergency_operation::where('user_officers_id', $officer->id)
+            ->with('emergency') 
+            ->orderBy('time_create_sos', 'desc')
+            ->get();
+
+        return view('user_officers.officer_history', compact('operations', 'officer'));
+    }
 }

@@ -132,39 +132,39 @@
                         <!-- Menu Items -->
                         <div class="py-1.5">
                             @if(Auth::check())
-                                <a href=""
+                                <a href="{{ url('/demo/profile') }}"
                                     class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
                                     role="menuitem">
                                     <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">manage_accounts</span>
                                     <span>โปรไฟล์ของฉัน</span>
                                 </a>
-                                @if(Auth::user()->role == "user")
-                                    <a href=""
-                                        class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
-                                        role="menuitem">
-                                        <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">history</span>
-                                        <span>ประวัติการขอความช่วยเหลือ</span>
-                                    </a>
-                                    <a href="#"
+                                @if(Auth::user()->role == null)
+                                    <a href="{{ url('/sos') }}"
                                         class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
                                         role="menuitem">
                                         <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">sos</span>
                                         <span>ขอความช่วยเหลือ</span>
                                     </a>
+                                    <a href="{{ url('/sos/history') }}"
+                                        class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
+                                        role="menuitem">
+                                        <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">history</span>
+                                        <span>ประวัติการขอความช่วยเหลือ</span>
+                                    </a>
                                 @elseif(Auth::user()->role == "officer")
-                                    <a href="#"
+                                    <a href="{{ url('/user_officers/scan') }}"
                                         class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
                                         role="menuitem">
                                         <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">how_to_reg</span>
-                                        <span>ลงทะเบียน</span>
+                                        <span>ลงทะเบียนพื้นที่</span>
                                     </a>
-                                    <a href="#"
+                                    <a href="{{ url('/officer/open_status') }}"
                                         class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
                                         role="menuitem">
                                         <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">toggle_on</span>
                                         <span>เปิดสถานะ</span>
                                     </a>
-                                    <a href="#"
+                                    <a href="{{ url('/officer/officer_history') }}"
                                         class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
                                         role="menuitem">
                                         <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="font-size:18px;">assignment_turned_in</span>

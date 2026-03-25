@@ -40,24 +40,25 @@ use Illuminate\Support\Facades\Route;
 // Route::get('/demo/area_main', function () {
 //     return view('demo/area_main');
 // });
-Route::get('/demo/main_officer', function () {
-    return view('demo/main_officer');
-});
-Route::get('/demo/all_officer', function () {
-    return view('demo/all_officer');
+// Route::get('/demo/main_officer', function () {
+//     return view('demo/main_officer');
+// });
+// Route::get('/demo/all_officer', function () {
+//     return view('demo/all_officer');
+// });
+// Route::get('/demo/switch_status', function () {
+//     return view('demo/switch_status');
+// });
+Route::get('/demo/history', function () {
+    return view('demo/history');
 });
 Route::get('/demo/dashboard', function () {
     return view('demo/dashboard');
 });
-Route::get('/demo/history', function () {
-    return view('demo/history');
-});
-Route::get('/demo/switch_status', function () {
-    return view('demo/switch_status');
-});
 Route::get('/demo/profile', function () {
     return view('demo/profile');
 });
+// อย่าลืมลูปรับตำแหน่งเจ้าหน้าที่ตอน Map ดำเนินการ 
 
 Auth::routes();
 
@@ -145,6 +146,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
         Route::post('/officer/action/update/{id}', 'User_officersController@updateStatus')->name('officer.action.update');
         Route::post('/officer/action/upload-photo/{id}', 'User_officersController@uploadPhoto')->name('officer.action.upload_photo');
+
+        // ============ ประวัติการช่วยเหลือ ============
+        Route::get('/officer/officer_history', 'User_officersController@officer_history');
+
     });
 });
 // ----------------------- End middleware -------------------------- //
@@ -154,7 +159,7 @@ Route::middleware(['auth'])->group(function () {
 // Route::resource('emergencys', 'EmergencysController');
 // Route::resource('emergency_operations', 'Emergency_operationsController');
 // Route::resource('phone_emergencys', 'Phone_emergencysController');
+// Route::resource('areas', 'AreasController');
+// Route::resource('my_log', 'My_logController');
 Route::resource('data_organizations', 'Data_organizationsController');
 Route::resource('user_commands', 'User_commandsController');
-Route::resource('areas', 'AreasController');
-Route::resource('my_log', 'My_logController');
