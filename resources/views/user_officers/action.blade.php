@@ -130,7 +130,7 @@
                                 <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
                                     หมายเหตุผลการดำเนินการ <span class="text-red-400">*</span>
                                 </label>
-                                <textarea id="action-note" rows="3" oninput="syncNote('action')"
+                                <textarea id="action-note" rows="3" oninput="checkFinishButton();"
                                     class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                                     placeholder="ระบุหมายเหตุ..."></textarea>
                             </div>
@@ -534,21 +534,6 @@
         } finally {
             btn.disabled = false;
             btn.innerHTML = `<span class="material-icons text-[18px]">${type === 'scene' ? 'save' : 'save'}</span> ${type === 'scene' ? 'บันทึกภาพที่เกิดเหตุ' : 'บันทึกภาพเสร็จสิ้น'}`;
-        }
-    }
-
-    // ===== Note Syncing & Action API Call =====
-    function syncNote(source) {
-        const actionNote = document.getElementById('action-note');
-        const modalNote = document.getElementById('modal-note');
-        
-        if(actionNote) {
-            if(source === 'action') {
-                modalNote.value = actionNote.value;
-            } else {
-                actionNote.value = modalNote.value;
-            }
-            checkFinishButton();
         }
     }
 
