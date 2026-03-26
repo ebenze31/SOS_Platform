@@ -332,7 +332,7 @@ class User_officersController extends Controller
             $operation->photo_by_officer = 'emergencys/' . $filename;
             
             // ส่ง URL กลับไปให้ JS พรีวิว
-            $response['photo_by_officer_url'] = asset($operation->photo_by_officer);
+            $response['photo_by_officer_url'] = $operation->photo_by_officer;
         }
 
         // ==========================================
@@ -369,7 +369,7 @@ class User_officersController extends Controller
             $operation->photo_succeed = 'emergencys/' . $filename;
             
             // ส่ง URL กลับไปให้ JS พรีวิว
-            $response['photo_succeed_url'] = asset($operation->photo_succeed);
+            $response['photo_succeed_url'] = $operation->photo_succeed;
         }
 
         // บันทึกลงฐานข้อมูล
