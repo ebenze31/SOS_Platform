@@ -156,6 +156,10 @@
                                 <h3 class="font-bold text-slate-800 dark:text-white text-lg">ภารกิจเสร็จสิ้นสมบูรณ์</h3>
                                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">ระบบได้บันทึกข้อมูลและหมายเหตุเรียบร้อยแล้ว</p>
                             </div>
+                            
+                            <button type="button" onclick="openPhotoModal('upload', 'success')" class="mt-4 w-full py-3 bg-blue-50 hover:bg-blue-100 text-primary border border-blue-200 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                                <span class="material-icons">add_a_photo</span> เพิ่มภาพถ่ายเสร็จสิ้น
+                            </button>
                         </div>
 
                     </div>
@@ -164,14 +168,25 @@
 
             <div id="panel-route" class="tab-panel">
                 <div class="p-4 bg-white dark:bg-surface-dark rounded-xl shadow-xl border border-border-light dark:border-border-dark overflow-hidden flex flex-col">
+                    
+                    <!-- ข้อความ Loading สำหรับรอ Command (ถ้ามี) -->
+                    <div id="route-loading-status" class="flex items-center gap-2 text-orange-500 bg-orange-50 p-2 rounded-lg mb-3">
+                        <span class="material-icons animate-spin text-sm">sync</span>
+                        <span class="text-xs font-medium">กำลังรอการจัดเส้นทางจากศูนย์สั่งการ...</span>
+                    </div>
+
                     <div class="border-b border-border-light pb-2">
                         <h3 class="text-sm font-bold text-slate-800 dark:text-white border-l-4 border-primary pl-2 uppercase tracking-tight mb-1">ระยะทาง/เวลาถึง (โดยประมาณ)</h3>
+                        <!-- แสดงเวลาออกเดินทาง -->
+                        <p id="route-calc-info" class="text-[12px] text-slate-500 pl-3">คำนวณจากจุดเริ่มต้นเมื่อเวลาออกเดินทาง: --:-- น.</p>
                     </div>
+                    
                     <div class="grid grid-cols-2 gap-3 mt-4">
                         <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center shadow-sm">
-                            <div class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">เวลาเดินทาง</div>
+                            <!-- "เวลาถึงที่หมาย" -->
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">เวลาถึงที่หมาย</div>
                             <div class="text-3xl font-bold font-mono text-slate-900 dark:text-white">
-                                <span id="route-time-val">--</span><span class="text-sm font-sans font-normal text-slate-500 ml-1">นาที</span>
+                                <span id="route-time-val">--:--</span><span class="text-sm font-sans font-normal text-slate-500 ml-1">น.</span>
                             </div>
                         </div>
                         <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center shadow-sm">
@@ -181,6 +196,7 @@
                             </div>
                         </div>
                     </div>
+                    
                     <a href="https://www.google.com/maps/dir/?api=1&destination={{ $emergency->emergency_lat }},{{ $emergency->emergency_lng }}" target="_blank" class="mt-4 w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 group">
                         <span class="material-symbols-outlined text-[24px] group-hover:animate-pulse">explore</span>
                         <span class="font-bold text-sm">เปิด Google Maps นำทาง</span>
@@ -213,60 +229,104 @@
     </div>
 </div>
 
-<div id="photo-modal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-    <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl transform transition-transform scale-95" id="photo-modal-content">
-        <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-            <button onclick="switchModalTab('view')" id="mtab-view" class="flex-1 py-3.5 text-sm font-bold border-b-2 border-primary text-primary transition-colors">ภาพผู้แจ้งเหตุ</button>
-            <button onclick="switchModalTab('upload')" id="mtab-upload" class="flex-1 py-3.5 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">อัปโหลด (เจ้าหน้าที่)</button>
-            <button onclick="closePhotoModal()" class="px-4 text-slate-400 hover:text-slate-600 dark:hover:text-white"><span class="material-icons">close</span></button>
+<!-- Photo Modal -->
+<div id="photo-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <!-- กำหนดความสูง 75vh และเป็น flex-col เพื่อให้หัวคงที่และส่วนกลาง scroll ได้ -->
+    <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl w-full max-w-md h-[75vh] flex flex-col shadow-2xl transform transition-transform scale-95 overflow-hidden" id="photo-modal-content">
+        
+        <!-- Header & Tabs (คงที่) -->
+        <div class="flex shrink-0 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <button onclick="switchModalTab('view')" id="mtab-view" class="flex-1 py-4 text-sm font-bold border-b-2 border-primary text-primary transition-colors">ภาพผู้แจ้งเหตุ</button>
+            <button onclick="switchModalTab('upload')" id="mtab-upload" class="flex-1 py-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">ภาพเจ้าหน้าที่</button>
+            <button onclick="closePhotoModal()" class="px-4 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center bg-slate-50 hover:bg-slate-100 dark:bg-slate-800">
+                <span class="material-icons">close</span>
+            </button>
         </div>
         
-        <div class="p-5 max-h-[70vh] overflow-y-auto">
-            <div id="mcontent-view" class="block">
+        <!-- Content Area (เลื่อนขึ้นลงได้) -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+            
+            <!-- Tab 1: รูปผู้แจ้ง -->
+            <div id="mcontent-view" class="block h-full">
                 @if($emergency->emergency_photo)
-                    <img src="{{ asset($emergency->emergency_photo) }}" class="w-full rounded-xl object-contain bg-black/5" alt="Emergency Photo">
+                    <img src="{{ asset($emergency->emergency_photo) }}" class="w-full h-auto rounded-xl object-contain bg-black/5" alt="Emergency Photo">
                 @else
-                    <div class="py-12 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center justify-center">
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 pb-10">
                         <span class="material-icons text-5xl mb-2 opacity-50">hide_image</span>
                         <p>ผู้แจ้งไม่ได้แนบรูปภาพมาด้วย</p>
                     </div>
                 @endif
             </div>
 
-            <div id="mcontent-upload" class="hidden space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">อัปโหลด/ถ่ายภาพหลังการช่วยเหลือ</label>
+            <!-- Tab 2: รูปเจ้าหน้าที่ (แบ่งเป็น 2 ส่วน) -->
+            <div id="mcontent-upload" class="hidden space-y-6 pb-6">
+                
+                <!-- ส่วนที่ 1: ภาพที่เกิดเหตุ -->
+                <div id="section-scene" class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-300">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-icons text-orange-500">warning</span>
+                        <h4 class="font-bold text-slate-800 dark:text-white">1. ภาพที่เกิดเหตุ</h4>
+                    </div>
                     
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <button type="button" onclick="document.getElementById('photo-camera').click()" class="py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-slate-700 dark:hover:bg-slate-600 border border-blue-200 dark:border-slate-600 rounded-xl flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 transition-colors shadow-sm">
-                            <span class="material-icons text-xl">photo_camera</span> ถ่ายภาพ
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button type="button" onclick="document.getElementById('input-scene').click()" class="py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center gap-2 text-sm text-slate-600 hover:bg-slate-100">
+                            <span class="material-icons text-[18px]">add_photo_alternate</span> เลือก/ถ่ายรูป
                         </button>
-                        <button type="button" onclick="document.getElementById('photo-gallery').click()" class="py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl flex items-center justify-center gap-2 text-slate-700 dark:text-slate-300 transition-colors shadow-sm">
-                            <span class="material-icons text-xl">image</span> เลือกรูป
-                        </button>
+                    </div>
+                    <input type="file" id="input-scene" accept="image/*" class="hidden" onchange="handleModalFileSelect(this, 'scene')">
+
+                    <!-- Preview ภาพที่เกิดเหตุ -->
+                    <div id="preview-box-scene" class="{{ empty($operation->photo_by_officer) ? 'hidden' : 'block' }} mb-3">
+                        <img id="img-scene" src="{{ $operation->photo_by_officer ? asset($operation->photo_by_officer) : '' }}" class="w-full max-h-48 object-cover rounded-lg border border-slate-200" alt="Scene Photo">
                     </div>
 
-                    <input type="file" id="photo-camera" accept="image/*" capture="environment" class="hidden" onchange="previewSelectedPhoto(this)">
-                    <input type="file" id="photo-gallery" accept="image/*" class="hidden" onchange="previewSelectedPhoto(this)">
-                    
-                    <div id="current-photo-preview" class="mt-3 {{ empty($operation->photo_succeed) ? 'hidden' : '' }}">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="text-xs text-slate-500" id="preview-label">ภาพที่บันทึกไว้ล่าสุด:</p>
-                            <button type="button" id="btn-remove-photo" onclick="clearSelectedPhoto()" class="hidden text-xs text-red-500 hover:text-red-700 font-bold">ยกเลิกรูปนี้</button>
-                        </div>
-                        <img id="img-preview-tag" src="{{ asset($operation->photo_succeed) }}" class="w-full max-h-48 object-contain rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800" alt="Preview Photo">
-                    </div>
+                    <label class="text-xs font-semibold text-slate-500 mb-1 block">หมายเหตุภาพที่เกิดเหตุ:</label>
+                    <textarea id="remark-scene" rows="2" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:ring-1 focus:ring-primary resize-none mb-3" placeholder="ระบุหมายเหตุ...">{{ $operation->remark_photo_by_officer ?? '' }}</textarea>
+
+                    <button type="button" id="btn-save-scene" onclick="saveSpecificPhoto('scene')" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-700">
+                        <span class="material-icons text-[18px]" id="icon-save-scene">save</span> บันทึกภาพที่เกิดเหตุ
+                    </button>
                 </div>
+
+                <!-- ส่วนที่ 2: ภาพเสร็จสิ้นภารกิจ -->
+                <div id="section-success" class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-300">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-icons text-green-500">task_alt</span>
+                        <h4 class="font-bold text-slate-800 dark:text-white">2. ภาพเสร็จสิ้นภารกิจ</h4>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button type="button" onclick="document.getElementById('input-success').click()" class="py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center gap-2 text-sm text-slate-600 hover:bg-slate-100">
+                            <span class="material-icons text-[18px]">add_photo_alternate</span> เลือก/ถ่ายรูป
+                        </button>
+                    </div>
+                    <input type="file" id="input-success" accept="image/*" class="hidden" onchange="handleModalFileSelect(this, 'success')">
+
+                    <!-- Preview ภาพเสร็จสิ้น -->
+                    <div id="preview-box-success" class="{{ empty($operation->photo_succeed) ? 'hidden' : 'block' }} mb-3">
+                        <img id="img-success" src="{{ $operation->photo_succeed ? asset($operation->photo_succeed) : '' }}" class="w-full max-h-48 object-cover rounded-lg border border-slate-200" alt="Success Photo">
+                    </div>
+
+                    <label class="text-xs font-semibold text-slate-500 mb-1 block">หมายเหตุภาพเสร็จสิ้น:</label>
+                    <textarea id="remark-success" rows="2" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:ring-1 focus:ring-primary resize-none mb-3" placeholder="ระบุหมายเหตุ...">{{ $operation->remark_by_helper ?? '' }}</textarea>
+
+                    <button type="button" id="btn-save-success" onclick="saveSpecificPhoto('success')" class="w-full py-2.5 bg-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600">
+                        <span class="material-icons text-[18px]" id="icon-save-success">save</span> บันทึกภาพเสร็จสิ้น
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initOfficerMap" async defer></script>
+<!-- เพิ่ม libraries=geometry สำหรับการ Decode Polyline -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initOfficerMap&libraries=geometry" async defer></script>
 <script>
     const emergencyId = {{ $emergency->id }};
     const updateApiUrl = `{{ url('/') }}/officer/action/update/${emergencyId}`;
     const uploadPhotoApiUrl = `{{ route('officer.action.upload_photo', $emergency->id) }}`;
+    const syncLocationApiUrl = `{{ url('/') }}/officer/sync-operation`;
     
     // Tab Navigation Logic
     let activeTab = 'info';
@@ -301,39 +361,66 @@
     }
 
     function switchTab(tab) {
-        // กดแท็บเดิมที่กำลังเปิดอยู่ -> ปิด Card
         if (activeTab === tab) {
             activeTab = null;
             closePanel(tab);
             return;
         }
-
         const prev = activeTab;
         activeTab = tab;
-
-        // ถ้ามีแท็บอื่นเปิดอยู่ ให้ปิดแท็บเก่าก่อนแล้วค่อยเปิดแท็บใหม่
         if (prev) {
             closePanel(prev, () => openPanel(tab));
         } else {
-            // ถ้าไม่มีแท็บไหนเปิดอยู่เลย เปิดแท็บใหม่ขึ้นมา
             openPanel(tab);
         }
     }
 
-    // ===== Photo Modal Logic =====
-    function openPhotoModal() {
+    // ==========================================
+    // ===== ระบบจัดการ Photo Modal แบบใหม่ =====
+    // ==========================================
+    
+    // เก็บสถานะไฟล์ที่ถูกเลือก
+    let selectedFiles = { scene: null, success: null };
+
+    // เปิด Modal พร้อมรองรับการเด้งไปที่แท็บและหัวข้อที่ต้องการ
+    function openPhotoModal(tabId = 'view', focusSection = null) {
         const modal = document.getElementById('photo-modal');
         const content = document.getElementById('photo-modal-content');
+        
+        // ล็อกไม่ให้หน้าจอหลัก Scroll ได้ตอนเปิด Modal
+        document.body.style.overflow = 'hidden';
+        
         modal.classList.remove('hidden');
         setTimeout(() => {
             content.classList.remove('scale-95');
             content.classList.add('scale-100');
         }, 10);
+
+        switchModalTab(tabId);
+
+        // ถ้ามีการระบุให้เลื่อนไปที่หัวข้อใดหัวข้อหนึ่ง (เช่น ตอนกดปุ่มเพิ่มภาพเสร็จสิ้น)
+        if (tabId === 'upload' && focusSection) {
+            setTimeout(() => {
+                const sectionEl = document.getElementById('section-' + focusSection);
+                if (sectionEl) {
+                    sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // สร้าง Effect กระพริบขอบเพื่อให้รู้ว่าอยู่ตรงนี้
+                    sectionEl.classList.add('ring-2', 'ring-primary', 'shadow-lg');
+                    setTimeout(() => {
+                        sectionEl.classList.remove('ring-2', 'ring-primary', 'shadow-lg');
+                    }, 1500);
+                }
+            }, 300); // รอให้ Modal เด้งเสร็จก่อนค่อยเลื่อน
+        }
     }
 
     function closePhotoModal() {
         const modal = document.getElementById('photo-modal');
         const content = document.getElementById('photo-modal-content');
+        
+        // คืนค่าให้หน้าจอหลักกลับมา Scroll ได้
+        document.body.style.overflow = '';
+        
         content.classList.remove('scale-100');
         content.classList.add('scale-95');
         setTimeout(() => {
@@ -348,90 +435,62 @@
         const uploadContent = document.getElementById('mcontent-upload');
 
         if(tabId === 'view') {
-            viewTab.className = "flex-1 py-3.5 text-sm font-bold border-b-2 border-primary text-primary transition-colors";
-            uploadTab.className = "flex-1 py-3.5 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors";
+            viewTab.className = "flex-1 py-4 text-sm font-bold border-b-2 border-primary text-primary transition-colors";
+            uploadTab.className = "flex-1 py-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors";
             viewContent.classList.remove('hidden');
             uploadContent.classList.add('hidden');
         } else {
-            uploadTab.className = "flex-1 py-3.5 text-sm font-bold border-b-2 border-primary text-primary transition-colors";
-            viewTab.className = "flex-1 py-3.5 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors";
+            uploadTab.className = "flex-1 py-4 text-sm font-bold border-b-2 border-primary text-primary transition-colors";
+            viewTab.className = "flex-1 py-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors";
             uploadContent.classList.remove('hidden');
             viewContent.classList.add('hidden');
         }
     }
 
-    // ตัวแปรส่วนกลางสำหรับเก็บไฟล์ภาพที่เตรียมจะอัปโหลด
-    let selectedPhotoFile = null;
-
-    // ฟังก์ชันพรีวิวภาพทันทีที่เลือก/ถ่ายเสร็จ
-    function previewSelectedPhoto(inputElement) {
+    // ฟังก์ชันจัดการตอนเลือกไฟล์ (พรีวิวรูปทันที)
+    function handleModalFileSelect(inputElement, type) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-
-        // เก็บไฟล์ลงตัวแปร
-        selectedPhotoFile = inputElement.files[0];
-
-        // อัปเดต UI พรีวิว
-        const previewDiv = document.getElementById('current-photo-preview');
-        const previewImg = document.getElementById('img-preview-tag');
-        const previewLabel = document.getElementById('preview-label');
-        const btnRemove = document.getElementById('btn-remove-photo');
-
-        // สร้าง URL ชั่วคราวเพื่อแสดงภาพบนหน้าเว็บ
-        previewImg.src = URL.createObjectURL(selectedPhotoFile);
-        previewLabel.innerText = 'ภาพที่เลือก (รอการบันทึก):';
-        previewLabel.classList.add('text-orange-500'); // เปลี่ยนสีให้รู้ว่ายังไม่ได้เซฟ
-        btnRemove.classList.remove('hidden');
-        previewDiv.classList.remove('hidden');
-
-        // รีเซ็ตค่า input เพื่อให้สามารถเลือกรูปเดิมซ้ำได้ถ้ายกเลิก
-        document.getElementById('photo-camera').value = '';
-        document.getElementById('photo-gallery').value = '';
-    }
-
-    // ฟังก์ชันกดยกเลิกรูปที่เพิ่งเลือก (กลับไปโชว์รูปเดิมจาก DB)
-    function clearSelectedPhoto() {
-        selectedPhotoFile = null;
-        const previewDiv = document.getElementById('current-photo-preview');
-        const previewImg = document.getElementById('img-preview-tag');
-        const previewLabel = document.getElementById('preview-label');
-        const btnRemove = document.getElementById('btn-remove-photo');
-
-        const originalPhoto = "{{ $operation->photo_succeed ? asset($operation->photo_succeed) : '' }}";
         
-        if (originalPhoto) {
-            previewImg.src = originalPhoto;
-            previewLabel.innerText = 'ภาพที่บันทึกไว้ล่าสุด:';
-            previewLabel.classList.remove('text-orange-500');
-        } else {
-            previewDiv.classList.add('hidden');
-        }
-        btnRemove.classList.add('hidden');
+        const file = inputElement.files[0];
+        selectedFiles[type] = file;
+
+        // แสดงภาพพรีวิว
+        const imgTag = document.getElementById('img-' + type);
+        const previewBox = document.getElementById('preview-box-' + type);
+        
+        imgTag.src = URL.createObjectURL(file);
+        previewBox.classList.remove('hidden');
+        previewBox.classList.add('block');
+        
+        // เคลียร์ค่า input เพื่อให้สามารถเลือกรูปเดิมซ้ำได้ (กรณีเผลอกดยกเลิก)
+        inputElement.value = '';
     }
 
-    // ฟังก์ชันบันทึกรูปลง DB ทันที
-    async function saveModalPhoto() {
-        const btnText = document.getElementById('modal-btn-text');
-        const btnIcon = document.getElementById('modal-btn-icon');
-        const btn = document.getElementById('btn-save-modal');
+    // ฟังก์ชันบันทึกรูปเข้าฐานข้อมูล
+    async function saveSpecificPhoto(type) {
+        const btn = document.getElementById('btn-save-' + type);
+        const icon = document.getElementById('icon-save-' + type);
+        const remarkInput = document.getElementById('remark-' + type);
         
         btn.disabled = true;
-        btnText.innerText = 'กำลังบันทึกและอัปโหลด...';
-        btnIcon.innerText = 'sync';
-        btnIcon.classList.add('animate-spin');
+        const originalText = btn.innerText;
+        btn.innerHTML = `<span class="material-icons animate-spin text-[18px]">sync</span> กำลังบันทึก...`;
 
         try {
             const formData = new FormData();
             formData.append('_token', '{{ csrf_token() }}');
             
-            const note = document.getElementById('modal-note').value.trim();
-            formData.append('remark', note);
-            
-            // ใช้ไฟล์จากตัวแปรที่เราเก็บไว้ตอนเลือกรูป
-            if(selectedPhotoFile) {
-                formData.append('photo_succeed', selectedPhotoFile);
+            // แนบไฟล์ (ถ้ามีอัปโหลดใหม่)
+            if (selectedFiles[type]) {
+                const fileFieldName = type === 'scene' ? 'photo_by_officer' : 'photo_succeed';
+                formData.append(fileFieldName, selectedFiles[type]);
             }
 
-            // ยิง API อัปเดตลง DB
+            // แนบหมายเหตุ
+            const remarkFieldName = type === 'scene' ? 'remark_photo_by_officer' : 'remark_by_helper';
+            formData.append(remarkFieldName, remarkInput.value.trim());
+
+            // ยิง API
             const res = await fetch(uploadPhotoApiUrl, {
                 method: 'POST',
                 body: formData
@@ -439,30 +498,26 @@
             const data = await res.json();
             
             if(data.success) {
-                alert('บันทึกรูปภาพและหมายเหตุเข้าสู่ระบบเรียบร้อยแล้ว');
+                // เคลียร์ไฟล์ที่เลือกไว้ เพราะอัปโหลดเสร็จแล้ว (จะกลายเป็นรูปใน DB แทน)
+                selectedFiles[type] = null;
                 
-                // ถ้าระบบส่ง URL รูปใหม่กลับมา ให้อัปเดต UI 
-                if(data.photo_url) {
-                    document.getElementById('img-preview-tag').src = data.photo_url;
+                // อัปเดตรูปจาก Server (ถ้า Server ส่ง URL กลับมา)
+                if (type === 'scene' && data.photo_by_officer_url) {
+                    document.getElementById('img-scene').src = data.photo_by_officer_url;
+                } else if (type === 'success' && data.photo_succeed_url) {
+                    document.getElementById('img-success').src = data.photo_succeed_url;
                 }
-                
-                // รีเซ็ตสถานะกลับเป็นปกติ (บันทึกแล้ว)
-                selectedPhotoFile = null;
-                document.getElementById('preview-label').innerText = 'ภาพที่บันทึกไว้ล่าสุด:';
-                document.getElementById('preview-label').classList.remove('text-orange-500');
-                document.getElementById('btn-remove-photo').classList.add('hidden');
 
+                alert(`บันทึกข้อมูล${type === 'scene' ? 'ภาพที่เกิดเหตุ' : 'ภาพเสร็จสิ้น'} เรียบร้อยแล้ว`);
             } else {
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (data.message || ''));
             }
         } catch (e) {
             console.error(e);
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่');
         } finally {
             btn.disabled = false;
-            btnText.innerText = 'บันทึกรูปและหมายเหตุ';
-            btnIcon.innerText = 'save';
-            btnIcon.classList.remove('animate-spin');
+            btn.innerHTML = `<span class="material-icons text-[18px]">${type === 'scene' ? 'save' : 'save'}</span> ${type === 'scene' ? 'บันทึกภาพที่เกิดเหตุ' : 'บันทึกภาพเสร็จสิ้น'}`;
         }
     }
 
@@ -536,7 +591,6 @@
         }
     }
 
-    // ===== Action steps =====
     async function markArrived() {
         const btnIcon = document.getElementById('btn-arrived-icon');
         btnIcon.innerText = 'sync';
@@ -547,7 +601,6 @@
         if(success) {
             document.getElementById('step1-section').classList.add('hidden');
             document.getElementById('step2-section').classList.remove('hidden');
-
             const badge = document.getElementById('status-badge');
             badge.textContent = 'ถึงที่เกิดเหตุ';
             badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded border text-orange-600 bg-orange-50 border-orange-200';
@@ -571,11 +624,9 @@
             document.getElementById('step2-section').classList.add('hidden');
             document.getElementById('step-done').classList.remove('hidden');
             document.getElementById('step-done').classList.add('flex');
-
             const badge = document.getElementById('status-badge');
             badge.textContent = 'เสร็จสิ้น';
             badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded border text-green-600 bg-green-50 border-green-200';
-
         } else {
             alert('เกิดข้อผิดพลาดในการอัปเดตข้อมูล');
             text.innerText = 'เสร็จสิ้นภารกิจ';
@@ -584,74 +635,164 @@
         }
     }
 
-    // ===== Routes API Distance Calculator =====
-    async function getRoutesDistance(originLat, originLng, destLat, destLng) {
-        const API_KEY = '{{ env('MAP_API_KEY') }}';
-        const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
-        
-        const requestBody = {
-            "origin": {
-                "location": {
-                    "latLng": { "latitude": originLat, "longitude": originLng }
-                }
-            },
-            "destination": {
-                "location": {
-                    "latLng": { "latitude": destLat, "longitude": destLng }
-                }
-            },
-            "travelMode": "DRIVE",
-            "routingPreference": "TRAFFIC_AWARE"
-        };
+    // ====================
+    // ===== ระบบแผนที่ =====
+    // ====================
+    let map = null;
+    let officerMarker = null;
+    let startMarker = null;
+    let currentPolylineStr = null;
+    let polylinePath = null;
+    let locationInterval = null;
+    let CustomMarker; 
+    
+    const incidentLoc = { 
+        lat: {{ $emergency->emergency_lat ?? 13.7563 }}, 
+        lng: {{ $emergency->emergency_lng ?? 100.5018 }} 
+    };
 
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Goog-Api-Key': API_KEY,
-                    'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters'
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            const data = await response.json();
-            
-            if(data.routes && data.routes.length > 0) {
-                const route = data.routes[0];
-                const distMeters = route.distanceMeters;
-                const durationSeconds = parseInt(route.duration.replace('s', ''));
-                
-                // แปลงหน่วย
-                const distKm = (distMeters / 1000).toFixed(1);
-                const durMins = Math.ceil(durationSeconds / 60);
-
-                document.getElementById('route-time-val').innerText = durMins;
-                document.getElementById('route-dist-val').innerText = distKm;
-            } else {
-                console.warn("No routes found.");
-            }
-        } catch (error) {
-            console.error('Error fetching route data:', error);
+    // ฟังก์ชันวาดเส้นทางจาก Polyline
+    function drawRouteFromPolyline(encodedString) {
+        if (polylinePath) {
+            polylinePath.setMap(null); 
         }
-    }
 
-    // ===== Google Maps Init & Directions Service =====
-    function initOfficerMap() {
-        const emergencyLat = {{ $emergency->emergency_lat ?? 13.7563 }};
-        const emergencyLng = {{ $emergency->emergency_lng ?? 100.5018 }};
-        const incidentLoc = { lat: emergencyLat, lng: emergencyLng };
-
-        const map = new google.maps.Map(document.getElementById("officer-map"), {
-            zoom: 16,
-            center: incidentLoc,
-            disableDefaultUI: true,
-            zoomControl: true,
-            mapTypeId: 'roadmap',
+        const decodedPath = google.maps.geometry.encoding.decodePath(encodedString);
+        polylinePath = new google.maps.Polyline({
+            path: decodedPath,
+            geodesic: true,
+            strokeColor: "#3b82f6",
+            strokeOpacity: 0.7,
+            strokeWeight: 5,
+            map: map
         });
 
-        // สร้าง Custom Marker
-        class CustomMarker extends google.maps.OverlayView {
+        const bounds = new google.maps.LatLngBounds();
+        decodedPath.forEach(point => bounds.extend(point));
+        map.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+    }
+
+    // ฟังก์ชันยิงพิกัด + รับค่า Log Command
+    async function trackAndSync() {
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const officerLoc = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            // สร้างหรือขยับหมุดรถเจ้าหน้าที่
+            if (!officerMarker && CustomMarker) {
+                const officerHtml = `
+                    <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-300">
+                        <div class="relative flex h-8 w-8">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-8 w-8 bg-blue-600 border-2 border-white shadow-md items-center justify-center text-white">
+                                <span class="material-symbols-outlined text-[16px]">directions_car</span>
+                            </span>
+                        </div>
+                    </div>
+                `;
+                officerMarker = new CustomMarker(officerLoc, map, officerHtml);
+            } else if (officerMarker) {
+                officerMarker.setPosition(officerLoc);
+            }
+
+            // อัปเดตตำแหน่ง + ดึง log_command
+            try {
+                const response = await fetch(syncLocationApiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        lat: officerLoc.lat, 
+                        lng: officerLoc.lng,
+                        emergency_id: emergencyId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.log_command) {
+                    let logs = data.log_command;
+                    if (typeof logs === 'string') {
+                        logs = JSON.parse(logs);
+                    }
+
+                    const routeLog = [...logs].reverse().find(log => log.status === 'go_to_help' && log.polyline);
+
+                    if (routeLog) {
+                        document.getElementById('route-loading-status')?.classList.add('hidden');
+                        
+                        // คำนวณเวลาถึงที่หมาย (ETA)
+                        if (routeLog.time_go_to_help && routeLog.duration_value !== undefined) {
+                            // แปลงเวลาออกเดินทางให้อยู่ในรูปแบบ Date Object
+                            const startDate = new Date(routeLog.time_go_to_help);
+                            
+                            // จัดฟอร์แมตเวลาออกเดินทาง (HH:mm)
+                            const startH = String(startDate.getHours()).padStart(2, '0');
+                            const startM = String(startDate.getMinutes()).padStart(2, '0');
+                            const startTimeStr = `${startH}:${startM}`;
+                            
+                            // นำเวลาออกเดินทาง + ระยะเวลาขับรถ (วินาที -> มิลลิวินาที)
+                            const etaDate = new Date(startDate.getTime() + (routeLog.duration_value * 1000));
+                            
+                            // จัดฟอร์แมตเวลาถึงเป้าหมาย (HH:mm)
+                            const etaH = String(etaDate.getHours()).padStart(2, '0');
+                            const etaM = String(etaDate.getMinutes()).padStart(2, '0');
+                            const etaTimeStr = `${etaH}:${etaM}`;
+
+                            // แสดงผลบนหน้าจอ
+                            document.getElementById('route-calc-info').innerHTML = `คำนวณจากจุดเริ่มต้นเมื่อ <span class="text-primary font-bold">เวลาออกเดินทาง: ${startTimeStr} น.</span>`;
+                            document.getElementById('route-time-val').innerText = etaTimeStr;
+                        }
+
+                        // แสดงระยะทาง
+                        document.getElementById('route-dist-val').innerText = routeLog.distance_text.replace(/[^0-9.]/g, '');
+
+                        // สร้างหมุดจุดเริ่มต้น (ถ้ายังไม่มีและมีพิกัดมาให้)
+                        if (!startMarker && routeLog.start_lat && routeLog.start_lng) {
+                            const startLoc = {
+                                lat: parseFloat(routeLog.start_lat),
+                                lng: parseFloat(routeLog.start_lng)
+                            };
+                            const startHtml = `
+                                <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-30">
+                                    <span class="relative inline-flex rounded-full h-8 w-8 bg-slate-800 border-[2px] border-white shadow-md items-center justify-center text-white">
+                                        <span class="material-symbols-outlined text-[16px]">flag</span>
+                                    </span>
+                                    <div class="mt-1 bg-slate-800 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                                        จุดเริ่มต้น
+                                    </div>
+                                </div>`;
+                            startMarker = new CustomMarker(startLoc, map, startHtml);
+                        }
+
+                        // วาดเส้นทางใหม่ถ้ามีการอัปเดต
+                        if (currentPolylineStr !== routeLog.polyline) {
+                            currentPolylineStr = routeLog.polyline;
+                            drawRouteFromPolyline(routeLog.polyline);
+                        }
+                    } else {
+                        // กรณียังไม่มี log_command หรือศูนย์สั่งการยังไม่จัดการให้
+                        document.getElementById('route-calc-info').innerHTML = 'คำนวณจากจุดเริ่มต้นเมื่อ <span class="text-primary font-bold">เวลาออกเดินทาง: --:-- น.</span>';
+                        document.getElementById('route-time-val').innerText = '--:--';
+                        document.getElementById('route-dist-val').innerText = '--';
+                    }
+                }
+            } catch (e) {
+                console.warn("ไม่สามารถอัปเดตและดึงข้อมูลเส้นทางได้", e);
+            }
+
+        }, (err) => console.warn(err), { enableHighAccuracy: true });
+    }
+
+    function initOfficerMap() {
+        CustomMarker = class extends google.maps.OverlayView {
             constructor(position, map, htmlContent) {
                 super();
                 this.position = position;
@@ -668,6 +809,7 @@
             }
             draw() {
                 const overlayProjection = this.getProjection();
+                if(!overlayProjection) return;
                 const position = overlayProjection.fromLatLngToDivPixel(this.position);
                 if (this.div) {
                     this.div.style.left = position.x + 'px';
@@ -680,9 +822,21 @@
                     this.div = null;
                 }
             }
-        }
+            setPosition(newLoc) {
+                this.position = new google.maps.LatLng(newLoc.lat, newLoc.lng);
+                this.draw();
+            }
+        };
 
-        // หมุดจุดเกิดเหตุ
+        map = new google.maps.Map(document.getElementById("officer-map"), {
+            zoom: 15,
+            center: incidentLoc,
+            disableDefaultUI: true,
+            zoomControl: true,
+            mapTypeId: 'roadmap',
+        });
+
+        // สร้างหมุดจุดเกิดเหตุ (สีแดง)
         const incidentHtml = `
             <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-50">
                 <div class="relative flex h-8 w-8">
@@ -695,72 +849,8 @@
         `;
         new CustomMarker(incidentLoc, map, incidentHtml);
 
-        // เช็คพิกัดปัจจุบันของเจ้าหน้าที่
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const officerLoc = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-
-                // หมุดเจ้าหน้าที่
-                const officerHtml = `
-                    <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-40">
-                        <div class="relative flex h-8 w-8">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-8 w-8 bg-blue-600 border-2 border-white shadow-md items-center justify-center text-white">
-                                <span class="material-symbols-outlined text-[16px]">directions_car</span>
-                            </span>
-                        </div>
-                    </div>
-                `;
-                new CustomMarker(officerLoc, map, officerHtml);
-
-                // เรียกใช้ DirectionsService
-                const directionsService = new google.maps.DirectionsService();
-                const directionsRenderer = new google.maps.DirectionsRenderer({
-                    map: map,
-                    suppressMarkers: true, // ซ่อนหมุด A, B ดั้งเดิมของ Google
-                    polylineOptions: {
-                        strokeColor: "#3b82f6", // สีเส้นทาง
-                        strokeWeight: 5
-                    }
-                });
-
-                // คำนวณเส้นทาง
-                directionsService.route({
-                    origin: officerLoc,
-                    destination: incidentLoc,
-                    travelMode: 'DRIVING',
-                }, function(response, status) {
-                    if (status === 'OK') {
-                        // วาดเส้นทาง
-                        directionsRenderer.setDirections(response);
-
-                        // ดึงระยะทางและเวลา
-                        let text_distance = response.routes[0].legs[0].distance.text;
-                        let text_duration = response.routes[0].legs[0].duration.text; 
-
-                        let distValue = text_distance.replace(/[^0-9.]/g, ''); 
-                        let durValue = text_duration.replace(/[^0-9]/g, '');
-
-                        document.getElementById('route-time-val').innerText = durValue;
-                        document.getElementById('route-dist-val').innerText = distValue;
-                    } else {
-                        console.error('ไม่สามารถคำนวณเส้นทางได้: ' + status);
-                    }
-                });
-
-                // จัดหน้าจอแผนที่ให้อยู่ตรงกลางครอบคลุมทั้ง 2 หมุด
-                const bounds = new google.maps.LatLngBounds();
-                bounds.extend(incidentLoc);
-                bounds.extend(officerLoc);
-                map.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
-
-            }, () => {
-                console.warn("ไม่สามารถเข้าถึงพิกัดปัจจุบันได้");
-            });
-        }
+        trackAndSync();
+        locationInterval = setInterval(trackAndSync, 8000);
     }
 
     if(document.getElementById('action-note')) {

@@ -61,6 +61,7 @@ Route::get('/demo/dashboard', function () {
 
 // อย่าลืมลูปรับตำแหน่งเจ้าหน้าที่ตอน Map ดำเนินการ
 // อย่าลืมเพิ่ม amount_help ตอนเจ้าหน้าที่กดรับงาน
+// อย่าลืมจัดการการปฏิเสธเคสของเจ้าหน้าที่
 // ปรับการแสดงผลหน้า monitor ให้แสดงคนสั่งการและข้อมูลอื่นๆ รวมถึงกดดูเคสเสร็จสิ้นได้
 
 Auth::routes();
@@ -152,6 +153,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
         Route::post('/officer/action/update/{id}', 'User_officersController@updateStatus')->name('officer.action.update');
         Route::post('/officer/action/upload-photo/{id}', 'User_officersController@uploadPhoto')->name('officer.action.upload_photo');
+        Route::post('/officer/sync-operation', 'User_officersController@syncOperation');
 
         // ============ ประวัติการช่วยเหลือ ============
         Route::get('/officer/officer_history', 'User_officersController@officer_history');

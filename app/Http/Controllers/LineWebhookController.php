@@ -50,8 +50,12 @@ class LineWebhookController extends Controller
             // --- แยกการทำงาน Routing Handlers ---
             if ($eventType === 'postback') {
                 $this->postbackHandler($event);
-            } elseif ($eventType === 'message') {
+            }
+            elseif ($eventType === 'message') {
                 $this->messageHandler($event);
+            }
+            elseif ($eventType === 'follow') {
+                // $this->messageHello($event);
             }
         }
 

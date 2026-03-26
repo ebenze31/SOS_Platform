@@ -13,6 +13,7 @@ use App\Models\Area;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Intervention\Image\Facades\Image;
 
 class User_officersController extends Controller
 {
@@ -287,29 +288,94 @@ class User_officersController extends Controller
     public function uploadPhoto(Request $request, $id)
     {
         $operation = Emergency_operation::where('emergency_id', $id)->firstOrFail();
+        $response = ['success' => true];
+
+        // กำหนด Path ปลายทางที่เป็น Absolute Path (สำหรับ Intervention)
+        $destinationPath = storage_path('app/public/emergencys');
         
-        // รับหมายเหตุจาก Modal
-        if ($request->has('remark')) {
-            $operation->remark_by_helper = $request->input('remark');
+        // สร้างโฟลเดอร์ถ้ายังไม่มี
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0775, true);
         }
 
-        // จัดการอัปโหลดไฟล์รูปภาพ
+        // ==========================================
+        // 1. จัดการส่วนของ "ภาพที่เกิดเหตุ"
+        // ==========================================
+        if ($request->has('remark_photo_by_officer')) {
+            $operation->remark_photo_by_officer = $request->input('remark_photo_by_officer');
+        }
+
+        if ($request->hasFile('photo_by_officer')) {
+            $file = $request->file('photo_by_officer');
+            
+            // ตรวจสอบและจัดการนามสกุลไฟล์
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            if (in_array(strtolower($extension), ['octet-stream', 'tmp', ''])) {
+                $extension = 'jpg'; 
+            }
+            
+            $filename = date('Ymd_His') . '_scene_' . rand(100, 999) . '.' . $extension;
+
+            // ดึงข้อมูลภาพดิบมาสร้าง Object เพื่อหลีกเลี่ยง Error GD อ่านไฟล์ชั่วคราวไม่ออก
+            $img = Image::make($file->get());
+            
+            // ย่อขนาดความกว้างไม่เกิน 1200px
+            $img->resize(1200, null, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize(); 
+            });
+
+            // บังคับเข้ารหัสเป็น JPG และลด Quality เหลือ 75% แล้วเซฟ
+            $img->encode('jpg', 75)->save($destinationPath . '/' . $filename);
+            
+            // เซฟ path ลง DB (ดึงผ่าน Storage Symlink)
+            $operation->photo_by_officer = 'storage/emergencys/' . $filename;
+            
+            // ส่ง URL กลับไปให้ JS พรีวิว
+            $response['photo_by_officer_url'] = asset($operation->photo_by_officer);
+        }
+
+        // ==========================================
+        // 2. จัดการส่วนของ "ภาพเสร็จสิ้นภารกิจ"
+        // ==========================================
+        if ($request->has('remark_by_helper')) {
+            $operation->remark_by_helper = $request->input('remark_by_helper');
+        }
+
         if ($request->hasFile('photo_succeed')) {
             $file = $request->file('photo_succeed');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            // ย้ายไฟล์ไปที่ public/uploads/emergencys
-            $file->move(public_path('uploads/emergencys'), $filename);
             
-            $operation->photo_succeed = 'uploads/emergencys/' . $filename;
+            // ตรวจสอบและจัดการนามสกุลไฟล์
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            if (in_array(strtolower($extension), ['octet-stream', 'tmp', ''])) {
+                $extension = 'jpg'; 
+            }
+            
+            $filename = date('Ymd_His') . '_succeed_' . rand(100, 999) . '.' . $extension;
+
+            // ดึงข้อมูลภาพดิบมาสร้าง Object
+            $img = Image::make($file->get());
+            
+            // ย่อขนาดความกว้างไม่เกิน 1200px
+            $img->resize(1200, null, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize(); 
+            });
+
+            // บังคับเข้ารหัสเป็น JPG และลด Quality เหลือ 75% แล้วเซฟ
+            $img->encode('jpg', 75)->save($destinationPath . '/' . $filename);
+            
+            // เซฟ path ลง DB (ดึงผ่าน Storage Symlink)
+            $operation->photo_succeed = 'storage/emergencys/' . $filename;
+            
+            // ส่ง URL กลับไปให้ JS พรีวิว
+            $response['photo_succeed_url'] = asset($operation->photo_succeed);
         }
 
+        // บันทึกลงฐานข้อมูล
         $operation->save();
 
-        return response()->json([
-            'success' => true,
-            'photo_url' => asset($operation->photo_succeed),
-            'remark' => $operation->remark_by_helper
-        ]);
+        return response()->json($response);
     }
 
     public function showStatus()
@@ -408,5 +474,32 @@ class User_officersController extends Controller
             ->get();
 
         return view('user_officers.officer_history', compact('operations', 'officer'));
+    }
+
+    public function syncOperation(Request $request)
+    {
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+            'emergency_id' => 'required|integer'
+        ]);
+
+        // อัปเดตพิกัดเจ้าหน้าที่ (user_officers)
+        $officer = User_officer::where('user_id', Auth::id())->first();
+        if ($officer) {
+            $officer->update([
+                'lat' => $request->lat,
+                'lng' => $request->lng,
+                'last_update_location' => now()
+            ]);
+        }
+
+        // ดึง log_command จากตาราง emergency_operations คืนกลับไป
+        $operation = Emergency_operation::where('emergency_id', $request->emergency_id)->first();
+        
+        return response()->json([
+            'success' => true,
+            'log_command' => $operation ? $operation->log_command : null
+        ]);
     }
 }
