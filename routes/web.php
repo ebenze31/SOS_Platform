@@ -163,3 +163,4 @@ Route::middleware(['auth'])->group(function () {
 // Route::resource('my_log', 'My_logController');
 Route::resource('data_organizations', 'Data_organizationsController');
 Route::resource('user_commands', 'User_commandsController');
+Route::resource('profile', 'UserController');

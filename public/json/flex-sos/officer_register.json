@@ -1,0 +1,43 @@
+{
+  "type": "flex",
+  "altText": "ลงทะเบียนเจ้าหน้าที่",
+  "contents": {
+  "type": "bubble",
+  "size": "mega",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "image",
+        "url": "https://i.ibb.co/n838Mqqv/Group-77.png",
+        "size": "full",
+        "aspectRatio": "1720:920",
+        "aspectMode": "cover",
+        "action": {
+          "type": "uri",
+          "uri": "https://line.me/"
+        }
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [],
+        "position": "absolute",
+        "width": "88%",
+        "height": "19%",
+        "offsetBottom": "13%",
+        "offsetStart": "5%",
+        "action": {
+          "type": "message",
+          "label": "action",
+          "text": "ลงทะเบียน"
+        }
+      }
+    ],
+    "borderWidth": "0px",
+    "margin": "0px",
+    "paddingAll": "0px"
+  }
+}
+}

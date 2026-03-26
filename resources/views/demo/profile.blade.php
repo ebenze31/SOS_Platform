@@ -3,129 +3,302 @@
 @section('content')
 
 <style>
-    body {
-        font-family: 'Inter', sans-serif;
-    }
-
+    body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
+
+    /* Fade-in sections */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-section {
+        animation: fadeInUp 0.45s ease both;
+    }
+    .animate-section:nth-child(1) { animation-delay: 0.05s; }
+    .animate-section:nth-child(2) { animation-delay: 0.15s; }
+    .animate-section:nth-child(3) { animation-delay: 0.25s; }
+    .animate-section:nth-child(4) { animation-delay: 0.35s; }
+
+    /* Avatar pulse ring on hover */
+    .avatar-ring {
+        position: relative;
+        display: inline-block;
+        border-radius: 9999px;
+    }
+    .avatar-ring::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 9999px;
+        border: 2px solid transparent;
+        transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+    .avatar-ring:hover::after {
+        border-color: #f97316;
+        transform: scale(1.06);
+    }
+
+    /* Camera button */
+    .camera-btn {
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    .camera-btn:hover {
+        transform: scale(1.15);
+    }
+    .camera-btn:active {
+        transform: scale(0.92);
+    }
+
+    /* Input focus animation */
+    input, select {
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+    input:focus, select:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(249,115,22,0.12);
+    }
+
+    /* Save button */
+    .btn-save {
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .btn-save::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.2);
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+    }
+    .btn-save:hover::after  { transform: translateX(100%); }
+    .btn-save:hover  { box-shadow: 0 6px 20px rgba(249,115,22,0.35); transform: translateY(-1px); }
+    .btn-save:active { transform: scale(0.97); box-shadow: none; }
+
+    /* Cancel button */
+    .btn-cancel {
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+    .btn-cancel:hover  { background-color: #e2e8f0; }
+    .btn-cancel:active { transform: scale(0.97); }
+
+    /* Change password button */
+    .btn-change-pw {
+        transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .btn-change-pw:hover  { background-color: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .btn-change-pw:active { transform: scale(0.97); }
+
+    /* Toast notification */
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to   { opacity: 0; transform: translateY(-10px); }
+    }
+    #toast {
+        display: none;
+        position: fixed;
+        top: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #16a34a;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 9999;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        gap: 8px;
+        align-items: center;
+    }
+    #toast.show {
+        display: flex;
+        animation: slideDown 0.3s ease forwards;
+    }
+    #toast.hide {
+        animation: fadeOut 0.3s ease forwards;
+    }
 </style>
+
+<!-- Toast -->
+<div id="toast">
+    <span class="material-symbols-outlined" style="font-size:18px;">check_circle</span>
+    บันทึกข้อมูลเรียบร้อยแล้ว
+</div>
+
 <div class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display mt-[50px]">
     <div class="relative flex h-auto w-full flex-col group/design-root overflow-x-hidden">
         <div class="layout-container flex h-full grow flex-col">
-
             <div class="flex flex-1 justify-center py-8 px-4 md:px-0">
                 <div class="layout-content-container flex flex-col max-w-[720px] flex-1 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-10">
+
                     <!-- Profile Picture Section -->
-                    <div class="flex flex-col items-center mb-10">
-                        <div class="relative group">
-                            <div class="bg-slate-200 dark:bg-slate-800 bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-white dark:border-slate-800 shadow-md" data-alt="Professional portrait of an emergency responder in uniform" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuATGNn7iEzdh78GdCNSVlb1S3joXXzPgz2QU1HM4UVApV4tLe_WKkES9ZLLasKfd6UroygEdaoBvJ_FsTJ59iPpbhFU8IuZ5W55ezb8yQQ1ceqwRRXq-El5q9ufrRXV5fUXKGWLLcjSnMyXKQ-7sQMwuf-q4CrJ-jpvkuu20j_brY5LJjQPYh4Rg4dSiadbTAUUdy62ZRJmho64dle_QlwOLDOTyj70g-CeU5BTLlv-om7VCNrQbxxH_xMeMOl334HQjumIKsdW3AJl");'>
+                    <div class="flex flex-col items-center mb-10 animate-section">
+                        <div class="relative group avatar-ring">
+                            <div class="bg-slate-200 dark:bg-slate-800 bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-white dark:border-slate-800 shadow-md"
+                                style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuATGNn7iEzdh78GdCNSVlb1S3joXXzPgz2QU1HM4UVApV4tLe_WKkES9ZLLasKfd6UroygEdaoBvJ_FsTJ59iPpbhFU8IuZ5W55ezb8yQQ1ceqwRRXq-El5q9ufrRXV5fUXKGWLLcjSnMyXKQ-7sQMwuf-q4CrJ-jpvkuu20j_brY5LJjQPYh4Rg4dSiadbTAUUdy62ZRJmho64dle_QlwOLDOTyj70g-CeU5BTLlv-om7VCNrQbxxH_xMeMOl334HQjumIKsdW3AJl");'>
                             </div>
-                            <button class="absolute bottom-0 right-0 bg-primary text-white p-2 w-[30px] h-[30px] flex justify-center items-center rounded-full shadow-lg hover:scale-105 transition-transform">
+                            <button type="button" class="camera-btn absolute bottom-0 right-0 bg-primary text-white p-2 w-[30px] h-[30px] flex justify-center items-center rounded-full shadow-lg z-10">
                                 <span class="material-symbols-outlined text-sm">photo_camera</span>
                             </button>
                         </div>
                         <div class="mt-4 text-center">
-                            <p class="text-slate-900 dark:text-slate-100 text-xl font-bold">สมชาย เข็มกลัด</p>
-                            <p class="text-slate-500 dark:text-slate-400 text-sm">รหัสเจ้าหน้าที่: EMS-9924</p>
+                            <p class="text-slate-900 dark:text-slate-100 text-xl font-bold">{{$data_user->name_officer}}</p>
                         </div>
                     </div>
-                    <!-- Personal Information Section -->
-                    <section class="mb-10">
-                        <div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">
-                            <span class="material-symbols-outlined text-primary">person</span>
-                            <h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">ข้อมูลส่วนตัว</h3>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <label class="flex flex-col gap-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">ชื่อ-นามสกุล</span>
-                                <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="text" value="{{Auth::user()->name}}" />
-                            </label>
-                            <!-- <label class="flex flex-col gap-2">
-                                <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">รหัสพนักงาน (อ่านอย่างเดียว)</span>
-                                <input class="rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-400 cursor-not-allowed h-12 px-4" disabled="" type="text" value="EMS-9924" />
-                            </label> -->
-                            <label class="flex flex-col gap-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">อีเมล</span>
-                                <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="email" value="{{Auth::user()->email}}" />
-                            </label>
-                            <label class="flex flex-col gap-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">เบอร์โทรศัพท์ด่วน</span>
-                                <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="tel" value="{{Auth::user()->phone}}" />
-                            </label>
 
-                            <label class="flex flex-col gap-2">
-                                <div class="flex justify-between">
-                                    <div> <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">เบอร์โทรศัพท์ด่วน</span>
-                                        <input  type="tel" value="{{Auth::user()->phone}}" />
-                                    </div>
-                                    <div> <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">เบอร์โทรศัพท์ด่วน</span>
-                                        <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="tel" value="{{Auth::user()->phone}}" />
-                                    </div>
-                                </div>
+                    <form id="profile-form" action="{{ route('profile.update', auth()->id()) }}" method="POST">
+                        @csrf
+                        @method('PUT')
 
-                            </label>
-                        </div>
-                    </section>
-                    <!-- Department Section -->
-                    @if(Auth::user()->role == "officer")
-                    <section class="mb-10">
-                        <div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">
-                            <span class="material-symbols-outlined text-primary">corporate_fare</span>
-                            <h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">สังกัดและตำแหน่ง</h3>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <label class="flex flex-col gap-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">ประเภท</span>
-                                <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="text" value="" />
-                            </label>
-                            <label class="flex flex-col gap-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">พื้นที่ที่สังกัด</span>
-                                <select class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4">
-                                    <option>พื้นที่ A</option>
-                                    <option>พื้นที่ B</option>
-                                </select>
-                            </label>
-                            <label class="flex flex-col gap-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">ยานภาหนะ</span>
-                                <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="text" value="" />
-                            </label>
-                        </div>
-
-                    </section>
-                    @endif
-                    <!-- Security Section -->
-                    <section class="mb-6">
-                        <div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">
-                            <span class="material-symbols-outlined text-primary">security</span>
-                            <h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">การตั้งค่าความปลอดภัย</h3>
-                        </div>
-                        <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div>
-                                    <p class="text-slate-900 dark:text-slate-100 font-semibold">รหัสผ่าน</p>
-                                    <p class="text-slate-500 dark:text-slate-400 text-sm">เปลี่ยนรหัสผ่านเพื่อความปลอดภัยของระบบ</p>
-                                </div>
-                                <button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                    เปลี่ยนรหัสผ่าน
-                                </button>
+                        <!-- Personal Information Section -->
+                        <section class="mb-10 animate-section">
+                            <div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <span class="material-symbols-outlined text-primary">person</span>
+                                <h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">ข้อมูลส่วนตัว</h3>
                             </div>
-                        </div>
-                    </section>
-                    <!-- Action Buttons (Mobile View Only / Bottom) -->
-                    <div class="mt-10 flex  flex-col md:flex-row md:justify-end gap-3">
-                        <button class="md:order-2 px-5 bg-primary text-white py-4 rounded-lg font-bold shadow-md">
-                            บันทึกข้อมูลทั้งหมด
-                        </button>
-                        <button class="md:order-1 px-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-4 rounded-lg font-bold">
-                            ยกเลิก
-                        </button>
-                    </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">ชื่อ-นามสกุล</span>
+                                    <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="text" name="name" value="{{$data_user->name}}" />
+                                </label>
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">อีเมล</span>
+                                    <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="email" name="email" value="{{$data_user->email}}" />
+                                </label>
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">เบอร์โทรศัพท์ด่วน</span>
+                                    <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="tel" name="phone" value="{{$data_user->phone}}" />
+                                </label>
+                                <div class="flex gap-4">
+                                    <label class="flex flex-col gap-2 w-1/2">
+                                        <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">เพศ</span>
+                                        <select name="gender" class="rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4">
+                                            <option value="">--เลือกเพศ--</option>
+                                            <option value="ชาย"  {{ $data_user->gender == 'ชาย'  ? 'selected' : '' }}>ชาย</option>
+                                            <option value="หญิง" {{ $data_user->gender == 'หญิง' ? 'selected' : '' }}>หญิง</option>
+                                            <option value="อื่นๆ" {{ $data_user->gender == 'อื่นๆ' ? 'selected' : '' }}>อื่นๆ</option>
+                                        </select>
+                                    </label>
+                                    <label class="flex flex-col gap-2 w-1/2">
+                                        <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">วันเกิด</span>
+                                        <input class="rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" type="date" name="birthday" value="{{ date('Y-m-d', strtotime($data_user->birthday)) }}" />
+                                    </label>
+                                </div>
+                            </div>
+                        </section>
 
+                        <!-- Department Section -->
+                        @if($data_user->role == "officer")
+                        <section class="mb-10 animate-section">
+                            <div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <span class="material-symbols-outlined text-primary">corporate_fare</span>
+                                <h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">สังกัดและตำแหน่ง</h3>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">ยานภาหนะ</span>
+                                    <input class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4" name="vehicle_type" type="text" value="{{$data_user->vehicle_type}}" />
+                                </label>
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">พื้นที่ที่สังกัด</span>
+                                    <select class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary h-12 px-4">
+                                        @foreach($areas as $area)
+                                        <option value="{{ $area->id }}" {{ in_array($area->id, $area_ids ?? []) ? 'selected' : '' }}>
+                                            {{ $area->name_area }}
+                                        </option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            </div>
+                        </section>
+                        @endif
+
+                        <!-- Security Section -->
+                        <section class="mb-6 animate-section">
+                            <div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <span class="material-symbols-outlined text-primary">security</span>
+                                <h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">การตั้งค่าความปลอดภัย</h3>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <p class="text-slate-900 dark:text-slate-100 font-semibold">รหัสผ่าน</p>
+                                        <p class="text-slate-500 dark:text-slate-400 text-sm">เปลี่ยนรหัสผ่านเพื่อความปลอดภัยของระบบ</p>
+                                    </div>
+                                    <button type="button" class="btn-change-pw bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
+                                        เปลี่ยนรหัสผ่าน
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-10 flex flex-col md:flex-row md:justify-end gap-3 animate-section">
+                            <button id="save-btn" type="submit" class="btn-save md:order-2 px-5 bg-primary text-white py-4 rounded-lg font-bold shadow-md">
+                                <span id="save-label" class="flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-base" style="font-size:18px;">save</span>
+                                    บันทึกข้อมูลทั้งหมด
+                                </span>
+                                <span id="save-loading" class="hidden items-center justify-center gap-2">
+                                    <svg class="animate-spin" style="width:18px;height:18px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                    </svg>
+                                    กำลังบันทึก...
+                                </span>
+                            </button>
+                            <button type="button" id="cancel-btn" class="btn-cancel md:order-1 px-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-4 rounded-lg font-bold">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    const form      = document.getElementById('profile-form');
+    const saveBtn   = document.getElementById('save-btn');
+    const saveLabel = document.getElementById('save-label');
+    const saveLoad  = document.getElementById('save-loading');
+    const toast     = document.getElementById('toast');
+
+    form.addEventListener('submit', function(e) {
+        saveLabel.classList.add('hidden');
+        saveLoad.classList.remove('hidden');
+        saveLoad.classList.add('flex');
+        saveBtn.disabled = true;
+    });
+
+    // Show toast if redirected back with success (add ?saved=1 in your controller redirect)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('saved') === '1') {
+        showToast();
+    }
+
+    function showToast() {
+        toast.classList.remove('hide');
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.classList.remove('show', 'hide'), 300);
+        }, 3000);
+    }
+
+    // Cancel: ripple + scroll to top
+    document.getElementById('cancel-btn').addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+</script>
+
 @endsection
