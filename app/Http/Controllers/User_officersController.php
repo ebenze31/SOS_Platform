@@ -329,7 +329,7 @@ class User_officersController extends Controller
             $img->encode('jpg', 75)->save($destinationPath . '/' . $filename);
             
             // เซฟ path ลง DB (ดึงผ่าน Storage Symlink)
-            $operation->photo_by_officer = 'storage/emergencys/' . $filename;
+            $operation->photo_by_officer = 'emergencys/' . $filename;
             
             // ส่ง URL กลับไปให้ JS พรีวิว
             $response['photo_by_officer_url'] = asset($operation->photo_by_officer);
@@ -366,7 +366,7 @@ class User_officersController extends Controller
             $img->encode('jpg', 75)->save($destinationPath . '/' . $filename);
             
             // เซฟ path ลง DB (ดึงผ่าน Storage Symlink)
-            $operation->photo_succeed = 'storage/emergencys/' . $filename;
+            $operation->photo_succeed = 'emergencys/' . $filename;
             
             // ส่ง URL กลับไปให้ JS พรีวิว
             $response['photo_succeed_url'] = asset($operation->photo_succeed);
