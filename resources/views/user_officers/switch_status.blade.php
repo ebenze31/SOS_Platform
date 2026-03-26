@@ -28,6 +28,28 @@
     }
 </script>
 
+@php
+    // กำหนดรูปภาพเริ่มต้นสำหรับผู้ใช้ที่ไม่มีรูปโปรไฟล์
+    $switch_profileImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDdOXcPh06FSp-zWoRlX-ZR94Xk6sFcHjNA7SPIwT4ZCFiOEwhbnP9qqe3z_JqWsj8VziPZxcbnADTEVyDwJL5cOnH9jdTNo9ToZWboOBYA9jkVKjKaSsBrNjU4O8Ke06Zablgt-2uQ_BafhNyqu9OL4h2WjLstaq5sYjo5SwdfJkO8Ud-pClwDioZrD4o2JZRDbmoHBXCz4lJE8VZmQ-ruSA-im_TpfDejOY01i5yzyt05jp1xlQCG1_2w8Hej-9a-uPjxJ89ZqUs7';
+    
+    // ตรวจสอบการล็อกอินและค้นหารูปภาพของผู้ใช้
+    if (Auth::check()) {
+        if (!empty(Auth::user()->photo)) {
+            // ตรวจสอบไฟล์ในโฟลเดอร์ public/storage/ (กรณีใช้ Storage link)
+            if (file_exists(public_path('storage/' . Auth::user()->photo))) {
+                $switch_profileImage = asset('storage/' . Auth::user()->photo);
+            } 
+            // ตรวจสอบไฟล์ในโฟลเดอร์ public/ ตรงๆ
+            elseif (file_exists(public_path(Auth::user()->photo))) {
+                $switch_profileImage = asset(Auth::user()->photo);
+            }
+        } elseif (!empty(Auth::user()->avatar)) {
+            // กรณีมี URL รูปภาพจาก Social Login
+            $switch_profileImage = Auth::user()->avatar;
+        }
+    }
+@endphp
+
 <div class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased mt-[61px]">
     <div class="relative flex h-[calc(100vh-61px)] w-full flex-col overflow-hidden">
         
@@ -47,8 +69,8 @@
             <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl pointer-events-auto">
                 
                 <div class="mb-6 flex items-center gap-4 border-b border-slate-100 pb-4">
-                    <div class="h-14 w-14 overflow-hidden rounded-full border-2 border-primary/20 bg-slate-100 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined text-3xl">account_circle</span>
+                    <div class="h-14 w-14 overflow-hidden rounded-full border-2 border-primary/20 bg-slate-100 bg-center bg-no-repeat bg-cover shadow-sm"
+                         style='background-image: url("{{ $switch_profileImage }}");'>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 leading-tight">{{ $officer->name_officer }}</h3>

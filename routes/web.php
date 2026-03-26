@@ -49,16 +49,19 @@ use Illuminate\Support\Facades\Route;
 // Route::get('/demo/switch_status', function () {
 //     return view('demo/switch_status');
 // });
+// Route::get('/demo/profile', function () {
+//     return view('demo/profile');
+// });
 Route::get('/demo/history', function () {
     return view('demo/history');
 });
 Route::get('/demo/dashboard', function () {
     return view('demo/dashboard');
 });
-Route::get('/demo/profile', function () {
-    return view('demo/profile');
-});
-// อย่าลืมลูปรับตำแหน่งเจ้าหน้าที่ตอน Map ดำเนินการ 
+
+// อย่าลืมลูปรับตำแหน่งเจ้าหน้าที่ตอน Map ดำเนินการ
+// อย่าลืมเพิ่ม amount_help ตอนเจ้าหน้าที่กดรับงาน
+// ปรับการแสดงผลหน้า monitor ให้แสดงคนสั่งการและข้อมูลอื่นๆ รวมถึงกดดูเคสเสร็จสิ้นได้
 
 Auth::routes();
 
@@ -73,6 +76,9 @@ Route::get('/login/line/callback', 'Auth\LoginController@handleLineCallback')->n
 
 // -------------------------- middleware -------------------------- //
 Route::middleware(['auth'])->group(function () {
+
+    // ============ โปรไฟล์ ============
+    Route::get('/profile', 'UserController@index');
 
     // ============ ลงทะเบียนเจ้าหน้าที่ ============
     Route::get('/user_officers/scan', 'User_officersController@scan_area')->name('user_officers.scan');

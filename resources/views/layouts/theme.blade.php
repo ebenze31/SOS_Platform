@@ -75,12 +75,21 @@
         </div>
         
         @php
+            // กำหนดรูปภาพเริ่มต้นในกรณีที่ผู้ใช้ไม่มีรูปโปรไฟล์
             $profileImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDdOXcPh06FSp-zWoRlX-ZR94Xk6sFcHjNA7SPIwT4ZCFiOEwhbnP9qqe3z_JqWsj8VziPZxcbnADTEVyDwJL5cOnH9jdTNo9ToZWboOBYA9jkVKjKaSsBrNjU4O8Ke06Zablgt-2uQ_BafhNyqu9OL4h2WjLstaq5sYjo5SwdfJkO8Ud-pClwDioZrD4o2JZRDbmoHBXCz4lJE8VZmQ-ruSA-im_TpfDejOY01i5yzyt05jp1xlQCG1_2w8Hej-9a-uPjxJ89ZqUs7';
             
             if (Auth::check()) {
-                if (!empty(Auth::user()->photo) && file_exists(public_path(Auth::user()->photo))) {
-                    $profileImage = asset(Auth::user()->photo);
+                if (!empty(Auth::user()->photo)) {
+                    // ตรวจสอบไฟล์ในโฟลเดอร์ public/storage/... (กรณีอัปโหลดผ่าน Storage facade และทำ symlink แล้ว)
+                    if (file_exists(public_path('storage/' . Auth::user()->photo))) {
+                        $profileImage = asset('storage/' . Auth::user()->photo);
+                    } 
+                    // ตรวจสอบไฟล์ในโฟลเดอร์ public/... โดยตรง (กรณีอัปโหลดเข้า public_path ตรงๆ)
+                    elseif (file_exists(public_path(Auth::user()->photo))) {
+                        $profileImage = asset(Auth::user()->photo);
+                    }
                 } elseif (!empty(Auth::user()->avatar)) {
+                    // กรณีล็อกอินผ่าน Socialite แล้วได้ URL รูปโปรไฟล์กลับมา
                     $profileImage = Auth::user()->avatar;
                 }
             }
