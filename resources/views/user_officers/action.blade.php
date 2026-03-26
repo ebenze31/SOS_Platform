@@ -269,11 +269,19 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2 mb-3">
-                        <button type="button" onclick="document.getElementById('input-scene').click()" class="py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center gap-2 text-sm text-slate-600 hover:bg-slate-100">
-                            <span class="material-icons text-[18px]">add_photo_alternate</span> เลือก/ถ่ายรูป
+                        <!-- ปุ่มถ่ายภาพ (เรียกกล้อง) -->
+                        <button type="button" onclick="document.getElementById('input-scene-camera').click()" class="py-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center gap-2 text-sm text-slate-700 font-medium hover:bg-slate-100 shadow-sm">
+                            <span class="material-icons text-[18px]">photo_camera</span> ถ่ายภาพ
+                        </button>
+                        <!-- ปุ่มเลือกภาพ (เรียก Gallery) -->
+                        <button type="button" onclick="document.getElementById('input-scene-gallery').click()" class="py-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center gap-2 text-sm text-slate-700 font-medium hover:bg-slate-100 shadow-sm">
+                            <span class="material-icons text-[18px]">image</span> เลือกรูป
                         </button>
                     </div>
-                    <input type="file" id="input-scene" accept="image/*" class="hidden" onchange="handleModalFileSelect(this, 'scene')">
+
+                    <!-- Input ซ่อน สำหรับแยก 2 รูปแบบการทำงาน -->
+                    <input type="file" id="input-scene-camera" accept="image/*" capture="environment" class="hidden" onchange="handleModalFileSelect(this, 'scene')">
+                    <input type="file" id="input-scene-gallery" accept="image/*" class="hidden" onchange="handleModalFileSelect(this, 'scene')">
 
                     <!-- Preview ภาพที่เกิดเหตุ -->
                     <div id="preview-box-scene" class="{{ empty($operation->photo_by_officer) ? 'hidden' : 'block' }} mb-3">
@@ -283,7 +291,7 @@
                     <label class="text-xs font-semibold text-slate-500 mb-1 block">หมายเหตุภาพที่เกิดเหตุ:</label>
                     <textarea id="remark-scene" rows="2" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:ring-1 focus:ring-primary resize-none mb-3" placeholder="ระบุหมายเหตุ...">{{ $operation->remark_photo_by_officer ?? '' }}</textarea>
 
-                    <button type="button" id="btn-save-scene" onclick="saveSpecificPhoto('scene')" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-700">
+                    <button type="button" id="btn-save-scene" onclick="saveSpecificPhoto('scene')" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-700 transition-colors shadow-sm">
                         <span class="material-icons text-[18px]" id="icon-save-scene">save</span> บันทึกภาพที่เกิดเหตุ
                     </button>
                 </div>
@@ -296,11 +304,19 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2 mb-3">
-                        <button type="button" onclick="document.getElementById('input-success').click()" class="py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center gap-2 text-sm text-slate-600 hover:bg-slate-100">
-                            <span class="material-icons text-[18px]">add_photo_alternate</span> เลือก/ถ่ายรูป
+                        <!-- ปุ่มถ่ายภาพ (เรียกกล้อง) -->
+                        <button type="button" onclick="document.getElementById('input-success-camera').click()" class="py-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center gap-2 text-sm text-blue-700 font-medium hover:bg-blue-100 shadow-sm">
+                            <span class="material-icons text-[18px]">photo_camera</span> ถ่ายภาพ
+                        </button>
+                        <!-- ปุ่มเลือกภาพ (เรียก Gallery) -->
+                        <button type="button" onclick="document.getElementById('input-success-gallery').click()" class="py-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center gap-2 text-sm text-blue-700 font-medium hover:bg-blue-100 shadow-sm">
+                            <span class="material-icons text-[18px]">image</span> เลือกรูป
                         </button>
                     </div>
-                    <input type="file" id="input-success" accept="image/*" class="hidden" onchange="handleModalFileSelect(this, 'success')">
+
+                    <!-- Input ซ่อน สำหรับแยก 2 รูปแบบการทำงาน -->
+                    <input type="file" id="input-success-camera" accept="image/*" capture="environment" class="hidden" onchange="handleModalFileSelect(this, 'success')">
+                    <input type="file" id="input-success-gallery" accept="image/*" class="hidden" onchange="handleModalFileSelect(this, 'success')">
 
                     <!-- Preview ภาพเสร็จสิ้น -->
                     <div id="preview-box-success" class="{{ empty($operation->photo_succeed) ? 'hidden' : 'block' }} mb-3">
@@ -310,7 +326,7 @@
                     <label class="text-xs font-semibold text-slate-500 mb-1 block">หมายเหตุภาพเสร็จสิ้น:</label>
                     <textarea id="remark-success" rows="2" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:ring-1 focus:ring-primary resize-none mb-3" placeholder="ระบุหมายเหตุ...">{{ $operation->remark_by_helper ?? '' }}</textarea>
 
-                    <button type="button" id="btn-save-success" onclick="saveSpecificPhoto('success')" class="w-full py-2.5 bg-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600">
+                    <button type="button" id="btn-save-success" onclick="saveSpecificPhoto('success')" class="w-full py-2.5 bg-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors shadow-sm">
                         <span class="material-icons text-[18px]" id="icon-save-success">save</span> บันทึกภาพเสร็จสิ้น
                     </button>
                 </div>
