@@ -285,7 +285,7 @@
 
                     <!-- Preview ภาพที่เกิดเหตุ -->
                     <div id="preview-box-scene" class="{{ empty($operation->photo_by_officer) ? 'hidden' : 'block' }} mb-3">
-                        <img id="img-scene" src="{{ $operation->photo_by_officer ? asset($operation->photo_by_officer) : '' }}" class="w-full max-h-48 object-cover rounded-lg border border-slate-200" alt="Scene Photo">
+                        <img id="img-scene" src="{{ $operation->photo_by_officer ? url('/storage/' . $operation->photo_by_officer) : '' }}" class="w-full max-h-48 object-cover rounded-lg border border-slate-200" alt="Scene Photo">
                     </div>
 
                     <label class="text-xs font-semibold text-slate-500 mb-1 block">หมายเหตุภาพที่เกิดเหตุ:</label>
@@ -320,7 +320,7 @@
 
                     <!-- Preview ภาพเสร็จสิ้น -->
                     <div id="preview-box-success" class="{{ empty($operation->photo_succeed) ? 'hidden' : 'block' }} mb-3">
-                        <img id="img-success" src="{{ $operation->photo_succeed ? asset($operation->photo_succeed) : '' }}" class="w-full max-h-48 object-cover rounded-lg border border-slate-200" alt="Success Photo">
+                        <img id="img-success" src="{{ $operation->photo_succeed ? url('/storage/' . $operation->photo_succeed) : '' }}" class="w-full max-h-48 object-cover rounded-lg border border-slate-200" alt="Success Photo">
                     </div>
 
                     <label class="text-xs font-semibold text-slate-500 mb-1 block">หมายเหตุภาพเสร็จสิ้น:</label>
