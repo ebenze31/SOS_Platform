@@ -519,9 +519,9 @@
                 
                 // อัปเดตรูปจาก Server (ถ้า Server ส่ง URL กลับมา)
                 if (type === 'scene' && data.photo_by_officer_url) {
-                    document.getElementById('img-scene').src = data.photo_by_officer_url;
+                    document.getElementById('img-scene').src = "{{ url('/storage') }}/" + data.photo_by_officer_url;
                 } else if (type === 'success' && data.photo_succeed_url) {
-                    document.getElementById('img-success').src = data.photo_succeed_url;
+                    document.getElementById('img-success').src = "{{ url('/storage') }}/" + data.photo_succeed_url;
                 }
 
                 alert(`บันทึกข้อมูล${type === 'scene' ? 'ภาพที่เกิดเหตุ' : 'ภาพเสร็จสิ้น'} เรียบร้อยแล้ว`);
