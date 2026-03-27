@@ -102,21 +102,28 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-
+        
         $request->validate([
             'name' => 'required',
             'email' => 'required|email',
         ]);
-    
+
         $user = User::findOrFail($id);
 
-        $user->update([
+        $data = [
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'gender' => $request->gender,
             'birthday' => $request->birthday,
-        ]);
+        ];
+
+        // เช็คว่ามีไฟล์ไหม
+        if ($request->hasFile('photo')) {
+            $data['photo'] = $request->file('photo')->store('uploads', 'public');
+        }
+
+        $user->update($data);
 
         DB::table('user_officers')
             ->updateOrInsert(
