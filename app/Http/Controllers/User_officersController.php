@@ -434,12 +434,24 @@ class User_officersController extends Controller
         return response()->json(['success' => false, 'message' => 'สถานะไม่ถูกต้อง'], 400);
     }
 
-    public function updateStatus_CaseSuccess(Request $request)
+    // เพิ่ม $id เข้ามาในพารามิเตอร์เพื่อรับค่าจาก Route {id}
+    public function updateStatus_CaseSuccess(Request $request, $id) 
     {
         $lat = $request->input('lat');
         $lng = $request->input('lng');
+        $remark = $request->input('remark');
         $user_id = auth()->id();
 
+        // 1. อัปเดตข้อมูลของ "เคสช่วยเหลือ" (ตาราง emergency_operations)
+        DB::table('emergency_operations')
+            ->where('emergency_id', $id)
+            ->update([
+                'status' => 'เสร็จสิ้น',
+                'remark_by_helper' => $remark,
+                'time_sos_success' => now()
+            ]);
+
+        // 2. อัปเดตสถานะของ "เจ้าหน้าที่" (ตาราง user_officers)
         // บังคับเปลี่ยนสถานะกลับเป็นพร้อมปฏิบัติงานเสมอเมื่อจบเคส
         $updateData = ['status' => 'Standby'];
         
