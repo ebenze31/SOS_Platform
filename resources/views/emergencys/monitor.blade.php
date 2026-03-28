@@ -152,15 +152,15 @@
                         </span>
                     </div>
 
-                    <div class="inline-flex items-center mb-2 text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
-                        <span class="text-[10px] font-bold">เจ้าหน้าที่ : {{ $case->operation->officer->name_officer ?? 'รอรับเรื่อง...' }}</span>
-                    </div>
-
                     {{-- Badge แจ้งเตือนสีแดง กระพริบเมื่อถูกปฏิเสธ --}}
                     @if($status == 'สั่งการ' && $hasRefuse && $isNotWaiting)
                         <div class="inline-flex items-center self-start text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 animate-pulse shadow-sm">
                             <span class="material-symbols-outlined text-[12px] mr-1">warning</span>
                             <span class="text-[10px] font-bold">ถูกปฏิเสธ ({{ count($refuseArray) }} คน)</span>
+                        </div>
+                    @else
+                        <div class="inline-flex items-center mb-2 text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                            <span class="text-[10px] font-bold">เจ้าหน้าที่ : {{ $case->operation->officer->name_officer ?? 'รอรับเรื่อง...' }}</span>
                         </div>
                     @endif
 
