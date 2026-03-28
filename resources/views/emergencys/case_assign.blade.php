@@ -949,7 +949,7 @@
                 return;
             }
             const data = await response.json();
-            console.log(data);
+            // console.log(data);
 
             // 1. ตรวจสอบการเปลี่ยน Status
             if (data.status && data.status !== currentOpStatus) {
