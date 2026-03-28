@@ -186,7 +186,7 @@ class LineWebhookController extends Controller
             $operation->status = 'กำลังไปช่วยเหลือ';
             $operation->user_officers_id = $officer->id;
             $operation->time_go_to_help = now();
-
+            $officer->status = 'Helping';
             $officer->line_notified_at = now();
             $officer->save();
 
@@ -204,7 +204,7 @@ class LineWebhookController extends Controller
             $operation->save();
 
             $this->replyFlexConfirm($event['replyToken'], $operation, $officer);
-        } 
+        }
         // กรณีเจ้าหน้าที่กดปฏิเสธงาน (Reject)
         elseif ($parsedData['action'] === 'reject') {
             if ($operation->status !== 'สั่งการ' || $operation->waiting_reply != $officer->id) {

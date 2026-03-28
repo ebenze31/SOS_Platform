@@ -340,7 +340,7 @@
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initOfficerMap&libraries=geometry" async defer></script>
 <script>
     const emergencyId = {{ $emergency->id }};
-    const updateApiUrl = `{{ url('/') }}/officer/action/update/${emergencyId}`;
+    const updateApiUrl = `{{ url('/') }}/officer/update-status-case-success/${emergencyId}`;
     const uploadPhotoApiUrl = `{{ route('officer.action.upload_photo', $emergency->id) }}`;
     const syncLocationApiUrl = `{{ url('/') }}/officer/sync-operation`;
     

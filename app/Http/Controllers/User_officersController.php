@@ -434,6 +434,29 @@ class User_officersController extends Controller
         return response()->json(['success' => false, 'message' => 'สถานะไม่ถูกต้อง'], 400);
     }
 
+    public function updateStatus_CaseSuccess(Request $request)
+    {
+        $lat = $request->input('lat');
+        $lng = $request->input('lng');
+        $user_id = auth()->id();
+
+        // บังคับเปลี่ยนสถานะกลับเป็นพร้อมปฏิบัติงานเสมอเมื่อจบเคส
+        $updateData = ['status' => 'Standby'];
+        
+        // อัปเดตพิกัดล่าสุดของเจ้าหน้าที่ถ้าอุปกรณ์มีการส่งพิกัดมาด้วยตอนกดปิดเคส
+        if (!empty($lat) && !empty($lng)) {
+            $updateData['lat'] = $lat;
+            $updateData['lng'] = $lng;
+            $updateData['last_update_location'] = now();
+        }
+
+        DB::table('user_officers')
+            ->where('user_id', $user_id)
+            ->update($updateData);
+
+        return response()->json(['success' => true]);
+    }
+
     // รับพิกัด Background โดยเฉพาะ
     public function updateLocationOnly(Request $request)
     {

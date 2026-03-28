@@ -645,6 +645,14 @@ class EmergencysController extends Controller
             }
 
             $operation->save();
+
+            // ปรับสถานะเจ้าหน้าที่กลับมาเป็น Standby หลังจากปิดเคสเสร็จสิ้น
+            if (!empty($operation->user_officers_id)) {
+                DB::table('user_officers')
+                    ->where('id', $operation->user_officers_id)
+                    ->update(['status' => 'Standby']);
+            }
+
         } else {
             // กรณีไม่มี Record ในตาราง operations
             return redirect()->back()->with('error', 'ไม่พบข้อมูลการปฏิบัติการ (Operation) สำหรับเคสนี้');
