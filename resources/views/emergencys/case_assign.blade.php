@@ -744,7 +744,7 @@
         const dot = document.getElementById("timer-dot");
         const sumText = document.getElementById('tm-sum')?.innerText;
         const elapsedTimeEl = document.getElementById("elapsed-time");
-        
+
         // หากสถานะเสร็จสิ้นแล้ว ให้หยุดนับเวลาและดึงข้อมูลสรุปมาแสดงแทน
         if (currentOpStatus === 'เสร็จสิ้น') {
             const titleEl = document.getElementById('timer-title');
@@ -756,6 +756,13 @@
             if (sumText && sumText !== '-') {
                 if (elapsedTimeEl) elapsedTimeEl.innerText = sumText;
             }
+
+            // ตัวอย่างการคำนวณใน PHP โดยใช้ Carbon
+            $startTime = \Carbon\Carbon::parse("{{ $emergency->operation->time_create_sos }}");
+            $endTime = \Carbon\Carbon::parse("{{ $emergency->operation->time_sos_success }}");
+
+            // คำนวณส่วนต่างเป็นนาที
+            $check_sum = $startTime->diffInMinutes($endTime);
 
             // ล้าง Class สีเดิมออกก่อน
             const allColors = [
