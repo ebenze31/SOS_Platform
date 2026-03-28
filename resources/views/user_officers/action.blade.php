@@ -582,6 +582,11 @@
                 const note = document.getElementById('action-note').value.trim();
                 formData.append('remark', note);
                 url = updateApiUrl_success ;
+
+                if (officerMarker) {
+                    officerMarker.onRemove();
+                    officerMarker = null;
+                }
             }
             else{
                 url = updateApiUrl ;
