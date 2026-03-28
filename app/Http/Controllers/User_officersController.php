@@ -458,9 +458,14 @@ class User_officersController extends Controller
         // 2. คำนวณเวลารวม (Time Sum)
         $timeSum = null;
         if ($operation->time_create_sos) {
-            $created = Carbon::parse($operation->time_create_sos);
+            $created = \Carbon\Carbon::parse($operation->time_create_sos);
             $diff = now()->diff($created);
-            $timeSum = $diff->format('%h ชม. %i นาที');
+            
+            $parts = [];
+            if ($diff->h > 0) $parts[] = $diff->h . ' ชม.';
+            if ($diff->i > 0 || empty($parts)) $parts[] = $diff->i . ' นาที';
+            
+            $timeSum = implode(' ', $parts);
         }
 
         // อัปเดตข้อมูลของ "เคสช่วยเหลือ"

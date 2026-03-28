@@ -1322,8 +1322,8 @@
                 if (directionsRenderer) directionsRenderer.setMap(null);
 
                 // 3. หยุดกระพริบหมุดจุดเกิดเหตุ
-                const incidentPing = document.querySelector('.animate-ping');
-                if (incidentPing) incidentPing.remove();
+                const pings = document.querySelectorAll('.animate-ping');
+                pings.forEach(p => p.remove());
 
                 // 4. วาดเส้นทางประวัติศาสตร์จาก log_command
                 let activeLog = null;
@@ -1333,16 +1333,15 @@
                     
                     const logWithDistance = logs.find(l => l.distance_text);
                     if (logWithDistance && logWithDistance.distance_text) {
-                        const tmDistance = document.getElementById('tm-distance');
-                        if (tmDistance) tmDistance.innerText = logWithDistance.distance_text;
+                        if (document.getElementById('tm-distance')) {
+                            document.getElementById('tm-distance').innerText = logWithDistance.distance_text;
+                        }
                     }
                 }
 
-                // วาดเส้นและปักหมุดเริ่มต้น หากยังไม่ได้วาด
                 if (activeLog && !isRouteDrawn) {
                     const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
-                    
-                    const historyPolyline = new google.maps.Polyline({
+                    new google.maps.Polyline({
                         path: decodedPath,
                         strokeColor: "#3b82f6",
                         strokeWeight: 4,
@@ -1352,18 +1351,22 @@
 
                     if (activeLog.start_lat && activeLog.start_lng) {
                         createStartFlag(activeLog.start_lat, activeLog.start_lng);
-                        
                         const bounds = new google.maps.LatLngBounds();
                         bounds.extend(new google.maps.LatLng(activeLog.start_lat, activeLog.start_lng));
                         bounds.extend(incidentLatLng);
                         mapInstance.fitBounds(bounds, { top: 80, bottom: 80, left: 80, right: 80 });
                     }
-                    
                     isRouteDrawn = true;
                 }
 
                 // 5. อัปเดตข้อมูล Text ในหน้าสรุป
-                document.getElementById('success-info').classList.remove('hidden');
+                const successInfo = document.getElementById('success-info');
+                if (successInfo) successInfo.classList.remove('hidden');
+
+                const tmSum = document.getElementById('tm-sum');
+                if (tmSum && data.time_sum_sos) {
+                    tmSum.innerText = data.time_sum_sos.replace(/0\s?ชม\.?\s?/g, '').trim() || '-';
+                }
 
                 function updateTimeAndDate(elementIdPrefix, dateString) {
                     const timeEl = document.getElementById(`${elementIdPrefix}-time`);
