@@ -155,12 +155,12 @@ Route::middleware(['auth'])->group(function () {
         // ============  หน้าเปิดสถานะเจ้าหน้าที่ ============
         Route::get('/officer/open_status', 'User_officersController@showStatus')->name('officer.status');
         Route::post('/officer/update-status', 'User_officersController@updateStatusStandby');
-        Route::post('/officer/update-status-case-success', 'User_officersController@updateStatus_CaseSuccess');
         Route::post('/officer/update-location', 'User_officersController@updateLocationOnly');
 
         // ============  Map ดำเนินการช่วยเหลือ ============
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');
         Route::post('/officer/action/update/{id}', 'User_officersController@updateStatus')->name('officer.action.update');
+        Route::post('/officer/update-status-case-success/{id}', 'User_officersController@updateStatus_CaseSuccess');
         Route::post('/officer/action/upload-photo/{id}', 'User_officersController@uploadPhoto')->name('officer.action.upload_photo');
         Route::post('/officer/sync-operation', 'User_officersController@syncOperation');
 
