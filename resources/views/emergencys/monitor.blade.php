@@ -293,6 +293,6 @@
             });
     }
     refreshDashboard();
-    // setInterval(refreshDashboard, 10000);
+    setInterval(refreshDashboard, 10000);
 </script>
 @endsection
