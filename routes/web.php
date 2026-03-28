@@ -61,8 +61,6 @@ Route::get('/demo/dashboard', function () {
 
 // หน้า monitor ควรมีปุ่มดูเคสทั้งหมดอยู่ด้านบนอีกไหม
 
-// หน้า case_assign เพิ่ม remark_status (จาก command) หรือ remark_by_helper (จาก officer) ดูว่ามีอันไหน
-
 // หน้า Map ดำเนินการ เจ้าหน้าที่ปุ่มกล้องลอยทับ navbar
 // หน้า Map ดำเนินการ จัดการการแสดงผลหมุดและ map หลังเสร็จสิ้น
 
