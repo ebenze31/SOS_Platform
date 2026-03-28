@@ -815,7 +815,7 @@ class EmergencysController extends Controller
         $logs = json_decode($operation->log_command, true) ?? [];
         $isUpdated = false;
 
-        // ค้นหา log ล่าสุดที่เจ้าหน้าที่รับงานหรือกำลังเดินทางเพื่อบันทึกรายละเอียดเส้นทาง
+        // ค้นหาตำแหน่งล่าสุดในรายการประวัติที่มีสถานะกำลังไปช่วยเหลือเพื่อบันทึกข้อมูลเส้นทางเข้าไปใน object เดียวกัน
         for ($i = count($logs) - 1; $i >= 0; $i--) {
             if (isset($logs[$i]['status']) && $logs[$i]['status'] === 'go_to_help') {
                 
@@ -828,7 +828,7 @@ class EmergencysController extends Controller
                 $logs[$i]['duration_text'] = $request->duration_text;
                 $logs[$i]['duration_value'] = $request->duration_value;
                 $logs[$i]['polyline'] = $request->polyline;
-                $logs[$i]['time_go_to_help'] = now()->toDateTimeString();
+                $logs[$i]['time_go_to_help'] = now()->toIso8601String();
 
                 $isUpdated = true;
                 break;
@@ -836,13 +836,10 @@ class EmergencysController extends Controller
         }
 
         if ($isUpdated) {
+            // บันทึกข้อมูลที่ถูกเพิ่ม key ใหม่ๆ กลับเข้าไปในคอลัมน์ log_command ทับข้อมูลเดิม
             $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
-            
-            // บันทึกพิกัดเริ่มต้นและพิกัดที่เกิดเหตุลงในตารางหลักเพื่อใช้ในการตรวจสอบเบื้องต้น
-            $operation->start_lat = $request->start_lat;
-            $operation->start_lng = $request->start_lng;
-            
             $operation->save();
+            
             return response()->json(['success' => true]);
         }
 
