@@ -160,12 +160,12 @@
                     @if($status == 'สั่งการ' && $hasRefuse && $isNotWaiting)
                         <span class="inline-flex items-center mb-2 text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 animate-pulse">
                             <span class="flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[12px]">warning</span>
+                                <span class="material-symbols-outlined text-[10px]">warning</span>
                                 ถูกปฏิเสธ ({{ count($refuseArray) }} )
                             </span>
                         </span>
                     @endif
-                    
+
                     <div class="flex items-center justify-between pt-3 border-t border-slate-50 pl-3">
                         <div class="flex items-center gap-1 text-slate-400 text-[10px] font-medium">
                             <span class="material-symbols-outlined text-[14px]">timer</span>
