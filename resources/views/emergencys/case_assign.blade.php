@@ -1352,12 +1352,11 @@
         }
     }
 
-    function drawRouteToIncident(startLat, startLng) {
+    function drawRouteToIncident(officerLat, officerLng) {
         if (!mapInstance || isRouteDrawn) return;
-        
-        const startLatLng = new google.maps.LatLng(startLat, startLng);
 
-        // ดึงข้อมูลเส้นทางจาก Google Maps Directions Service
+        const startLatLng = new google.maps.LatLng(officerLat, officerLng);
+        
         directionsService.route({
             origin: startLatLng,
             destination: incidentLatLng,
@@ -1366,19 +1365,19 @@
             if (status === 'OK') {
                 directionsRenderer.setDirections(response);
                 isRouteDrawn = true;
-                
+
                 const leg = response.routes[0].legs[0];
-                const polyline = response.routes[0].overview_polyline; 
-                
-                // อัปเดตข้อมูลระยะทางและเวลาที่คาดว่าจะใช้ไปยัง UI
-                if(document.getElementById('distance-text')) {
+                const polyline = response.routes[0].overview_polyline;
+
+                // อัปเดตการแสดงผลระยะทางและเวลาบน UI
+                if (document.getElementById('distance-text')) {
                     document.getElementById('distance-text').innerText = leg.distance.text;
                 }
-                if(document.getElementById('duration-text')) {
+                if (document.getElementById('duration-text')) {
                     document.getElementById('duration-text').innerText = leg.duration.text;
                 }
 
-                // ส่งข้อมูลพิกัดเริ่มต้นและ Polyline ไปบันทึกลง log_command ผ่าน API
+                // ส่งข้อมูลพิกัดและรายละเอียดเส้นทางไปบันทึกใน log_command
                 fetch(`{{ url('/api/emergency') }}/${emergencyId}/update-route-log`, {
                     method: 'POST',
                     headers: {
@@ -1386,18 +1385,22 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
-                        start_lat: startLat,
-                        start_lng: startLng,
+                        start_lat: officerLat,
+                        start_lng: officerLng,
+                        incident_lat: incidentLatLng.lat(),
+                        incident_lng: incidentLatLng.lng(),
                         distance_text: leg.distance.text,
+                        distance_value: leg.distance.value,
                         duration_text: leg.duration.text,
+                        duration_value: leg.duration.value,
                         polyline: polyline
                     })
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if(!data.success) console.error('Log update failed:', data.message);
+                    if (!data.success) console.error(data.message);
                 })
-                .catch(err => console.error('API Error:', err));
+                .catch(err => console.error('Fetch error:', err));
             }
         });
     }
