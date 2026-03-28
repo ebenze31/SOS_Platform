@@ -353,10 +353,10 @@
             'time_command': 'เวลาที่สั่งการ',
             'time_go_to_help': 'เวลาที่กำลังไปช่วยเหลือ',
             'time_to_the_scene': 'เวลาที่ถึงที่เกิดเหตุ',
-            'time_sos_success': 'เวลาที่เสร็จสิ้น (Success)',
-            'time_sum_sos': 'ระยะเวลารวม (Text)',
+            'time_sos_success': 'เวลาที่เสร็จสิ้น',
+            'time_sum_sos': 'ระยะเวลารวม',
             'calculated_response': 'เวลาตอบสนอง (นาที)',
-            'remark_by_helper': 'หมายเหตุจากผู้ช่วย'
+            'remark_by_helper': 'หมายเหตุจากเจ้าหน้าที่'
         };
 
         // 2. สร้างหัวตารางภาษาไทย
