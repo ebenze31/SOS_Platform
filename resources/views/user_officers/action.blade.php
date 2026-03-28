@@ -344,6 +344,8 @@
     const updateApiUrl_success = `{{ url('/') }}/officer/update-status-case-success/${emergencyId}`;
     const uploadPhotoApiUrl = `{{ route('officer.action.upload_photo', $emergency->id) }}`;
     const syncLocationApiUrl = `{{ url('/') }}/officer/sync-operation`;
+
+    let currentStatus = {{ $operation->status }};
     
     // Tab Navigation Logic
     let activeTab = 'info';
@@ -687,6 +689,7 @@
 
     // ฟังก์ชันยิงพิกัด + รับค่า Log Command
     async function trackAndSync() {
+
         if (!navigator.geolocation) return;
 
         navigator.geolocation.getCurrentPosition(async (position) => {
@@ -710,6 +713,13 @@
                 officerMarker = new CustomMarker(officerLoc, map, officerHtml);
             } else if (officerMarker) {
                 officerMarker.setPosition(officerLoc);
+            }
+
+            if(currentStatus === 'เสร็จสิ้น'){
+                if (officerMarker) {
+                    officerMarker.onRemove();
+                    officerMarker = null;
+                }
             }
 
             // อัปเดตตำแหน่ง + ดึง log_command
