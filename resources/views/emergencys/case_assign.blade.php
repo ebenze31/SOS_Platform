@@ -736,35 +736,34 @@
     // ================== ระบบเวลา Elapsed Timer ==================
     const sosTime = "{{ $emergency->operation->time_create_sos ? \Carbon\Carbon::parse($emergency->operation->time_create_sos)->toISOString() : $emergency->created_at->toISOString() }}";
     const startTime = new Date(sosTime).getTime();
+
+    @php
+        $timeCreate = \Carbon\Carbon::parse($emergency->operation->time_create_sos);
+        $timeSuccess = $emergency->operation->time_sos_success 
+                       ? \Carbon\Carbon::parse($emergency->operation->time_sos_success) 
+                       : null;
+
+        // คำนวณส่วนต่างเป็นนาทีไว้ล่วงหน้าสำหรับกรณีที่เสร็จแล้ว
+        $check_sum = $timeSuccess ? $timeCreate->diffInMinutes($timeSuccess) : 0;
+        
+        // แปลงเวลาเริ่มเป็น Miliseconds สำหรับ JavaScript
+        $jsStartTime = $timeCreate->valueOf(); 
+    @endphp
     
     function updateTimer() {
-
         const wrapper = document.getElementById("timer-wrapper");
         const ping = document.getElementById("timer-ping");
         const dot = document.getElementById("timer-dot");
-        const sumText = document.getElementById('tm-sum')?.innerText;
         const elapsedTimeEl = document.getElementById("elapsed-time");
+        const titleEl = document.getElementById('timer-title');
 
-        // หากสถานะเสร็จสิ้นแล้ว ให้หยุดนับเวลาและดึงข้อมูลสรุปมาแสดงแทน
-        if (currentOpStatus === 'เสร็จสิ้น') {
-            const titleEl = document.getElementById('timer-title');
-            if (titleEl) titleEl.innerText = 'ใช้เวลาสุทธิ';
-            
-            const pingEl = document.getElementById('timer-ping');
-            if (pingEl) pingEl.classList.add('hidden'); 
-            
-            if (sumText && sumText !== '-') {
-                if (elapsedTimeEl) elapsedTimeEl.innerText = sumText;
-            }
+        // ดึงค่าจาก PHP มาใช้ใน JS
+        const startTime = {{ $jsStartTime }};
+        const check_sum = {{ $check_sum }};
+        const currentOpStatus = '{{ $emergency->operation->status }}'; // หรือตัวแปรสถานะของคุณ
 
-            // ตัวอย่างการคำนวณใน PHP โดยใช้ Carbon
-            $startTime = \Carbon\Carbon::parse("{{ $emergency->operation->time_create_sos }}");
-            $endTime = \Carbon\Carbon::parse("{{ $emergency->operation->time_sos_success }}");
-
-            // คำนวณส่วนต่างเป็นนาที
-            $check_sum = $startTime->diffInMinutes($endTime);
-
-            // ล้าง Class สีเดิมออกก่อน
+        // ฟังก์ชันช่วยจัดการสี (Helper)
+        const updateStatusColors = (minutes) => {
             const allColors = [
                 "text-emerald-600", "bg-emerald-400", "bg-emerald-500",
                 "text-orange-500", "bg-orange-400", "bg-orange-500",
@@ -772,59 +771,55 @@
             ];
             [wrapper, ping, dot].forEach(el => el?.classList.remove(...allColors));
 
-            // เช็คเงื่อนไขเวลา (check_sum คือนาทีที่คำนวณมา)
-            if (check_sum < 8) {
-                wrapper.classList.add("text-emerald-600");
-                ping.classList.add("bg-emerald-400");
-                dot.classList.add("bg-emerald-500");
-            } else if (check_sum < 12) {
-                wrapper.classList.add("text-orange-500");
-                ping.classList.add("bg-orange-400");
-                dot.classList.add("bg-orange-500");
+            if (minutes < 8) {
+                wrapper?.classList.add("text-emerald-600");
+                ping?.classList.add("bg-emerald-400");
+                dot?.classList.add("bg-emerald-500");
+            } else if (minutes < 12) {
+                wrapper?.classList.add("text-orange-500");
+                ping?.classList.add("bg-orange-400");
+                dot?.classList.add("bg-orange-500");
             } else {
-                wrapper.classList.add("text-red-600");
-                ping.classList.add("bg-red-400");
-                dot.classList.add("bg-red-500");
+                wrapper?.classList.add("text-red-600");
+                ping?.classList.add("bg-red-400");
+                dot?.classList.add("bg-red-500");
             }
+        };
+
+        // --- กรณีสถานะเสร็จสิ้น ---
+        if (currentOpStatus === 'เสร็จสิ้น') {
+            if (titleEl) titleEl.innerText = 'ใช้เวลาสุทธิ';
+            if (ping) ping.classList.add('hidden'); 
+
+            const sumText = document.getElementById('tm-sum')?.innerText;
+            if (sumText && sumText !== '-' && elapsedTimeEl) {
+                elapsedTimeEl.innerText = sumText;
+            }
+
+            updateStatusColors(check_sum);
             return; 
         }
 
+        // --- กรณีที่ยังไม่เสร็จ (นับเวลาสด) ---
         const now = new Date().getTime();
         const distance = now - startTime;
         if (distance < 0) return;
-        
+
         const totalMinutes = Math.floor(distance / (1000 * 60));
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        
+
         let timeString = "";
         if (days > 0) timeString += days + " วัน ";
         if (hours > 0 || days > 0) timeString += hours + " ชม. ";
         if (minutes > 0 || hours > 0 || days > 0) timeString += minutes + " นาที";
-        if (days === 0 && hours === 0 && minutes === 0) timeString = "เพิ่งแจ้งเหตุ";
-        
-        document.getElementById("elapsed-time").innerHTML = timeString.trim();
+        if (!timeString) timeString = "เพิ่งแจ้งเหตุ";
 
+        if (elapsedTimeEl) elapsedTimeEl.innerHTML = timeString.trim();
         if (ping) ping.classList.remove("hidden");
 
-        wrapper.classList.remove("text-emerald-600", "text-orange-500", "text-red-600");
-        ping.classList.remove("bg-emerald-400", "bg-orange-400", "bg-red-400");
-        dot.classList.remove("bg-emerald-500", "bg-orange-500", "bg-red-500");
-
-        if (totalMinutes < 8) {
-            wrapper.classList.add("text-emerald-600");
-            ping.classList.add("bg-emerald-400");
-            dot.classList.add("bg-emerald-500");
-        } else if (totalMinutes < 12) {
-            wrapper.classList.add("text-orange-500");
-            ping.classList.add("bg-orange-400");
-            dot.classList.add("bg-orange-500");
-        } else {
-            wrapper.classList.add("text-red-600");
-            ping.classList.add("bg-red-400");
-            dot.classList.add("bg-red-500");
-        }
+        updateStatusColors(totalMinutes);
     }
 
     setInterval(updateTimer, 60000);
