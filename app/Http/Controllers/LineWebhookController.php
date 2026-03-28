@@ -188,6 +188,10 @@ class LineWebhookController extends Controller
             $operation->time_go_to_help = now();
             $officer->status = 'Helping';
             $officer->line_notified_at = now();
+
+            $currentHelp = (int)($officer->amount_help ?? 0);
+            $officer->amount_help = (string)($currentHelp + 1);
+
             $officer->save();
 
             $logs = json_decode($operation->log_command, true) ?? [];
@@ -211,6 +215,11 @@ class LineWebhookController extends Controller
                 $this->replyText($event['replyToken'], "ขออภัย คุณไม่สามารถปฏิเสธเคสนี้ได้ในขณะนี้");
                 return;
             }
+
+            // อัปเดตนับจำนวนการปฏิเสธเพิ่ม 1 ในตาราง user_officers
+            $currentRefuse = (int)($officer->amount_refuse ?? 0);
+            $officer->amount_refuse = (string)($currentRefuse + 1);
+            $officer->save(); // เซฟข้อมูลเจ้าหน้าที่
 
             // อัปเดตตาราง operations ล้างค่าคนรอตอบรับ และเพิ่มรายชื่อในคนปฏิเสธ
             $operation->waiting_reply = null;
