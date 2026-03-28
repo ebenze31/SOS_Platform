@@ -1065,6 +1065,8 @@
 
                 const currentLat = parseFloat(data.officer_lat);
                 const currentLng = parseFloat(data.officer_lng);
+                // รับค่าอายุพิกัดจาก PHP
+                const diffMins = data.location_diff_minutes; 
 
                 let activeLog = null;
                 if (data.log_command && Array.isArray(data.log_command)) {
@@ -1072,7 +1074,8 @@
                     activeLog = logs.find(l => l.status === 'go_to_help');
                 }
 
-                if (currentLat && currentLng && !isRouteDrawn && (!activeLog || !activeLog.polyline)) {
+                // ถ้ามีพิกัด และยังไม่เคยวาดเส้น และยังไม่มี Polyline ในระบบ และพิกัดต้องอัปเดตล่าสุดไม่เกิน 5 นาที ถึงจะยอมวาดเส้นใหม่
+                if (currentLat && currentLng && !isRouteDrawn && (!activeLog || !activeLog.polyline) && (diffMins == null || diffMins <= 5)) {
                     drawRouteToIncident(currentLat, currentLng);
                 }
 
