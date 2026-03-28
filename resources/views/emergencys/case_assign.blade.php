@@ -504,8 +504,7 @@
                                             </div>
                                             <div class="text-right bg-white px-3 py-2 rounded-lg border border-emerald-100 shadow-sm">
                                                 <span class="text-[9px] font-bold text-slate-400 uppercase block mb-1">ใช้เวลาสุทธิ</span>
-                                                <!-- <span class="text-sm font-bold text-emerald-700" id="tm-sum">{{ $emergency->operation->time_sum_sos ?? '-' }}</span> -->
-                                                <span class="material-symbols-outlined text-emerald-500" id="tm-sum">{{ $emergency->operation->time_sum_sos ?? '-' }}</span>
+                                                <span class="text-sm font-bold text-slate-700" id="tm-sum">{{ $emergency->operation->time_sum_sos ?? '-' }}</span>
                                             </div>
                                         </div>
                                     </div>
