@@ -805,18 +805,6 @@
             }
 
             updateStatusColors(check_sum);
-
-            @php
-                $remarkText = "";
-                if(!empty($emergency->operation->remark_status)) {
-                    $remarkText .= "หมายเหตุ (จากศูนย์) : " . $emergency->operation->remark_status . "\n";
-                }
-                if(!empty($emergency->operation->remark_by_helper)) {
-                    $remarkText .= "หมายเหตุ (จากเจ้าหน้าที่) : " . $emergency->operation->remark_by_helper;
-                }
-            @endphp
-
-            document.querySelector('#remark_success').innerText = @js($remarkText);
             return; 
         }
 
@@ -1458,17 +1446,7 @@
                     document.getElementById('rm-success').innerText = data.remark_by_helper || 'ไม่มีหมายเหตุ';
                 }
 
-                @php
-                    $remarkText = "";
-                    if(!empty($emergency->operation->remark_status)) {
-                        $remarkText .= "หมายเหตุ (จากศูนย์) : " . $emergency->operation->remark_status . "\n";
-                    }
-                    if(!empty($emergency->operation->remark_by_helper)) {
-                        $remarkText .= "หมายเหตุ (จากเจ้าหน้าที่) : " . $emergency->operation->remark_by_helper;
-                    }
-                @endphp
 
-                document.querySelector('#remark_success').innerText = @js($remarkText);
             }
 
             // =========================================================
