@@ -345,7 +345,7 @@
     const uploadPhotoApiUrl = `{{ route('officer.action.upload_photo', $emergency->id) }}`;
     const syncLocationApiUrl = `{{ url('/') }}/officer/sync-operation`;
 
-    let currentStatus = {{ $operation->status }};
+    let currentStatus = "{{ $operation->status }}";
     
     // Tab Navigation Logic
     let activeTab = 'info';
