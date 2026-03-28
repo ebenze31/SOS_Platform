@@ -753,6 +753,8 @@
         if (ping) ping.classList.remove("bg-emerald-400", "bg-orange-400", "bg-red-400");
         if (dot) dot.classList.remove("bg-emerald-500", "bg-orange-500", "bg-red-500");
 
+        console.log(totalMinutes);
+
         if (totalMinutes < 8) {
             wrapper.classList.add("text-emerald-600");
             if (ping) ping.classList.add("bg-emerald-400");
