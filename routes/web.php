@@ -60,7 +60,6 @@ Route::get('/demo/dashboard', function () {
 });
 
 // หน้า monitor ควรมีปุ่มดูเคสทั้งหมดอยู่ด้านบนอีกไหม
-// หน้า monitor ถ้ามีคนปฎิเสธ และยังไม่ได้ส่งไปหาคนอื่น ต้องมีการแจ้งเตือน
 
 // หน้า case_assign เพิ่ม remark_status (จาก command) หรือ remark_by_helper (จาก officer) ดูว่ามีอันไหน
 

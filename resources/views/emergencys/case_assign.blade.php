@@ -125,7 +125,7 @@
                         <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">สถานะเหตุการณ์ปัจจุบัน</h3>
                         <h5 class="text-slate-600"># {{ $emergency->operation->operating_code }}</h5>
                     </div>
-                    <div class="flex bg-slate-100 p-1.5 rounded-lg border border-slate-200 gap-1.5">
+                    <div class="flex bg-slate-100 p-1.5 rounded-lg border border-slate-200 gap-1.5 mb-2">
                         <div class="w-[70%] py-3 px-2 rounded-md bg-white text-slate-900 shadow-sm border border-slate-200 text-[12px] font-bold transition-all flex items-center justify-center relative overflow-hidden text-center leading-tight">
                             <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-400 rounded-l-md transition-colors duration-300" id="status-color-bar"></div>
                             <span id="current-status-text">{{ $emergency->operation->status ?? 'รับแจ้งเหตุ' }}</span>
@@ -133,6 +133,15 @@
                         <button type="button" {{ $currentOpStatus == 'เสร็จสิ้น' ? 'disabled' : 'onclick=openCompleteModal()' }} class="w-[30%] py-3 px-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 shadow-sm border border-emerald-200 text-[12px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
                             เสร็จสิ้น
                         </button>
+                    </div>
+                    <div id="remark_success" class="px-1 text-[12px] text-slate-800 font-bold tracking-wider mb-0.5 ">
+                        @if( !empty($emergency->operation->remark_status) )
+                            หมายเหตุ (จากศูนย์) : {{ $emergency->operation->remark_status }}
+                        @endif
+
+                        @if( !empty($emergency->operation->remark_by_helper) )
+                            หมายเหตุ (จากเจ้าหน้าที่) : {{ $emergency->operation->remark_by_helper }}
+                        @endif
                     </div>
                 </div>
 
@@ -796,6 +805,18 @@
             }
 
             updateStatusColors(check_sum);
+
+            @php
+                $remarkText = "";
+                if(!empty($emergency->operation->remark_status)) {
+                    $remarkText .= "หมายเหตุ (จากศูนย์) : " . $emergency->operation->remark_status . "\n";
+                }
+                if(!empty($emergency->operation->remark_by_helper)) {
+                    $remarkText .= "หมายเหตุ (จากเจ้าหน้าที่) : " . $emergency->operation->remark_by_helper;
+                }
+            @endphp
+
+            document.querySelector('#remark_success').innerText = @js($remarkText);
             return; 
         }
 
@@ -1436,6 +1457,18 @@
                     document.getElementById('img-success').src = "{{ url('/storage') }}/" + data.photo_succeed;
                     document.getElementById('rm-success').innerText = data.remark_by_helper || 'ไม่มีหมายเหตุ';
                 }
+
+                @php
+                    $remarkText = "";
+                    if(!empty($emergency->operation->remark_status)) {
+                        $remarkText .= "หมายเหตุ (จากศูนย์) : " . $emergency->operation->remark_status . "\n";
+                    }
+                    if(!empty($emergency->operation->remark_by_helper)) {
+                        $remarkText .= "หมายเหตุ (จากเจ้าหน้าที่) : " . $emergency->operation->remark_by_helper;
+                    }
+                @endphp
+
+                document.querySelector('#remark_success').innerText = @js($remarkText);
             }
 
             // =========================================================
