@@ -116,6 +116,16 @@
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded border {{ $badgeClass }}">
                             {{ $status }}
                         </span>
+
+                        {{-- แสดง Badge แจ้งเตือนสีแดง เมื่อมีคนปฏิเสธและไม่มีคนรอตอบรับ --}}
+                        @if($status == 'สั่งการ' && $hasRefuse && $isNotWaiting)
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded border bg-red-100 text-red-700 border-red-200 animate-pulse">
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">warning</span>
+                                    ถูกปฏิเสธ ({{ count($refuseArray) }} )
+                                </span>
+                            </span>
+                        @endif
                     </div>
 
                     <h4 class="text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
