@@ -59,7 +59,7 @@ Route::get('/demo/dashboard', function () {
     return view('demo/dashboard');
 });
 
-// ปรับการแสดงผลหน้า monitor ให้แสดงคนสั่งการและข้อมูลอื่นๆ รวมถึงกดดูเคสเสร็จสิ้นได้
+// หน้า monitor ควรมีปุ่มดูเคสทั้งหมดอยู่ด้านบนอีกไหม
 
 // หน้า Map ดำเนินการ เจ้าหน้าที่ปุ่มกล้องลอยทับ navbar
 // หน้า Map ดำเนินการ จัดการการแสดงผลหมุดและ map หลังเสร็จสิ้น
@@ -140,6 +140,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/members/toggle-status/{id}', 'MemberController@toggleStatus')->name('members.toggle-status');
         Route::post('/members/command/toggle-status/{id}', 'MemberController@toggleCommandStatus')->name('members.command.toggle-status');
         Route::post('/members/officer/toggle-status/{id}', 'MemberController@toggleOfficerStatus')->name('members.officer.toggle-status');
+
+        // ======== Report ========
+        Route::get('/report/data_emergency', 'ReportController@report_data_emergency');
+
     });
 
     // Admin, Officer

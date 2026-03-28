@@ -1,4 +1,4 @@
-@extends('layouts.theme_user')
+@extends('layouts.theme')
 
 @section('content')
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">

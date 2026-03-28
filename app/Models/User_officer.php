@@ -32,4 +32,16 @@ class User_officer extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+
+    public function operations()
+    {
+        return $this->hasMany(Emergency_operation::class, 'user_officers_id', 'id');
+    }
+
+    public function current_operation()
+    {
+        return $this->hasOne(Emergency_operation::class, 'user_officers_id', 'id')
+                    ->whereNotIn('status', ['เสร็จสิ้น', 'ยกเลิก'])
+                    ->latest();
+    }
 }

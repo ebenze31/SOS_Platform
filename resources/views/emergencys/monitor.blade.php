@@ -31,7 +31,7 @@
                     <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500"></div>
                     
                     <div class="flex justify-between items-start mb-2 pl-3">
-                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-100 uppercase tracking-wide">
+                        <span class="inline-flex text-[18px] items-center gap-1 font-bold uppercase tracking-wide">
                             {{ $case->emergency_type ?? 'ไม่ระบุประเภท' }}
                         </span>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">
@@ -39,7 +39,7 @@
                         </span>
                     </div>
                     
-                    <h4 class="font-bold text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
+                    <h4 class="text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
                     <div class="flex items-start gap-1.5 text-slate-500 text-[11px] mb-3 pl-3">
                         <span class="material-symbols-outlined text-[14px] shrink-0 text-slate-400">location_on</span>
                         <span class="line-clamp-2 leading-tight">{{ $case->emergency_location }}</span>
@@ -102,7 +102,7 @@
                     <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
 
                     <div class="flex justify-between items-start mb-2 pl-3">
-                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-wide">
+                        <span class="inline-flex text-[18px] items-center gap-1 font-bold uppercase tracking-wide">
                             {{ $case->emergency_type ?? 'ไม่ระบุประเภท' }}
                         </span>
                         
@@ -118,7 +118,7 @@
                         </span>
                     </div>
 
-                    <h4 class="font-bold text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
+                    <h4 class="text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
                     <div class="flex items-start gap-1.5 text-slate-500 text-[11px] mb-3 pl-3">
                         <span class="material-symbols-outlined text-[14px] shrink-0 text-slate-400">location_on</span>
                         <span class="line-clamp-2 leading-tight">{{ $case->emergency_location }}</span>
@@ -138,9 +138,15 @@
 
                     {{-- แสดงเจ้าหน้าที่ --}}
                     <div class="inline-flex items-center p-2 ml-3 mb-2 text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
-                        <span class="material-symbols-outlined mr-1 text-[13px]">support_agent</span>
-                        <span class="text-[10px] font-bold">{{ $case->operation->officer->name ?? 'รอรับเรื่อง...' }}</span>
+                        <span class="text-[10px] font-bold">
+                            สั่งการโดย : {{ $case->operation->commander->name_command ?? 'รอการสั่งการ...' }}
+                        </span>
                     </div>
+
+                    <div class="inline-flex items-center mb-2 text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                        <span class="text-[10px] font-bold">เจ้าหน้าที่ : {{ $case->operation->officer->name_officer ?? 'รอรับเรื่อง...' }}</span>
+                    </div>
+
 
                     <div class="flex items-center justify-between pt-3 border-t border-slate-50 pl-3">
                         <div class="flex items-center gap-1 text-slate-400 text-[10px] font-medium">
@@ -185,7 +191,7 @@
                     <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></div>
 
                     <div class="flex justify-between items-start mb-2 pl-3">
-                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wide">
+                        <span class="inline-flex text-[18px] items-center gap-1 font-bold uppercase tracking-wide">
                             {{ $case->emergency_type ?? 'ไม่ระบุประเภท' }}
                         </span>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
@@ -193,7 +199,7 @@
                         </span>
                     </div>
 
-                    <h4 class="font-bold text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
+                    <h4 class="text-slate-900 text-sm mb-1 pl-3 line-clamp-2" title="{{ $case->emergency_detail }}">{{ $case->emergency_detail }}</h4>
                     <div class="flex items-start gap-1.5 text-slate-500 text-[11px] mb-3 pl-3">
                         <span class="material-symbols-outlined text-[14px] shrink-0 text-slate-400">location_on</span>
                         <span class="line-clamp-2 leading-tight">{{ $case->emergency_location }}</span>
@@ -213,19 +219,37 @@
 
                     {{-- แสดงเจ้าหน้าที่ --}}
                     <div class="inline-flex items-center p-2 ml-3 mb-2 text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
-                        <span class="material-symbols-outlined mr-1 text-[13px]">support_agent</span>
-                        <span class="text-[10px] font-bold">{{ $case->operation->officer->name ?? 'ไม่ระบุจนท.' }}</span>
+                        <span class="text-[10px] font-bold">
+                            สั่งการโดย : {{ $case->operation->commander->name_command ?? '...' }}
+                        </span>
+                    </div>
+
+                    <div class="inline-flex items-center mb-2 text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+                        <span class="text-[10px] font-bold">เจ้าหน้าที่ : {{ $case->operation->officer->name_officer ?? '...' }}</span>
                     </div>
 
                     <div class="flex items-center justify-between pt-3 border-t border-slate-50 pl-3">
+                        {{-- ส่วนปิดงาน: ใช้ time_sos_success --}}
                         <div class="flex items-center gap-1 text-slate-400 text-[10px] font-medium">
                             <span class="material-symbols-outlined text-[14px]">event_available</span>
-                            <span>ปิดงาน: {{ $case->updated_at->format('H:i') }}</span>
+                            <span>ปิดงาน: 
+                                {{ $case->operation->time_sos_success ? \Carbon\Carbon::parse($case->operation->time_sos_success)->format('H:i') : '-' }} น.
+                            </span>
                         </div>
+
+                        {{-- ส่วนเวลารวม: ใช้ time_sum_sos (ซึ่งเป็น Text อยู่แล้ว) --}}
                         <div class="flex items-center justify-end gap-1 text-slate-400 text-[10px]">
                             <span class="material-symbols-outlined text-[12px]">timelapse</span>
-                            <span>ใช้เวลารวม: <span class="text-emerald-600 font-bold">{{ \Carbon\Carbon::parse($case->created_at)->locale('th')->diffForHumans($case->updated_at, true) }}</span></span>
+                            <span>ใช้เวลารวม: 
+                                <span class="text-emerald-600 font-bold">
+                                    {{ $case->operation->time_sum_sos ?? '-' }}
+                                </span>
+                            </span>
                         </div>
+                    </div>
+
+                    <div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                         <a href="{{ url('/case_assign/') }}/{{ $case->id }}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-lg shadow-emerald-600/20">ดูข้อมูล</a>
                     </div>
                 </div>
                 @empty
@@ -236,7 +260,7 @@
                 @endforelse
 
                 @if($totalCompleted > 3)
-                <a href="#" class="block group bg-emerald-50/50 hover:bg-emerald-50 p-4 rounded-lg border border-dashed border-emerald-200 hover:border-emerald-400 transition-all cursor-pointer text-center mt-2">
+                <a href="{{ url('/report/data_emergency') }}" class="block group bg-emerald-50/50 hover:bg-emerald-50 p-4 rounded-lg border border-dashed border-emerald-200 hover:border-emerald-400 transition-all cursor-pointer text-center mt-2">
                     <div class="flex flex-col items-center justify-center gap-1">
                         <div class="size-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
                             <span class="material-symbols-outlined">read_more</span>
@@ -268,7 +292,7 @@
                 console.error('Error refreshing dashboard:', error);
             });
     }
-    
-    setInterval(refreshDashboard, 10000);
+    refreshDashboard();
+    // setInterval(refreshDashboard, 10000);
 </script>
 @endsection

@@ -42,4 +42,8 @@ class Emergency_operation extends Model
     {
         return $this->belongsTo(User_command::class, 'command_by', 'id');
     }
+
+    public function area() {
+        return $this->belongsTo(Area::class, 'area_id', 'id');
+    }
 }
