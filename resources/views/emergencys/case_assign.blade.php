@@ -1363,9 +1363,8 @@
                 const successInfo = document.getElementById('success-info');
                 if (successInfo) successInfo.classList.remove('hidden');
 
-                const tmSum = document.getElementById('tm-sum');
-                if (tmSum && data.time_sum_sos) {
-                    tmSum.innerText = data.time_sum_sos.replace(/0\s?ชม\.?\s?/g, '').trim() || '-';
+                if (document.getElementById('tm-sum') && data.time_sum_sos) {
+                    document.getElementById('tm-sum').innerText = data.time_sum_sos.replace(/0\s?ชม\.?\s?/g, '').trim() || '-';
                 }
 
                 function updateTimeAndDate(elementIdPrefix, dateString) {
