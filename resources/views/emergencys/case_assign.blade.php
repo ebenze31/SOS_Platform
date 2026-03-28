@@ -999,8 +999,7 @@
 
             // 3. จัดการสถานะและกู้คืนเส้นทาง เฉพาะกำลังไปช่วยเหลือ
             if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
-                
-                // === อัปเดตเวลาล่าสุดที่ได้รับพิกัด พร้อมข้อความ นาทีที่แล้ว ===
+                            
                 if (data.officer_last_update) {
                     const lastUpdate = new Date(data.officer_last_update);
                     const now = new Date();
@@ -1013,33 +1012,34 @@
                     document.getElementById('last-location-time').innerHTML = `${timeStr} น. <span class="text-blue-500 font-medium ml-1">${relativeTime}</span>`;
                 }
 
-                // === ค้นหา Log การรับงานล่าสุดที่มีเส้นทาง ===
+                const currentLat = parseFloat(data.officer_lat);
+                const currentLng = parseFloat(data.officer_lng);
+
                 let activeLog = null;
                 if (data.log_command && Array.isArray(data.log_command)) {
                     const logs = [...data.log_command].reverse();
-                    activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help'));
+                    activeLog = logs.find(l => l.status === 'go_to_help');
                 }
 
-                if (activeLog) {
-                    // === แสดงเวลาออกเดินทาง และ เวลาคาดว่าจะถึง ===
+                if (currentLat && currentLng && !isRouteDrawn && (!activeLog || !activeLog.polyline)) {
+                    drawRouteToIncident(currentLat, currentLng);
+                }
+
+                if (activeLog && activeLog.polyline) {
                     if (activeLog.time_go_to_help) {
                         const startTime = new Date(activeLog.time_go_to_help);
                         document.getElementById('start-help-time').innerText = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
                         
-                        // คำนวณเวลาคาดว่าจะถึง (เวลาเริ่ม + duration_value เป็นวินาที)
                         const durationValue = activeLog.duration_value ? parseInt(activeLog.duration_value) : 0;
                         const arrivalTime = new Date(startTime.getTime() + (durationValue * 1000));
                         const arrivalStr = arrivalTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
                         
-                        // แสดงผลเช่น 16:42 น. (19 นาที)
                         document.getElementById('duration-text').innerText = `${arrivalStr} น. (${activeLog.duration_text || '-'})`;
                     }
 
-                    // === แสดงระยะทางจากจุดเริ่มต้น ===
                     document.getElementById('distance-text').innerText = activeLog.distance_text || '-';
 
-                    // === วาดเส้นทางจากจุดเริ่มต้น (ทำแค่ครั้งเดียว) ===
-                    if (!isRouteDrawn && activeLog.polyline) {
+                    if (!isRouteDrawn) {
                         const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
                         directionsRenderer.setMap(mapInstance);
                         
@@ -1051,12 +1051,10 @@
                         });
                         recoveredPolyline.setMap(mapInstance);
                         
-                        // ปรับมุมกล้อง
                         const bounds = new google.maps.LatLngBounds();
                         decodedPath.forEach(latLng => bounds.extend(latLng));
                         mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
 
-                        // สร้างหมุดจุดเริ่มต้นสีดำ (Start Flag) ไว้ที่เดิมเสมอ
                         if (activeLog.start_lat && activeLog.start_lng) {
                             createStartFlag(activeLog.start_lat, activeLog.start_lng);
                         }
@@ -1066,17 +1064,92 @@
                     }
                 }
 
-                // === อัปเดตพิกัดหมุดรถเจ้าหน้าที่บนแผนที่ ===
-                const currentLat = parseFloat(data.officer_lat);
-                const currentLng = parseFloat(data.officer_lng);
-                
                 if (currentLat && currentLng) {
                     updateOfficerLocationOnMap(currentLat, currentLng); 
                 } else if (!isRouteDrawn && activeLog && activeLog.start_lat && activeLog.start_lng) {
-                    // ถ้ายังไม่มีพิกัดปัจจุบัน ให้เอาหมุดรถวางไว้ที่จุด Start ก่อน
                     updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
                 }
             }
+            
+            // if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
+                
+            //     // === อัปเดตเวลาล่าสุดที่ได้รับพิกัด พร้อมข้อความ นาทีที่แล้ว ===
+            //     if (data.officer_last_update) {
+            //         const lastUpdate = new Date(data.officer_last_update);
+            //         const now = new Date();
+            //         const diffMs = now - lastUpdate;
+            //         const diffMins = Math.floor(diffMs / 60000); 
+
+            //         let relativeTime = diffMins > 0 ? `(${diffMins} นาทีที่แล้ว)` : `(เมื่อครู่)`;
+            //         const timeStr = lastUpdate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    
+            //         document.getElementById('last-location-time').innerHTML = `${timeStr} น. <span class="text-blue-500 font-medium ml-1">${relativeTime}</span>`;
+            //     }
+
+            //     // === ค้นหา Log การรับงานล่าสุดที่มีเส้นทาง ===
+            //     let activeLog = null;
+            //     if (data.log_command && Array.isArray(data.log_command)) {
+            //         const logs = [...data.log_command].reverse();
+            //         activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help'));
+            //     }
+
+            //     if (activeLog) {
+            //         // === แสดงเวลาออกเดินทาง และ เวลาคาดว่าจะถึง ===
+            //         if (activeLog.time_go_to_help) {
+            //             const startTime = new Date(activeLog.time_go_to_help);
+            //             document.getElementById('start-help-time').innerText = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+                        
+            //             // คำนวณเวลาคาดว่าจะถึง (เวลาเริ่ม + duration_value เป็นวินาที)
+            //             const durationValue = activeLog.duration_value ? parseInt(activeLog.duration_value) : 0;
+            //             const arrivalTime = new Date(startTime.getTime() + (durationValue * 1000));
+            //             const arrivalStr = arrivalTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        
+            //             // แสดงผลเช่น 16:42 น. (19 นาที)
+            //             document.getElementById('duration-text').innerText = `${arrivalStr} น. (${activeLog.duration_text || '-'})`;
+            //         }
+
+            //         // === แสดงระยะทางจากจุดเริ่มต้น ===
+            //         document.getElementById('distance-text').innerText = activeLog.distance_text || '-';
+
+            //         // === วาดเส้นทางจากจุดเริ่มต้น (ทำแค่ครั้งเดียว) ===
+            //         if (!isRouteDrawn && activeLog.polyline) {
+            //             const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
+            //             directionsRenderer.setMap(mapInstance);
+                        
+            //             const recoveredPolyline = new google.maps.Polyline({
+            //                 path: decodedPath,
+            //                 strokeColor: "#3b82f6",
+            //                 strokeWeight: 5,
+            //                 strokeOpacity: 0.8
+            //             });
+            //             recoveredPolyline.setMap(mapInstance);
+                        
+            //             // ปรับมุมกล้อง
+            //             const bounds = new google.maps.LatLngBounds();
+            //             decodedPath.forEach(latLng => bounds.extend(latLng));
+            //             mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+
+            //             // สร้างหมุดจุดเริ่มต้นสีดำ (Start Flag) ไว้ที่เดิมเสมอ
+            //             if (activeLog.start_lat && activeLog.start_lng) {
+            //                 createStartFlag(activeLog.start_lat, activeLog.start_lng);
+            //             }
+                        
+            //             isRouteDrawn = true;
+            //             hasRecoveredRoute = true;
+            //         }
+            //     }
+
+            //     // === อัปเดตพิกัดหมุดรถเจ้าหน้าที่บนแผนที่ ===
+            //     const currentLat = parseFloat(data.officer_lat);
+            //     const currentLng = parseFloat(data.officer_lng);
+                
+            //     if (currentLat && currentLng) {
+            //         updateOfficerLocationOnMap(currentLat, currentLng); 
+            //     } else if (!isRouteDrawn && activeLog && activeLog.start_lat && activeLog.start_lng) {
+            //         // ถ้ายังไม่มีพิกัดปัจจุบัน ให้เอาหมุดรถวางไว้ที่จุด Start ก่อน
+            //         updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
+            //     }
+            // }
 
             // 4. จัดการ UI หน้าสั่งการ (ล้างสถานะ ปิดปุ่ม ฯลฯ)
             if (['รับแจ้งเหตุ', 'สั่งการ'].includes(currentOpStatus)) {
