@@ -1029,10 +1029,8 @@
                         const time = new Date(data.time_to_the_scene).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
                         document.getElementById('arrived-time-text').innerText = 'เวลา: ' + time + ' น.';
                     }
-                    
-                    // จบการทำงานของ Loop เมื่อถึงที่เกิดเหตุแล้ว
-                    return; 
                 }
+
             }
 
             // 2. จัดการข้อมูลคนปฏิเสธเคส
