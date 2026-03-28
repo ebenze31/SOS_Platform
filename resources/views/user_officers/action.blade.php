@@ -629,25 +629,12 @@
         const success = await updateStatusAPI('เสร็จสิ้น');
 
         if(success) {
-            // 1. เปลี่ยน UI ตามเดิม
             document.getElementById('step2-section').classList.add('hidden');
             document.getElementById('step-done').classList.remove('hidden');
             document.getElementById('step-done').classList.add('flex');
-            
             const badge = document.getElementById('status-badge');
             badge.textContent = 'เสร็จสิ้น';
             badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded border text-green-600 bg-green-50 border-green-200';
-
-            // 2. ลบหมุดเจ้าหน้าที่และหยุดการกระพริบจุดเกิดเหตุทันที
-            if (officerMarker) {
-                officerMarker.setMap(null);
-                officerMarker = null;
-            }
-            const ping = document.getElementById('incident-ping');
-            if (ping) ping.classList.remove('animate-ping');
-
-            // 3. เรียกวาดเส้นทางประวัติอีกครั้ง
-            trackAndSync(); 
         } else {
             alert('เกิดข้อผิดพลาดในการอัปเดตข้อมูล');
             text.innerText = 'เสร็จสิ้นภารกิจ';
@@ -695,71 +682,6 @@
 
     // ฟังก์ชันยิงพิกัด + รับค่า Log Command
     async function trackAndSync() {
-        // 1. ดึงสถานะปัจจุบันจาก Badge (หรือตัวแปร global currentOpStatus)
-        const statusText = document.getElementById('status-badge')?.textContent.trim();
-
-        // --- กรณีสถานะเป็น "เสร็จสิ้น" ---
-        if (statusText === 'เสร็จสิ้น') {
-            // หยุดการดึงพิกัด Geolocation ในรอบถัดๆ ไป
-            if (locationInterval) {
-                clearInterval(locationInterval);
-                locationInterval = null;
-            }
-
-            // ลบหมุดรถเจ้าหน้าที่ออกจากแผนที่
-            if (officerMarker) {
-                officerMarker.setMap(null);
-                officerMarker = null;
-            }
-
-            // หยุดการกระพริบของหมุดจุดเกิดเหตุ (ค้นหา element จาก id ที่เราตั้งไว้)
-            const pingElement = document.getElementById('incident-ping');
-            if (pingElement) {
-                pingElement.classList.remove('animate-ping');
-                pingElement.classList.add('hidden'); // หรือซ่อนไปเลยเพื่อความสะอาด
-            }
-
-            // ดึงข้อมูล log_command ล่าสุดมาเพื่อวาดเส้นทางประวัติ (History Route)
-            try {
-                const response = await fetch(syncLocationApiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        emergency_id: emergencyId,
-                        lat: 0,
-                        lng: 0
-                    })
-                });
-
-                const data = await response.json();
-                if (data.success && data.log_command) {
-                    let logs = typeof data.log_command === 'string' ? JSON.parse(data.log_command) : data.log_command;
-                    
-                    // หา log ล่าสุดที่มี polyline (เส้นทางที่ใช้ไปช่วยจริง)
-                    const routeLog = [...logs].reverse().find(log => log.polyline);
-                    
-                    if (routeLog && currentPolylineStr !== routeLog.polyline) {
-                        currentPolylineStr = routeLog.polyline;
-                        drawRouteFromPolyline(routeLog.polyline);
-                        
-                        // ปรับหน้าจอให้เห็นเส้นทางทั้งหมด
-                        const decodedPath = google.maps.geometry.encoding.decodePath(routeLog.polyline);
-                        const bounds = new google.maps.LatLngBounds();
-                        decodedPath.forEach(point => bounds.extend(point));
-                        map.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-                    }
-                }
-            } catch (e) {
-                console.warn("ไม่สามารถดึงเส้นทางประวัติมาแสดงได้", e);
-            }
-            return; // จบการทำงานสำหรับสถานะเสร็จสิ้น
-        }
-
-        // --- กรณีสถานะยังไม่เสร็จ (กำลังไปช่วยเหลือ / ถึงที่เกิดเหตุ) ---
         if (!navigator.geolocation) return;
 
         navigator.geolocation.getCurrentPosition(async (position) => {
@@ -778,13 +700,14 @@
                                 <span class="material-symbols-outlined text-[16px]">directions_car</span>
                             </span>
                         </div>
-                    </div>`;
+                    </div>
+                `;
                 officerMarker = new CustomMarker(officerLoc, map, officerHtml);
             } else if (officerMarker) {
                 officerMarker.setPosition(officerLoc);
             }
 
-            // อัปเดตตำแหน่งไปยัง Server และรับค่า log_command กลับมา
+            // อัปเดตตำแหน่ง + ดึง log_command
             try {
                 const response = await fetch(syncLocationApiUrl, {
                     method: 'POST',
@@ -803,49 +726,74 @@
                 const data = await response.json();
 
                 if (data.success && data.log_command) {
-                    let logs = typeof data.log_command === 'string' ? JSON.parse(data.log_command) : data.log_command;
+                    let logs = data.log_command;
+                    if (typeof logs === 'string') {
+                        logs = JSON.parse(logs);
+                    }
+
                     const routeLog = [...logs].reverse().find(log => log.status === 'go_to_help' && log.polyline);
 
                     if (routeLog) {
                         document.getElementById('route-loading-status')?.classList.add('hidden');
                         
-                        // แสดง ETA และระยะทาง
+                        // คำนวณเวลาถึงที่หมาย (ETA)
                         if (routeLog.time_go_to_help && routeLog.duration_value !== undefined) {
+                            // แปลงเวลาออกเดินทางให้อยู่ในรูปแบบ Date Object
                             const startDate = new Date(routeLog.time_go_to_help);
+                            
+                            // จัดฟอร์แมตเวลาออกเดินทาง (HH:mm)
                             const startH = String(startDate.getHours()).padStart(2, '0');
                             const startM = String(startDate.getMinutes()).padStart(2, '0');
+                            const startTimeStr = `${startH}:${startM}`;
                             
+                            // นำเวลาออกเดินทาง + ระยะเวลาขับรถ (วินาที -> มิลลิวินาที)
                             const etaDate = new Date(startDate.getTime() + (routeLog.duration_value * 1000));
+                            
+                            // จัดฟอร์แมตเวลาถึงเป้าหมาย (HH:mm)
                             const etaH = String(etaDate.getHours()).padStart(2, '0');
                             const etaM = String(etaDate.getMinutes()).padStart(2, '0');
+                            const etaTimeStr = `${etaH}:${etaM}`;
 
-                            document.getElementById('route-calc-info').innerHTML = `คำนวณจากจุดเริ่มต้นเมื่อ <span class="text-primary font-bold">เวลาออกเดินทาง: ${startH}:${startM} น.</span>`;
-                            document.getElementById('route-time-val').innerText = `${etaH}:${etaM}`;
+                            // แสดงผลบนหน้าจอ
+                            document.getElementById('route-calc-info').innerHTML = `คำนวณจากจุดเริ่มต้นเมื่อ <span class="text-primary font-bold">เวลาออกเดินทาง: ${startTimeStr} น.</span>`;
+                            document.getElementById('route-time-val').innerText = etaTimeStr;
                         }
 
+                        // แสดงระยะทาง
                         document.getElementById('route-dist-val').innerText = routeLog.distance_text.replace(/[^0-9.]/g, '');
 
-                        // สร้างหมุดจุดเริ่มต้น
+                        // สร้างหมุดจุดเริ่มต้น (ถ้ายังไม่มีและมีพิกัดมาให้)
                         if (!startMarker && routeLog.start_lat && routeLog.start_lng) {
-                            const startLoc = { lat: parseFloat(routeLog.start_lat), lng: parseFloat(routeLog.start_lng) };
+                            const startLoc = {
+                                lat: parseFloat(routeLog.start_lat),
+                                lng: parseFloat(routeLog.start_lng)
+                            };
                             const startHtml = `
                                 <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-30">
                                     <span class="relative inline-flex rounded-full h-8 w-8 bg-slate-800 border-[2px] border-white shadow-md items-center justify-center text-white">
                                         <span class="material-symbols-outlined text-[16px]">flag</span>
                                     </span>
+                                    <div class="mt-1 bg-slate-800 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                                        จุดเริ่มต้น
+                                    </div>
                                 </div>`;
                             startMarker = new CustomMarker(startLoc, map, startHtml);
                         }
 
-                        // วาดเส้นทางใหม่หากมีการเปลี่ยนแปลง
+                        // วาดเส้นทางใหม่ถ้ามีการอัปเดต
                         if (currentPolylineStr !== routeLog.polyline) {
                             currentPolylineStr = routeLog.polyline;
                             drawRouteFromPolyline(routeLog.polyline);
                         }
+                    } else {
+                        // กรณียังไม่มี log_command หรือศูนย์สั่งการยังไม่จัดการให้
+                        document.getElementById('route-calc-info').innerHTML = 'คำนวณจากจุดเริ่มต้นเมื่อ <span class="text-primary font-bold">เวลาออกเดินทาง: --:-- น.</span>';
+                        document.getElementById('route-time-val').innerText = '--:--';
+                        document.getElementById('route-dist-val').innerText = '--';
                     }
                 }
             } catch (e) {
-                console.warn("ไม่สามารถอัปเดตตำแหน่งได้", e);
+                console.warn("ไม่สามารถอัปเดตและดึงข้อมูลเส้นทางได้", e);
             }
 
         }, (err) => console.warn(err), { enableHighAccuracy: true });
@@ -900,12 +848,13 @@
         const incidentHtml = `
             <div class="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 z-50">
                 <div class="relative flex h-8 w-8">
-                    <span id="incident-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-8 w-8 bg-red-600 border-2 border-white shadow-md items-center justify-center text-white">
                         <span class="material-symbols-outlined text-[16px]">person</span>
                     </span>
                 </div>
-            </div>`;
+            </div>
+        `;
         new CustomMarker(incidentLoc, map, incidentHtml);
 
         trackAndSync();
