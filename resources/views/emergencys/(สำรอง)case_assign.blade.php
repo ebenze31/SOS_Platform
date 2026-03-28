@@ -2,6 +2,19 @@
 
 @section('content')
 
+@php
+    // ประกาศไว้บนสุดเพื่อให้โค้ดด้านล่างทั้งหมดมองเห็นตัวแปรเหล่านี้
+    $currentOpStatus = $emergency->operation->status ?? 'รับแจ้งเหตุ';
+    $isActiveOperation = in_array($currentOpStatus, ['กำลังไปช่วยเหลือ', 'ถึงที่เกิดเหตุ', 'เสร็จสิ้น']);
+    $acceptedOfficerId = $emergency->operation->user_officers_id ?? null;
+    
+    // ค้นหาข้อมูลเจ้าหน้าที่ที่รับงาน
+    $acceptedOfficer = null;
+    if ($acceptedOfficerId) {
+        $acceptedOfficer = collect($officers)->firstWhere('id', $acceptedOfficerId);
+    }
+@endphp
+
 {{-- Toast แจ้งเตือน --}}
 <div id="statusToast" class="fixed top-20 left-1/2 z-[100] transform transition-all duration-300 -translate-x-1/2 -translate-y-[150%] opacity-0 flex items-center gap-3 bg-white border-b-4 border-primary px-5 py-3 rounded-xl shadow-2xl min-w-[320px]">
     <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0" id="toastIconContainer">
@@ -27,7 +40,7 @@
                                 <h5 class="text-slate-600">{{ $emergency->emergency_detail }}</h5>
                             </div>
                             <div class="text-right bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
-                                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">เวลาที่ผ่านไป</div>
+                                <div id="timer-title" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">เวลาที่ผ่านไป</div>
                                 <div id="timer-wrapper" class="text-xl font-bold text-emerald-600 flex items-center gap-2 justify-end transition-colors duration-500">
                                     <span class="relative flex h-3 w-3">
                                         <span id="timer-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -89,7 +102,7 @@
                             <div class="absolute bottom-2 left-2 right-2 flex items-end justify-between transition-opacity duration-200 group-hover/thumb:opacity-0 pointer-events-none">
                                 <div class="flex items-center gap-1.5 text-white/90">
                                     <span class="material-symbols-outlined text-[16px]">image</span>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide">รูปล่าสุด</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wide">รูปภาพ</span>
                                 </div>
                             </div>
 
@@ -110,13 +123,14 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 shrink-0">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">สถานะเหตุการณ์ปัจจุบัน</h3>
+                        <h5 class="text-slate-600"># {{ $emergency->operation->operating_code }}</h5>
                     </div>
                     <div class="flex bg-slate-100 p-1.5 rounded-lg border border-slate-200 gap-1.5">
                         <div class="w-[70%] py-3 px-2 rounded-md bg-white text-slate-900 shadow-sm border border-slate-200 text-[12px] font-bold transition-all flex items-center justify-center relative overflow-hidden text-center leading-tight">
                             <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-400 rounded-l-md transition-colors duration-300" id="status-color-bar"></div>
                             <span id="current-status-text">{{ $emergency->operation->status ?? 'รับแจ้งเหตุ' }}</span>
                         </div>
-                        <button type="button" onclick="openCompleteModal()" class="w-[30%] py-3 px-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 shadow-sm border border-emerald-200 text-[12px] font-bold transition-all flex items-center justify-center gap-1">
+                        <button type="button" {{ $currentOpStatus == 'เสร็จสิ้น' ? 'disabled' : 'onclick=openCompleteModal()' }} class="w-[30%] py-3 px-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 shadow-sm border border-emerald-200 text-[12px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
                             เสร็จสิ้น
                         </button>
                     </div>
@@ -124,13 +138,6 @@
 
                 <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative min-h-[400px]">
                     
-                    @php
-                        $currentOpStatus = $emergency->operation->status ?? '';
-                        $isActiveOperation = in_array($currentOpStatus, ['กำลังไปช่วยเหลือ', 'ถึงที่เกิดเหตุ', 'เสร็จสิ้น']);
-                        $acceptedOfficerId = $emergency->operation->user_officers_id ?? null;
-                        $acceptedOfficer = collect($officers)->firstWhere('id', $acceptedOfficerId);
-                    @endphp
-
                     {{-- ================= โหมด 1: รอการมอบหมายงาน (Assign Form) ================= --}}
                     <div id="assign-officer-section" class="flex flex-col h-full {{ $isActiveOperation ? 'hidden' : '' }}">
                         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-white z-10 shrink-0">
@@ -255,59 +262,249 @@
 
                     {{-- ================= โหมด 2: กำลังปฏิบัติหน้าที่ (Real-time Tracking) ================= --}}
                     <div id="active-officer-section" class="flex flex-col h-full {{ !$isActiveOperation ? 'hidden' : '' }} bg-slate-50/50 p-5">
-                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">เจ้าหน้าที่ผู้รับผิดชอบ</h3>
                         
-                        <div class="bg-white p-5 rounded-xl border border-blue-200 shadow-md relative overflow-hidden">
-                            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500 rounded-bl-full opacity-10"></div>
-                            
-                            <div class="flex items-start gap-4">
-                                <div class="size-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
-                                    <span class="material-symbols-outlined text-[28px]">support_agent</span>
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="font-bold text-lg text-slate-900" id="active-officer-name">{{ $acceptedOfficer->name_officer ?? 'ไม่ระบุชื่อ' }}</h4>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded border border-slate-200">{{ $acceptedOfficer->vehicle_type ?? '-' }}</span>
-                                    </div>
-                                    @if($acceptedOfficer && isset($acceptedOfficer->phone))
-                                    <a href="tel:{{ $acceptedOfficer->phone }}" class="inline-flex items-center gap-1.5 text-blue-600 text-xs font-bold mt-3 hover:underline">
-                                        <span class="material-symbols-outlined text-[14px]">call</span> โทรติดต่อเจ้าหน้าที่
-                                    </a>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <hr class="my-4 border-slate-100">
-
-                            {{-- ส่วนแสดงระยะทางและเวลา (ซ่อนเมื่อ "ถึงที่เกิดเหตุ") --}}
-                            <div id="routing-info-container" class="{{ $currentOpStatus == 'ถึงที่เกิดเหตุ' || $currentOpStatus == 'เสร็จสิ้น' ? 'hidden' : '' }}">
+                        <div class="flex items-start gap-4">
+                            @php
+                                $officerPhoto = null;
+                                $officerPhone = null;
                                 
-                                <div class="mb-2 text-xs font-medium text-slate-500 flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[14px]">history</span>
-                                    รับพิกัดเจ้าหน้าที่ล่าสุดเมื่อ: <span id="last-location-time" class="text-slate-800 font-bold tracking-wide">-</span>
+                                // ดึง user_officers_id จาก emergency_operations
+                                $opOfficerId = $emergency->operation->user_officers_id ?? null;
+
+                                if ($opOfficerId) {
+                                    // ดึงข้อมูลจากตาราง user_officers
+                                    $officerRecord = \App\Models\User_officer::find($opOfficerId);
+                                    
+                                    // ถ้าเจอข้อมูล ให้เอา user_id ไปหาในตาราง users ต่อ
+                                    if ($officerRecord && $officerRecord->user_id) {
+                                        $userRecord = \App\User::find($officerRecord->user_id);
+                                        
+                                        if ($userRecord) {
+                                            $officerPhoto = $userRecord->photo;
+                                            // ดึงเบอร์โทรจากตาราง users มาเก็บไว้ตรงนี้เลย
+                                            $officerPhone = $userRecord->phone; 
+                                        }
+                                    }
+                                }
+                            @endphp
+
+                            <div class="flex items-center justify-between w-full gap-4 relative z-20">
+                                    
+                                {{-- ฝั่งซ้าย: รูปโปรไฟล์ และ ข้อมูล --}}
+                                <div class="flex items-center gap-4 min-w-0">
+                                    <div class="size-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border-2 border-white shadow-sm overflow-hidden">
+                                        @if($officerPhoto)
+                                            <img src="{{ url('/') }}/{{ $officerPhoto }}" alt="Officer" class="w-full h-full object-cover" onerror="this.outerHTML='<span class=\'material-symbols-outlined text-[28px] text-blue-600\'>support_agent</span>'">
+                                        @else
+                                            <span class="material-symbols-outlined text-[28px]">support_agent</span>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="min-w-0 pr-2">
+                                        <h4 class="font-bold text-lg text-slate-900 truncate" id="active-officer-name">
+                                            {{ $acceptedOfficer->name_officer ?? 'ไม่ระบุชื่อ' }}
+                                        </h4>
+                                        <div class="mt-1">
+                                            <span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded border border-slate-200">
+                                                {{ $acceptedOfficer->vehicle_type ?? '-' }}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div id="routing-info" class="grid grid-cols-2 gap-4">
-                                    <div class="bg-blue-50 rounded-lg p-3 border border-blue-100/50">
-                                        <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-1">ระยะทางโดยประมาณ</p>
-                                        <p class="text-lg font-bold text-slate-800" id="distance-text">คำนวณ...</p>
-                                    </div>
-                                    <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100/50">
-                                        <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide mb-1">เวลาที่คาดว่าจะไปถึง</p>
-                                        <p class="text-lg font-bold text-slate-800" id="duration-text">คำนวณ...</p>
-                                    </div>
-                                </div>
-                            </div>
+                                {{-- ฝั่งขวา: ปุ่มโทรพร้อมเบอร์ --}}
+                                @if($officerPhone)
+                                <a href="tel:0999991234" class="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white hover:shadow-md transition-all shrink-0 group" title="โทรติดต่อเจ้าหน้าที่">
+                                    <span class="material-symbols-outlined text-[18px] group-hover:animate-pulse">call</span>
+                                    <span class="text-xs font-bold font-mono">0999991234</span>
+                                </a>
+                                @endif
 
-                            {{-- ส่วนแสดงเวลาที่ถึง (โชว์เมื่อ "ถึงที่เกิดเหตุ") --}}
-                            <div id="arrived-info" class="bg-emerald-50 rounded-lg p-4 border border-emerald-200 text-center {{ $currentOpStatus != 'ถึงที่เกิดเหตุ' && $currentOpStatus != 'เสร็จสิ้น' ? 'hidden' : '' }}">
-                                <span class="material-symbols-outlined text-emerald-500 text-3xl mb-1">location_on</span>
-                                <h4 class="font-bold text-emerald-700">เจ้าหน้าที่ถึงที่เกิดเหตุแล้ว</h4>
-                                <p class="text-xs text-emerald-600 mt-1" id="arrived-time-text">
-                                    เวลา: {{ $emergency->operation->arrived_at ? \Carbon\Carbon::parse($emergency->operation->arrived_at)->format('H:i น.') : '-' }}
-                                </p>
                             </div>
                         </div>
+
+                        <hr class="my-4 border-slate-100">
+
+                        {{-- ส่วนแสดงระยะทางและเวลา โชว์เมื่อ "กำลังไปช่วยเหลือ" --}}
+                        <div id="routing-info-container" class="{{ $currentOpStatus == 'ถึงที่เกิดเหตุ' || $currentOpStatus == 'เสร็จสิ้น' ? 'hidden' : '' }}">
+                            
+                            <div class="mb-2 text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px]">history</span>
+                                รับพิกัดเจ้าหน้าที่ล่าสุดเมื่อ: <span id="last-location-time" class="text-slate-800 font-bold tracking-wide">-</span>
+                            </div>
+
+                            <div class="mb-3 p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-[11px] text-amber-700 flex items-start gap-2 shadow-sm">
+                                <span class="material-symbols-outlined text-[16px] text-amber-500 shrink-0">info</span>
+                                <p class="leading-relaxed">ระยะทางและเวลาคำนวณจาก <strong>จุดเริ่มต้น</strong><br>เมื่อเวลาออกเดินทาง: <span id="start-help-time" class="font-bold text-amber-800">-</span></p>
+                            </div>
+
+                            <div id="routing-info" class="grid grid-cols-2 gap-4">
+                                <div class="bg-blue-50 rounded-lg p-3 border border-blue-100/50">
+                                    <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-1">ระยะทางทั้งหมด</p>
+                                    <p class="text-lg font-bold text-slate-800" id="distance-text">คำนวณ...</p>
+                                </div>
+                                <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100/50">
+                                    <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide mb-1">คาดว่าจะไปถึง</p>
+                                    <p class="text-lg font-bold text-slate-800" id="duration-text">คำนวณ...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ส่วนแสดงเวลาที่ถึง โชว์เมื่อ "ถึงที่เกิดเหตุ" --}}
+                        <div id="arrived-info" class="bg-emerald-50 rounded-lg p-4 border border-emerald-200 {{ $currentOpStatus != 'ถึงที่เกิดเหตุ' ? 'hidden' : '' }}">
+                            <div class="flex flex-col items-center text-center mb-4">
+                                <h4 class="font-bold text-emerald-700 text-sm">เจ้าหน้าที่ถึงที่เกิดเหตุแล้ว</h4>
+                                
+                                <div class="grid grid-cols-2 gap-2 w-full mt-3">
+                                    <div class="bg-white/60 p-2 rounded border border-emerald-100">
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase">เวลาที่ถึงจริง</p>
+                                        <p class="text-md font-bold text-slate-700" id="arrived-time-text">
+                                            {{ $emergency->operation->time_to_the_scene ? \Carbon\Carbon::parse($emergency->operation->time_to_the_scene)->format('H:i น.') : '-' }}
+                                        </p>
+                                    </div>
+                                    <div class="bg-white/60 p-2 rounded border border-emerald-100">
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase">ระยะเวลาเดินทาง</p>
+                                        <p class="text-md font-bold text-slate-700" id="travel-duration-text">-</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- ส่วนแสดงรูปภาพที่เจ้าหน้าที่ถ่ายส่งมา --}}
+                            <div id="officer-report-photo" class="hidden mt-3 pt-3 border-t border-emerald-200/50">
+                                <p class="text-[10px] font-bold text-emerald-600 mb-2 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">photo_camera</span> ภาพถ่ายจากที่เกิดเหตุ
+                                </p>
+                                <div class="relative aspect-video bg-slate-200 rounded-lg overflow-hidden group/off">
+                                    <img id="img-from-officer" src="" class="w-full h-full object-cover">
+                                    <button onclick="openFullImage(this.previousElementSibling.src)" class="absolute inset-0 bg-black/40 opacity-0 group-hover/off:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-2">
+                                        <span class="material-symbols-outlined">zoom_in</span> ดูภาพขยาย
+                                    </button>
+                                </div>
+                                <div class="bg-white/60 mt-1 p-3 rounded-lg border border-emerald-100">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">หมายเหตุจากเจ้าหน้าที่</p>
+                                    <p id="remark-from-officer" class="text-xs text-slate-600 leading-relaxed"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ส่วนแสดงผลสถานะเสร็จสิ้น (Timeline & Comparison) --}}
+                        <div id="success-info" class="bg-slate-50 rounded-xl p-5 border border-slate-200 flex flex-col gap-6 overflow-y-auto custom-scrollbar max-h-[600px] {{ $currentOpStatus != 'เสร็จสิ้น' ? 'hidden' : '' }}">
+                            
+                            <!-- ส่วนสรุปข้อมูลหลักและระยะทาง -->
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
+                                <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-emerald-500">task_alt</span> สรุปภารกิจ
+                                </h4>
+                                <div class="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                    <span class="material-symbols-outlined text-[16px] text-indigo-500">route</span>
+                                    <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">ระยะทางรวม</span>
+                                    <span class="text-sm font-bold text-indigo-700" id="tm-distance">{{ $emergency->operation->distance ?? '-' }}</span>
+                                </div>
+                            </div>
+
+                            <!-- ไทม์ไลน์การช่วยเหลือ (แบ่ง 2 คอลัมน์) -->
+                            <div class="shrink-0">
+                                <div class="grid grid-cols-2 gap-x-4 gap-y-6 relative before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                                    <div class="relative pl-10">
+                                        <div class="absolute left-0 top-0 size-8 rounded-full bg-blue-100 border-2 border-white shadow-sm flex items-center justify-center z-10">
+                                            <span class="material-symbols-outlined text-[16px] text-blue-600">notifications</span>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">รับแจ้งเหตุ</p>
+                                        <div class="flex flex-col">
+                                            <span class="text-base font-bold text-blue-700 leading-none" id="tm-create-sos-time">{{ $emergency->operation->time_create_sos ? \Carbon\Carbon::parse($emergency->operation->time_create_sos)->format('H:i น.') : '-' }}</span>
+                                            <span class="text-[10px] font-medium text-slate-500 mt-0.5" id="tm-create-sos-date">{{ $emergency->operation->time_create_sos ? \Carbon\Carbon::parse($emergency->operation->time_create_sos)->format('d M Y') : '-' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="relative pl-10">
+                                        <div class="absolute left-0 top-0 size-8 rounded-full bg-amber-100 border-2 border-white shadow-sm flex items-center justify-center z-10">
+                                            <span class="material-symbols-outlined text-[16px] text-amber-600">send</span>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">สั่งการมอบหมาย</p>
+                                        <div class="flex flex-col">
+                                            <span class="text-base font-bold text-amber-700 leading-none" id="tm-command-time">{{ $emergency->operation->time_command ? \Carbon\Carbon::parse($emergency->operation->time_command)->format('H:i น.') : '-' }}</span>
+                                            <span class="text-[10px] font-medium text-slate-500 mt-0.5" id="tm-command-date">{{ $emergency->operation->time_command ? \Carbon\Carbon::parse($emergency->operation->time_command)->format('d M Y') : '-' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="relative pl-10">
+                                        <div class="absolute left-0 top-0 size-8 rounded-full bg-indigo-100 border-2 border-white shadow-sm flex items-center justify-center z-10">
+                                            <span class="material-symbols-outlined text-[16px] text-indigo-600">directions_car</span>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">ออกเดินทาง</p>
+                                        <div class="flex flex-col">
+                                            <span class="text-base font-bold text-indigo-700 leading-none" id="tm-go-help-time">{{ $emergency->operation->time_go_to_help ? \Carbon\Carbon::parse($emergency->operation->time_go_to_help)->format('H:i น.') : '-' }}</span>
+                                            <span class="text-[10px] font-medium text-slate-500 mt-0.5" id="tm-go-help-date">{{ $emergency->operation->time_go_to_help ? \Carbon\Carbon::parse($emergency->operation->time_go_to_help)->format('d M Y') : '-' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="relative pl-10">
+                                        <div class="absolute left-0 top-0 size-8 rounded-full bg-purple-100 border-2 border-white shadow-sm flex items-center justify-center z-10">
+                                            <span class="material-symbols-outlined text-[16px] text-purple-600">location_on</span>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">ถึงที่เกิดเหตุ</p>
+                                        <div class="flex flex-col">
+                                            <span class="text-base font-bold text-purple-700 leading-none" id="tm-at-scene-time">{{ $emergency->operation->time_to_the_scene ? \Carbon\Carbon::parse($emergency->operation->time_to_the_scene)->format('H:i น.') : '-' }}</span>
+                                            <span class="text-[10px] font-medium text-slate-500 mt-0.5" id="tm-at-scene-date">{{ $emergency->operation->time_to_the_scene ? \Carbon\Carbon::parse($emergency->operation->time_to_the_scene)->format('d M Y') : '-' }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ปิดเคสสำเร็จ -->
+                                    <div class="relative pl-12 col-span-2 bg-emerald-50 p-4 rounded-xl border border-emerald-200 mt-2 shadow-sm">
+                                        <div class="absolute left-3 top-5 size-9 rounded-full bg-emerald-500 border-2 border-white shadow-md flex items-center justify-center z-10">
+                                            <span class="material-symbols-outlined text-[18px] text-white">check_circle</span>
+                                        </div>
+                                        <div class="flex justify-between items-center ml-2">
+                                            <div>
+                                                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">ปิดเคสสำเร็จ</p>
+                                                <div class="flex items-baseline gap-2">
+                                                    <span class="text-xl font-bold text-emerald-800" id="tm-success-time">{{ $emergency->operation->time_sos_success ? \Carbon\Carbon::parse($emergency->operation->time_sos_success)->format('H:i น.') : '-' }}</span>
+                                                    <span class="text-xs font-medium text-slate-500" id="tm-success-date">{{ $emergency->operation->time_sos_success ? \Carbon\Carbon::parse($emergency->operation->time_sos_success)->format('d M Y') : '-' }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-right bg-white px-3 py-2 rounded-lg border border-emerald-100 shadow-sm">
+                                                <span class="text-[9px] font-bold text-slate-400 uppercase block mb-1">ใช้เวลาสุทธิ</span>
+                                                <span class="text-sm font-bold text-emerald-700" id="tm-sum">{{ $emergency->operation->time_sum_sos ?? '-' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 shrink-0">
+                                <!-- ภาพขณะถึงที่เกิดเหตุ -->
+                                <div class="space-y-2">
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">add_a_photo</span> ภาพขณะถึงที่เกิดเหตุ</p>
+                                    <div class="aspect-square rounded-xl bg-slate-100 overflow-hidden border border-slate-200 relative group/photo flex items-center justify-center shadow-inner">
+                                        <span id="no-img-officer" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider {{ $emergency->operation->photo_by_officer ? 'hidden' : '' }}">ไม่มีภาพถ่าย</span>
+                                        <img id="img-officer" src="{{ $emergency->operation->photo_by_officer ? url('/storage/'.$emergency->operation->photo_by_officer) : '' }}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-105 {{ $emergency->operation->photo_by_officer ? '' : 'hidden' }}">
+                                        <div id="zoom-img-officer" class="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all flex items-center justify-center backdrop-blur-[2px] {{ $emergency->operation->photo_by_officer ? '' : 'hidden' }}">
+                                            <button onclick="openFullImage(this.parentElement.previousElementSibling.src)" class="text-slate-800 bg-white/90 hover:bg-white text-[11px] font-bold flex items-center gap-1.5 px-4 py-2 rounded-full shadow-lg transform translate-y-2 group-hover/photo:translate-y-0 transition-all">
+                                                <span class="material-symbols-outlined text-[16px]">zoom_in</span> ดูภาพเต็ม
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 min-h-[44px]">
+                                        <p id="rm-officer" class="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">{{ $emergency->operation->remark_photo_by_officer ?? 'ไม่มีหมายเหตุ' }}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- ภาพงานสำเร็จ -->
+                                <div class="space-y-2">
+                                    <p class="text-[10px] font-bold text-emerald-600 uppercase flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">verified</span> ภาพงานสำเร็จ</p>
+                                    <div class="aspect-square rounded-xl bg-slate-100 overflow-hidden border border-emerald-200 relative group/photo flex items-center justify-center shadow-inner">
+                                        <span id="no-img-success" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider {{ $emergency->operation->photo_succeed ? 'hidden' : '' }}">ไม่มีภาพถ่าย</span>
+                                        <img id="img-success" src="{{ $emergency->operation->photo_succeed ? url('/storage/'.$emergency->operation->photo_succeed) : '' }}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-105 {{ $emergency->operation->photo_succeed ? '' : 'hidden' }}">
+                                        <div id="zoom-img-success" class="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all flex items-center justify-center backdrop-blur-[2px] {{ $emergency->operation->photo_succeed ? '' : 'hidden' }}">
+                                            <button onclick="openFullImage(this.parentElement.previousElementSibling.src)" class="text-slate-800 bg-white/90 hover:bg-white text-[11px] font-bold flex items-center gap-1.5 px-4 py-2 rounded-full shadow-lg transform translate-y-2 group-hover/photo:translate-y-0 transition-all">
+                                                <span class="material-symbols-outlined text-[16px]">zoom_in</span> ดูภาพเต็ม
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100 min-h-[44px]">
+                                        <p id="rm-success" class="text-[11px] text-emerald-800 line-clamp-2 leading-relaxed">{{ $emergency->operation->remark_by_helper ?? 'ไม่มีหมายเหตุ' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                 </div>
@@ -342,7 +539,7 @@
                         ยกเลิก
                     </button>
                     <button type="submit" class="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/25 rounded-lg transition-colors">
-                        บันึกและปิดเคส
+                        บันทึกและปิดเคส
                     </button>
                 </div>
             </form>
@@ -498,6 +695,21 @@
     const startTime = new Date(sosTime).getTime();
     
     function updateTimer() {
+        // หากสถานะเสร็จสิ้นแล้ว ให้หยุดนับเวลาและดึงข้อมูลสรุปมาแสดงแทน
+        if (currentOpStatus === 'เสร็จสิ้น') {
+            const titleEl = document.getElementById('timer-title');
+            if (titleEl) titleEl.innerText = 'ใช้เวลาสุทธิ';
+            
+            const pingEl = document.getElementById('timer-ping');
+            if (pingEl) pingEl.classList.add('hidden'); // ซ่อนจุดกระพริบ
+            
+            const sumText = document.getElementById('tm-sum')?.innerText;
+            if (sumText && sumText !== '-') {
+                document.getElementById("elapsed-time").innerText = sumText;
+            }
+            return; 
+        }
+
         const now = new Date().getTime();
         const distance = now - startTime;
         if (distance < 0) return;
@@ -518,6 +730,8 @@
         const wrapper = document.getElementById("timer-wrapper");
         const ping = document.getElementById("timer-ping");
         const dot = document.getElementById("timer-dot");
+        
+        if (ping) ping.classList.remove("hidden");
 
         wrapper.classList.remove("text-emerald-600", "text-orange-500", "text-red-600");
         ping.classList.remove("bg-emerald-400", "bg-orange-400", "bg-red-400");
@@ -537,6 +751,7 @@
             dot.classList.add("bg-red-500");
         }
     }
+
     setInterval(updateTimer, 60000);
     updateTimer();
 
@@ -784,69 +999,157 @@
 
             // 3. จัดการสถานะและกู้คืนเส้นทาง เฉพาะกำลังไปช่วยเหลือ
             if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
-                
-                // === อัปเดตเวลาล่าสุดที่ได้รับพิกัด ===
+                            
                 if (data.officer_last_update) {
-                    const timeObj = new Date(data.officer_last_update);
-                    const timeStr = timeObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    document.getElementById('last-location-time').innerText = timeStr + ' น.';
-                }
+                    const lastUpdate = new Date(data.officer_last_update);
+                    const now = new Date();
+                    const diffMs = now - lastUpdate;
+                    const diffMins = Math.floor(diffMs / 60000); 
 
-                // === ค้นหา Log การรับงานล่าสุดที่มีเส้นทาง ===
-                let activeLog = null;
-                if (data.log_command && Array.isArray(data.log_command)) {
-                    const logs = [...data.log_command].reverse();
-                    activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help' || l.status === 'accept' || l.status === 'on_way'));
+                    let relativeTime = diffMins > 0 ? `(${diffMins} นาทีที่แล้ว)` : `(เมื่อครู่)`;
+                    const timeStr = lastUpdate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    
+                    document.getElementById('last-location-time').innerHTML = `${timeStr} น. <span class="text-blue-500 font-medium ml-1">${relativeTime}</span>`;
                 }
 
                 const currentLat = parseFloat(data.officer_lat);
                 const currentLng = parseFloat(data.officer_lng);
 
-                // === กรณีกู้คืนเส้นทางเมื่อรีเฟรชหน้าเว็บ ===
-                if (!isRouteDrawn && !hasRecoveredRoute && activeLog && activeLog.polyline) {
-                    
-                    // วาดเส้นทางจาก Log
-                    const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
-                    directionsRenderer.setMap(mapInstance);
-                    
-                    const recoveredPolyline = new google.maps.Polyline({
-                        path: decodedPath,
-                        strokeColor: "#3b82f6",
-                        strokeWeight: 5,
-                        strokeOpacity: 0.8
-                    });
-                    recoveredPolyline.setMap(mapInstance);
-                    
-                    // ปรับมุมกล้อง
-                    const bounds = new google.maps.LatLngBounds();
-                    decodedPath.forEach(latLng => bounds.extend(latLng));
-                    mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
-
-                    // อัปเดต UI ระยะทาง 
-                    document.getElementById('distance-text').innerText = activeLog.distance_text || '-';
-                    document.getElementById('duration-text').innerText = activeLog.duration_text || '-';
-                    
-                    // สร้างหมุดจุดเริ่มต้นสีดำ (Start Flag) ไว้ที่เดิมเสมอ
-                    if (activeLog.start_lat && activeLog.start_lng) {
-                        createStartFlag(activeLog.start_lat, activeLog.start_lng);
-                    }
-                    
-                    isRouteDrawn = true;
-                    hasRecoveredRoute = true;
+                let activeLog = null;
+                if (data.log_command && Array.isArray(data.log_command)) {
+                    const logs = [...data.log_command].reverse();
+                    activeLog = logs.find(l => l.status === 'go_to_help');
                 }
 
-                // === หมุดรถเจ้าหน้าที่ ===
-                if (currentLat && currentLng) {
-                    if (!isRouteDrawn) {
-                        drawRouteToIncident(currentLat, currentLng); 
-                    } else {
-                        updateOfficerLocationOnMap(currentLat, currentLng); 
+                if (currentLat && currentLng && !isRouteDrawn && (!activeLog || !activeLog.polyline)) {
+                    drawRouteToIncident(currentLat, currentLng);
+                }
+
+                if (activeLog && activeLog.polyline) {
+                    if (activeLog.time_go_to_help) {
+                        const startTime = new Date(activeLog.time_go_to_help);
+                        document.getElementById('start-help-time').innerText = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+                        
+                        const durationValue = activeLog.duration_value ? parseInt(activeLog.duration_value) : 0;
+                        const arrivalTime = new Date(startTime.getTime() + (durationValue * 1000));
+                        const arrivalStr = arrivalTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        
+                        document.getElementById('duration-text').innerText = `${arrivalStr} น. (${activeLog.duration_text || '-'})`;
                     }
+
+                    document.getElementById('distance-text').innerText = activeLog.distance_text || '-';
+
+                    if (!isRouteDrawn) {
+                        const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
+                        directionsRenderer.setMap(mapInstance);
+                        
+                        const recoveredPolyline = new google.maps.Polyline({
+                            path: decodedPath,
+                            strokeColor: "#3b82f6",
+                            strokeWeight: 5,
+                            strokeOpacity: 0.8
+                        });
+                        recoveredPolyline.setMap(mapInstance);
+                        
+                        const bounds = new google.maps.LatLngBounds();
+                        decodedPath.forEach(latLng => bounds.extend(latLng));
+                        mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+
+                        if (activeLog.start_lat && activeLog.start_lng) {
+                            createStartFlag(activeLog.start_lat, activeLog.start_lng);
+                        }
+                        
+                        isRouteDrawn = true;
+                        hasRecoveredRoute = true;
+                    }
+                }
+
+                if (currentLat && currentLng) {
+                    updateOfficerLocationOnMap(currentLat, currentLng); 
                 } else if (!isRouteDrawn && activeLog && activeLog.start_lat && activeLog.start_lng) {
-                     // ถ้ายังไม่มีพิกัดปัจจุบัน ให้เอาหมุดวางไว้ที่จุด Start ก่อน
-                     updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
+                    updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
                 }
             }
+            
+            // if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
+                
+            //     // === อัปเดตเวลาล่าสุดที่ได้รับพิกัด พร้อมข้อความ นาทีที่แล้ว ===
+            //     if (data.officer_last_update) {
+            //         const lastUpdate = new Date(data.officer_last_update);
+            //         const now = new Date();
+            //         const diffMs = now - lastUpdate;
+            //         const diffMins = Math.floor(diffMs / 60000); 
+
+            //         let relativeTime = diffMins > 0 ? `(${diffMins} นาทีที่แล้ว)` : `(เมื่อครู่)`;
+            //         const timeStr = lastUpdate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    
+            //         document.getElementById('last-location-time').innerHTML = `${timeStr} น. <span class="text-blue-500 font-medium ml-1">${relativeTime}</span>`;
+            //     }
+
+            //     // === ค้นหา Log การรับงานล่าสุดที่มีเส้นทาง ===
+            //     let activeLog = null;
+            //     if (data.log_command && Array.isArray(data.log_command)) {
+            //         const logs = [...data.log_command].reverse();
+            //         activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help'));
+            //     }
+
+            //     if (activeLog) {
+            //         // === แสดงเวลาออกเดินทาง และ เวลาคาดว่าจะถึง ===
+            //         if (activeLog.time_go_to_help) {
+            //             const startTime = new Date(activeLog.time_go_to_help);
+            //             document.getElementById('start-help-time').innerText = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+                        
+            //             // คำนวณเวลาคาดว่าจะถึง (เวลาเริ่ม + duration_value เป็นวินาที)
+            //             const durationValue = activeLog.duration_value ? parseInt(activeLog.duration_value) : 0;
+            //             const arrivalTime = new Date(startTime.getTime() + (durationValue * 1000));
+            //             const arrivalStr = arrivalTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        
+            //             // แสดงผลเช่น 16:42 น. (19 นาที)
+            //             document.getElementById('duration-text').innerText = `${arrivalStr} น. (${activeLog.duration_text || '-'})`;
+            //         }
+
+            //         // === แสดงระยะทางจากจุดเริ่มต้น ===
+            //         document.getElementById('distance-text').innerText = activeLog.distance_text || '-';
+
+            //         // === วาดเส้นทางจากจุดเริ่มต้น (ทำแค่ครั้งเดียว) ===
+            //         if (!isRouteDrawn && activeLog.polyline) {
+            //             const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
+            //             directionsRenderer.setMap(mapInstance);
+                        
+            //             const recoveredPolyline = new google.maps.Polyline({
+            //                 path: decodedPath,
+            //                 strokeColor: "#3b82f6",
+            //                 strokeWeight: 5,
+            //                 strokeOpacity: 0.8
+            //             });
+            //             recoveredPolyline.setMap(mapInstance);
+                        
+            //             // ปรับมุมกล้อง
+            //             const bounds = new google.maps.LatLngBounds();
+            //             decodedPath.forEach(latLng => bounds.extend(latLng));
+            //             mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+
+            //             // สร้างหมุดจุดเริ่มต้นสีดำ (Start Flag) ไว้ที่เดิมเสมอ
+            //             if (activeLog.start_lat && activeLog.start_lng) {
+            //                 createStartFlag(activeLog.start_lat, activeLog.start_lng);
+            //             }
+                        
+            //             isRouteDrawn = true;
+            //             hasRecoveredRoute = true;
+            //         }
+            //     }
+
+            //     // === อัปเดตพิกัดหมุดรถเจ้าหน้าที่บนแผนที่ ===
+            //     const currentLat = parseFloat(data.officer_lat);
+            //     const currentLng = parseFloat(data.officer_lng);
+                
+            //     if (currentLat && currentLng) {
+            //         updateOfficerLocationOnMap(currentLat, currentLng); 
+            //     } else if (!isRouteDrawn && activeLog && activeLog.start_lat && activeLog.start_lng) {
+            //         // ถ้ายังไม่มีพิกัดปัจจุบัน ให้เอาหมุดรถวางไว้ที่จุด Start ก่อน
+            //         updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
+            //     }
+            // }
 
             // 4. จัดการ UI หน้าสั่งการ (ล้างสถานะ ปิดปุ่ม ฯลฯ)
             if (['รับแจ้งเหตุ', 'สั่งการ'].includes(currentOpStatus)) {
@@ -921,6 +1224,151 @@
                 });
             }
 
+            // 5. "ถึงที่เกิดเหตุ" และข้อมูลภาพถ่าย
+            if (currentOpStatus === 'ถึงที่เกิดเหตุ' || data.status === 'ถึงที่เกิดเหตุ') {
+                
+                // เอาเส้นทางและหมุดเจ้าหน้าที่ออก
+                if (directionsRenderer) directionsRenderer.setMap(null);
+                if (officerMarkerMap) {
+                    officerMarkerMap.onRemove();
+                    officerMarkerMap = null;
+                }
+                if (startMarkerObj) {
+                    startMarkerObj.onRemove();
+                    startMarkerObj = null;
+                }
+
+                // ขยับให้จุดเกิดเหตุอยู่ตรงกลาง
+                if (mapInstance && incidentLatLng) {
+                    mapInstance.panTo(incidentLatLng);
+                    mapInstance.setZoom(16);
+                }
+
+                // แสดงข้อมูลเวลาจริงที่ถึง
+                if (data.time_to_the_scene) {
+                    const arrival = new Date(data.time_to_the_scene);
+                    document.getElementById('arrived-time-text').innerText = arrival.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) + ' น.';
+                    
+                    // คำนวณเวลาที่ใช้เดินทาง (Duration)
+                    let activeLog = [...(data.log_command || [])].reverse().find(l => l.time_go_to_help);
+                    if (activeLog && activeLog.time_go_to_help) {
+                        const start = new Date(activeLog.time_go_to_help);
+                        const diffMs = arrival - start;
+
+                        // คำนวณหน่วยเวลาจากผลต่างมิลลิวินาที
+                        const hours = Math.floor(diffMs / 3600000);
+                        const minutes = Math.floor((diffMs % 3600000) / 60000);
+                        const seconds = Math.floor((diffMs % 60000) / 1000);
+
+                        // สร้างข้อความแสดงผลตามเงื่อนไขที่มีค่าของหน่วยเวลานั้นๆ
+                        let durationParts = [];
+                        if (hours > 0) durationParts.push(hours + " ชม.");
+                        if (minutes > 0) durationParts.push(minutes + " นาที");
+                        if (seconds > 0 || durationParts.length === 0) durationParts.push(seconds + " วินาที");
+
+                        document.getElementById('travel-duration-text').innerText = durationParts.join(" ");
+                    }
+                }
+
+                // แสดงรูปภาพและ Remark จากเจ้าหน้าที่
+                if (data.photo_by_officer) {
+                    const photoBox = document.getElementById('officer-report-photo');
+                    const imgTag = document.getElementById('img-from-officer');
+                    const remarkTag = document.getElementById('remark-from-officer');
+                    
+                    photoBox.classList.remove('hidden');
+                    imgTag.src = "{{ url('/storage') }}/" + data.photo_by_officer;
+                    remarkTag.innerText = data.remark_photo_by_officer || 'ไม่มีหมายเหตุ';
+                }
+            }
+
+            // 6. จัดการสถานะ "เสร็จสิ้น"
+            if (currentOpStatus === 'เสร็จสิ้น' || data.status === 'เสร็จสิ้น') {
+
+                if (officerMarkerMap) {
+                    officerMarkerMap.onRemove();
+                    officerMarkerMap = null;
+                }
+
+                const incidentPin = document.querySelector('.animate-ping');
+                if (incidentPin) incidentPin.classList.remove('animate-ping');
+
+                let activeLog = null;
+                if (data.log_command && Array.isArray(data.log_command)) {
+                    const logs = [...data.log_command].reverse();
+                    activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help' || l.status === 'accept'));
+                    
+                    const logWithDistance = logs.find(l => l.distance_text);
+                    if (logWithDistance && logWithDistance.distance_text) {
+                        document.getElementById('tm-distance').innerText = logWithDistance.distance_text;
+                    }
+                }
+
+                if (activeLog && !isRouteDrawn) {
+                    const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
+                    directionsRenderer.setMap(mapInstance);
+                    const historyPolyline = new google.maps.Polyline({
+                        path: decodedPath,
+                        strokeColor: "#3b82f6",
+                        strokeWeight: 4,
+                        strokeOpacity: 0.6,
+                        map: mapInstance
+                    });
+
+                    createStartFlag(activeLog.start_lat, activeLog.start_lng);
+
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(new google.maps.LatLng(activeLog.start_lat, activeLog.start_lng));
+                    bounds.extend(incidentLatLng);
+                    mapInstance.fitBounds(bounds, { top: 80, bottom: 80, left: 80, right: 80 });
+                    
+                    isRouteDrawn = true;
+                }
+
+                document.getElementById('success-info').classList.remove('hidden');
+
+                function updateTimeAndDate(elementIdPrefix, dateString) {
+                    if (!dateString) {
+                        document.getElementById(`${elementIdPrefix}-time`).innerText = '-';
+                        document.getElementById(`${elementIdPrefix}-date`).innerText = '-';
+                        return;
+                    }
+                    const d = new Date(dateString);
+                    if (isNaN(d)) return;
+                    
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    document.getElementById(`${elementIdPrefix}-time`).innerText = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} น.`;
+                    document.getElementById(`${elementIdPrefix}-date`).innerText = `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                }
+
+                updateTimeAndDate('tm-create-sos', data.time_create_sos);
+                updateTimeAndDate('tm-command', data.time_command);
+                updateTimeAndDate('tm-go-help', data.time_go_to_help);
+                updateTimeAndDate('tm-at-scene', data.time_to_the_scene);
+                updateTimeAndDate('tm-success', data.time_sos_success);
+
+                document.getElementById('tm-sum').innerText = data.time_sum_sos || '-';
+
+                if (data.photo_by_officer) {
+                    document.getElementById('no-img-officer').classList.add('hidden');
+                    document.getElementById('img-officer').classList.remove('hidden');
+                    document.getElementById('zoom-img-officer').classList.remove('hidden');
+                    document.getElementById('img-officer').src = "{{ url('/storage') }}/" + data.photo_by_officer;
+                    document.getElementById('rm-officer').innerText = data.remark_photo_by_officer || 'ไม่มีหมายเหตุ';
+                }
+
+                if (data.photo_succeed) {
+                    document.getElementById('no-img-success').classList.add('hidden');
+                    document.getElementById('img-success').classList.remove('hidden');
+                    document.getElementById('zoom-img-success').classList.remove('hidden');
+                    document.getElementById('img-success').src = "{{ url('/storage') }}/" + data.photo_succeed;
+                    document.getElementById('rm-success').innerText = data.remark_by_helper || 'ไม่มีหมายเหตุ';
+                }
+
+                const routingInfo = document.getElementById('routing-info-container');
+                if (routingInfo) routingInfo.classList.add('hidden');
+            }
+
             // =========================================================
             // Smart Polling: กำหนดเวลาหน่วงสำหรับรอบถัดไป
             // =========================================================
@@ -928,6 +1376,12 @@
 
             if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
                 nextPollTime = 10000; // ตอนกำลังเดินทาง ยิงเช็คทุก 10 วินาที
+            }
+            else if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
+                nextPollTime = 7000; // ถึงที่เกิดเหตุ ยิงเช็คทุก 7 วินาที
+            }
+            else if (currentOpStatus === 'เสร็จสิ้น') {
+                nextPollTime = 60000; // เสร็จสิ้น ยิงเช็คทุก 60 วินาที
             }
 
             pollingTimer = setTimeout(fetchOperationData, nextPollTime);
@@ -971,12 +1425,11 @@
         }
     }
 
-    function drawRouteToIncident(startLat, startLng) {
-        if (!CustomMarker || !mapInstance || isRouteDrawn) return;
-        
-        const startLatLng = new google.maps.LatLng(startLat, startLng);
-        createStartFlag(startLat, startLng);
+    function drawRouteToIncident(officerLat, officerLng) {
+        if (!mapInstance || isRouteDrawn) return;
 
+        const startLatLng = new google.maps.LatLng(officerLat, officerLng);
+        
         directionsService.route({
             origin: startLatLng,
             destination: incidentLatLng,
@@ -985,21 +1438,19 @@
             if (status === 'OK') {
                 directionsRenderer.setDirections(response);
                 isRouteDrawn = true;
-                
-                const leg = response.routes[0].legs[0];
-                const polyline = response.routes[0].overview_polyline; 
-                
-                const distanceText = document.getElementById('distance-text');
-                const durationText = document.getElementById('duration-text');
-                if(distanceText) distanceText.innerText = leg.distance.text;
-                if(durationText) durationText.innerText = leg.duration.text;
-                
-                const bounds = new google.maps.LatLngBounds();
-                bounds.extend(incidentLatLng);
-                bounds.extend(startLatLng);
-                mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
 
-                // ยิงอัปเดตไปเก็บลง Log ทันทีที่คำนวณเส้นทางเสร็จ
+                const leg = response.routes[0].legs[0];
+                const polyline = response.routes[0].overview_polyline;
+
+                // อัปเดตการแสดงผลระยะทางและเวลาบน UI
+                if (document.getElementById('distance-text')) {
+                    document.getElementById('distance-text').innerText = leg.distance.text;
+                }
+                if (document.getElementById('duration-text')) {
+                    document.getElementById('duration-text').innerText = leg.duration.text;
+                }
+
+                // ส่งข้อมูลพิกัดและรายละเอียดเส้นทางไปบันทึกใน log_command
                 fetch(`{{ url('/api/emergency') }}/${emergencyId}/update-route-log`, {
                     method: 'POST',
                     headers: {
@@ -1007,8 +1458,8 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
-                        start_lat: startLat,
-                        start_lng: startLng,
+                        start_lat: officerLat,
+                        start_lng: officerLng,
                         incident_lat: incidentLatLng.lat(),
                         incident_lng: incidentLatLng.lng(),
                         distance_text: leg.distance.text,
@@ -1017,12 +1468,16 @@
                         duration_value: leg.duration.value,
                         polyline: polyline
                     })
-                }).catch(err => console.error('Error saving route to log:', err));
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) console.error(data.message);
+                })
+                .catch(err => console.error('Fetch error:', err));
             }
         });
     }
 </script>
 
-{{-- === อัปเดต URL นำเข้า Google Maps ต้องมี libraries=marker,geometry === --}}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initAssignMap&libraries=marker,geometry" async defer></script>
 @endsection

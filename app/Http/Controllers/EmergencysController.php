@@ -339,54 +339,62 @@ class EmergencysController extends Controller
 
     public function case_assign($id)
     {
-        // ดึงข้อมูลเหตุการณ์และพิกัดจุดเกิดเหตุ
+        // 1. ดึงข้อมูลเหตุการณ์
         $emergency = Emergency::with('operation')->findOrFail($id);
         $incidentLat = $emergency->emergency_lat;
         $incidentLng = $emergency->emergency_lng;
 
-        // ดึงข้อมูลพื้นที่ที่เปิดใช้งานเพื่อตรวจสอบจุดเกิดเหตุว่าอยู่ในโพลิกอนใดบ้าง
+        // 2. ตรวจสอบว่าจุดเกิดเหตุอยู่ใน Area ใดบ้าง (Geofencing)
         $areas = Area::where('status', 'active')->get(); 
         $matchedAreaIds = [];
-
         foreach ($areas as $area) {
             $polygon = json_decode($area->polygon, true) ?? [];
-            
             if (!empty($polygon) && $this->isPointInPolygon($incidentLat, $incidentLng, $polygon)) {
-                $matchedAreaIds[] = $area->id; 
+                $matchedAreaIds[] = (int)$area->id; 
             }
         }
 
-        // ตรวจสอบว่าจุดเกิดเหตุอยู่นอกเขตพื้นที่รับผิดชอบทั้งหมดหรือไม่
         $isOutOfArea = empty($matchedAreaIds);
 
-        // ดึงข้อมูลเจ้าหน้าที่ที่พร้อมปฏิบัติงาน
-        $officersQuery = User_officer::where('status', 'Standby');
+        // 3. ดึงข้อมูลเจ้าหน้าที่ "ทั้งหมด"
+        $allOfficers = User_officer::get();
 
-        // กรองเจ้าหน้าที่เฉพาะผู้ที่ได้รับอนุมัติให้อยู่ในพื้นที่เกิดเหตุจากคอลัมน์ area_id
-        if (!$isOutOfArea) {
-            $officersQuery->where(function($q) use ($matchedAreaIds) {
-                foreach ($matchedAreaIds as $areaId) {
-                    $q->orWhereJsonContains('area_id', (string)$areaId)
-                      ->orWhereJsonContains('area_id', (int)$areaId);
-                }
-            });
-        }
+        // 4. จัดการคำนวณระยะทางและแยกกลุ่ม
+        $officersInArea = collect();
+        $officersOther = collect();
 
-        $officers = $officersQuery->get();
-
-        // คำนวณระยะทางจากพิกัดเจ้าหน้าที่ถึงจุดเกิดเหตุและจัดการกรณีที่เจ้าหน้าที่ยังไม่เคยส่งพิกัด
-        foreach ($officers as $officer) {
+        foreach ($allOfficers as $officer) {
+            // คำนวณระยะทาง
             $offLat = $officer->lat ?? $incidentLat; 
             $offLng = $officer->lng ?? $incidentLng;
-
             $distance = $this->calculateDistance($incidentLat, $incidentLng, $offLat, $offLng);
             $officer->distance_km = round($distance, 1);
+
+            // เช็คว่าเจ้าหน้าที่คนนี้ "อยู่ในพื้นที่เกิดเหตุ" หรือไม่ (เช็คจาก column area_id ใน DB)
+            $officerAreaIds = json_decode($officer->area_id, true) ?? [];
+            
+            // ตรวจสอบจุดตัดของ Array (ถ้ามีพื้นที่ตรงกันอย่างน้อยหนึ่งที่)
+            $hasMatchingArea = !empty(array_intersect($officerAreaIds, $matchedAreaIds));
+
+            if ($hasMatchingArea) {
+                $officersInArea->push($officer);
+            } else {
+                $officersOther->push($officer);
+            }
         }
 
-        // เรียงลำดับเจ้าหน้าที่ตามระยะทางจากใกล้ไปไกล
-        $officers = $officers->sortBy('distance_km')->values();
+        // 5. เรียงลำดับตามระยะทาง
+        $officersInArea = $officersInArea->sortBy('distance_km')->values();
+        $officersOther = $officersOther->sortBy('distance_km')->values();
 
-        return view('emergencys.case_assign', compact('emergency', 'officers', 'isOutOfArea'));
+        // 6. ส่งตัวแปรไปที่หน้า View ให้ครบตามที่ Blade เรียกใช้
+        return view('emergencys.case_assign', [
+            'emergency' => $emergency,
+            'isOutOfArea' => $isOutOfArea,
+            'officersInArea' => $officersInArea,
+            'officersOther' => $officersOther,
+            'officers' => $allOfficers // Fallback สำหรับกรณีอื่นๆ
+        ]);
     }
 
     public function assign_officer(Request $request, $id)

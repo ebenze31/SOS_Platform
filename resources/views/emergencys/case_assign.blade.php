@@ -139,116 +139,159 @@
                 <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative min-h-[400px]">
                     
                     {{-- ================= โหมด 1: รอการมอบหมายงาน (Assign Form) ================= --}}
+                    @php
+                        // แยกกลุ่มเจ้าหน้าที่
+                        $inAreaList = isset($officersInArea) ? $officersInArea : (isset($isOutOfArea) && $isOutOfArea ? [] : ($officers ?? []));
+                        $otherList = isset($officersOther) ? $officersOther : (isset($isOutOfArea) && $isOutOfArea ? ($officers ?? []) : []);
+
+                        $sections = [
+                            [
+                                'title' => 'ในพื้นที่',
+                                'icon' => 'location_on',
+                                'iconColor' => 'text-primary',
+                                'list' => $inAreaList,
+                                'emptyText' => 'ไม่มีเจ้าหน้าที่ในพื้นที่',
+                                'emptyIcon' => 'location_off'
+                            ],
+                            [
+                                'title' => 'อื่นๆ',
+                                'icon' => 'explore',
+                                'iconColor' => 'text-slate-400',
+                                'list' => $otherList,
+                                'emptyText' => 'ไม่พบเจ้าหน้าที่สแตนด์บาย',
+                                'emptyIcon' => 'person_off'
+                            ]
+                        ];
+
+                        // ดึง Log Command มาเตรียมไว้
+                        $logCommands = json_decode($emergency->operation->log_command ?? '[]', true) ?? [];
+                    @endphp
+
                     <div id="assign-officer-section" class="flex flex-col h-full {{ $isActiveOperation ? 'hidden' : '' }}">
                         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-white z-10 shrink-0">
                             <div>
                                 <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">เจ้าหน้าที่</h3>
                                 <p class="text-[10px] text-red-400 font-medium mt-0.5">* อ้างอิงจากพิกัดล่าสุดที่ระบบบันทึกไว้</p>
                             </div>
-                            
-                            @if(isset($isOutOfArea) && $isOutOfArea)
-                            <div class="bg-red-50 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
-                                <span class="material-symbols-outlined text-[16px]">error</span>
-                                <span class="text-[10px] font-bold">ไม่มีจนท.ในพื้นที่</span>
-                            </div>
-                            @else
                             <div class="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
                                 เลือกเจ้าหน้าที่เข้าช่วยเหลือ
                             </div>
-                            @endif
                         </div>
 
                         <form action="{{ route('emergency.assign', $emergency->id ?? 0) }}" method="POST" class="flex flex-col flex-1 overflow-hidden" id="assignForm">
                             @csrf
-                            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-slate-50/30">
-                                @forelse($officers as $officer)
-                                @php
-                                    $refusedList = json_decode($emergency->operation->officer_refuse ?? '[]', true) ?? [];
-                                    $noRespondList = json_decode($emergency->operation->officer_no_respond ?? '[]', true) ?? [];
-                                    
-                                    $isCannotAssign = in_array($officer->id, $refusedList) || in_array($officer->id, $noRespondList);
-                                    $isWaiting = ($emergency->operation->waiting_reply ?? null) == $officer->id;
+                            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6 bg-slate-50/30">
+                                
+                                @foreach($sections as $index => $section)
+                                    @if($index > 0)
+                                        <div class="border-t border-slate-200/60 -mx-4"></div>
+                                    @endif
 
-                                    $logCommands = json_decode($emergency->operation->log_command ?? '[]', true) ?? [];
-                                    $isNoRespond = false;
-                                    $noRespondTimeMin = 0;
-                                    $noRespondTimeSec = 0;
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[16px] {{ $section['iconColor'] }}">{{ $section['icon'] }}</span>
+                                            {{ $section['title'] }}
+                                        </h4>
+                                        
+                                        <div class="space-y-3">
+                                            @forelse($section['list'] as $officer)
+                                                @php
+                                                    // --- 1. เตรียมข้อมูลพื้นฐาน ---
+                                                    $officerGlobalStatus = $officer->status ?? 'Standby';
+                                                    $myLogs = array_filter($logCommands, function($l) use ($officer) {
+                                                        return ($l['sendTo'] ?? null) == $officer->id;
+                                                    });
+                                                    
+                                                    $sendCount = count($myLogs); 
+                                                    $latestLog = !empty($myLogs) ? end($myLogs) : null;
+                                                    $logStatus = $latestLog['status'] ?? '';
+                                                    $logDt = $latestLog['datetime'] ?? '';
 
-                                    foreach(array_reverse($logCommands) as $log) {
-                                        if(($log['sendTo'] ?? null) == $officer->id) {
-                                            if(($log['status'] ?? '') === 'no_respond') {
-                                                $isNoRespond = true;
-                                                $sumTime = $log['sum_time'] ?? 0;
-                                                $noRespondTimeMin = floor($sumTime / 60);
-                                                $noRespondTimeSec = $sumTime % 60;
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    
-                                    $commandTimeStr = '';
-                                    if ($isWaiting && !empty($emergency->operation->time_command)) {
-                                        $commandTimeStr = \Carbon\Carbon::parse($emergency->operation->time_command)->toISOString();
-                                    }
-                                @endphp
+                                                    // --- หาเวลาที่รอของคนที่ไม่ตอบสนอง ---
+                                                    $waitMin = 0; $waitSec = 0;
+                                                    $noRespondLog = array_filter($myLogs, function($l) { return ($l['status'] ?? '') === 'no_respond'; });
+                                                    if (!empty($noRespondLog)) {
+                                                        $lastNoRespond = end($noRespondLog);
+                                                        $sumTime = (int)($lastNoRespond['sum_time'] ?? 0);
+                                                        $waitMin = floor($sumTime / 60);
+                                                        $waitSec = $sumTime % 60;
+                                                    }
+                                                    $timeText = ($waitMin > 0 ? "{$waitMin} นาที " : "") . "{$waitSec} วิ";
 
-                                <label class="relative flex items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:checked]:bg-blue-50/20 {{ $isCannotAssign ? 'opacity-50 pointer-events-none cursor-not-allowed' : '' }}">
-                                    <input name="officer_id" value="{{ $officer->id }}" data-lat="{{ $officer->lat }}" data-lng="{{ $officer->lng }}" class="absolute right-4 top-4 rounded-full border-slate-300 text-primary focus:ring-primary h-5 w-5 cursor-pointer peer assign-radio" type="radio" required {{ $isCannotAssign ? 'disabled' : '' }} />
-                                    <div class="flex items-center gap-4 w-full">
-                                        <div class="size-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 peer-checked:bg-primary peer-checked:text-white transition-colors">
-                                            <span class="material-symbols-outlined text-[24px]">directions_car</span>
-                                        </div>
-                                        <div class="flex-1 pr-8">
-                                            <div class="flex justify-between items-start mb-1">
-                                                <div class="flex items-center gap-2">
-                                                    <h4 class="font-bold text-slate-900">{{ $officer->name_officer }}</h4>
-                                                    @if($officer->level)
-                                                        <span class="bg-slate-100 text-slate-600 text-[9px] px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ $officer->level }}</span>
-                                                    @endif
-                                                </div>
-                                                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                                                    {{ $officer->distance_km ?? 0 }} กม.
-                                                </span>
-                                            </div>
-                                            <div class="flex items-center gap-3 text-xs text-slate-500">
-                                                <span class="flex items-center gap-1">
-                                                    <span class="material-symbols-outlined text-[14px]">schedule</span> 
-                                                    ~{{ max(1, round(($officer->distance_km ?? 0) * 1.5)) }} นาที
-                                                </span>
-                                                
-                                                @if($officer->type)
-                                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                    <span class="font-medium text-slate-700">{{ $officer->type }}</span>
-                                                @endif
-                                                
-                                                @if($officer->amount_help !== null)
-                                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                    <span class="font-medium text-slate-500 text-[10px]">ช่วยเหลือแล้ว {{ $officer->amount_help }} ครั้ง</span>
-                                                @endif
-                                            </div>
+                                                    // --- 2. Logic การห้ามกด (Disabled) ---
+                                                    $isGlobalBusy = in_array($officerGlobalStatus, ['Helping', 'None']);
+                                                    $isRejected = ($logStatus === 'reject');
+                                                    $isPending = ($logStatus === 'pending');
+                                                    $isNoRespond = ($logStatus === 'no_respond'); // เช็คว่าล่าสุดคือไม่ตอบสนองใช่ไหม
 
-                                            @if($isWaiting)
-                                                <div class="mt-2 text-[11px] font-bold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-300 flex items-center gap-2">
-                                                    <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                                                    กำลังรอการตอบรับ... 
-                                                    <span class="waiting-timer" data-time="{{ $commandTimeStr }}">0 วิ</span>
-                                                </div>
-                                            @elseif(in_array($officer->id, $refusedList))
-                                                <div class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 inline-block">ปฏิเสธการรับงาน</div>
-                                            @elseif($isNoRespond || in_array($officer->id, $noRespondList))
-                                                <div class="mt-2 text-[10px] font-bold text-[#f87171] bg-[#f87171]/10 px-2 py-1 rounded-lg border border-[#f87171]/30 inline-block">
-                                                    ไม่มีการตอบสนอง เวลารอ {{ $noRespondTimeMin > 0 ? $noRespondTimeMin . ' นาที ' : '' }}{{ $noRespondTimeSec }} วินาที
-                                                </div>
-                                            @endif
+                                                    // *** กฎเหล็ก: ห้ามกดเฉพาะตอน ไม่ว่าง, ปฏิเสธมา, หรือกำลังรอสายอยู่เท่านั้น (ไม่ตอบสนอง = กดได้) ***
+                                                    $shouldDisable = ($isGlobalBusy || $isRejected || $isPending);
+                                                    
+                                                    $fadedClass = $shouldDisable ? 'opacity-50 pointer-events-none cursor-not-allowed' : '';
+                                                    $inputDisabled = $shouldDisable ? 'disabled' : '';
+                                                @endphp
+
+                                                <label class="relative flex items-center p-4 bg-white border border-slate-200 rounded-xl shadow-sm transition-all group has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:checked]:bg-blue-50/20 {{ $fadedClass }} {{ $isPending ? 'ring-2 ring-blue-300' : 'cursor-pointer' }}">
+                                                    
+                                                    <input name="officer_id" value="{{ $officer->id }}" 
+                                                        data-lat="{{ $officer->lat }}" 
+                                                        data-lng="{{ $officer->lng }}" 
+                                                        data-officer-status="{{ $officerGlobalStatus }}"
+                                                        class="absolute right-4 top-4 rounded-full border-slate-300 text-primary focus:ring-primary h-5 w-5 assign-radio" 
+                                                        type="radio" required {{ $inputDisabled }} />
+                                                    
+                                                    <div class="flex items-center gap-4 w-full">
+                                                        <div class="size-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                                            <span class="material-symbols-outlined text-[24px]">directions_car</span>
+                                                        </div>
+                                                        <div class="flex-1 pr-8">
+                                                            <div class="flex justify-between items-start mb-1">
+                                                                <div class="flex items-center gap-2">
+                                                                    <h4 class="font-bold text-slate-900">{{ $officer->name_officer }}</h4>
+                                                                    @if($sendCount > 0)
+                                                                        <span class="bg-slate-200 text-slate-600 text-[9px] px-1.5 py-0.5 rounded font-bold">ส่งแล้ว {{ $sendCount }} ครั้ง</span>
+                                                                    @endif
+                                                                </div>
+                                                                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                                                                    {{ $officer->distance_km ?? 0 }} กม.
+                                                                </span>
+                                                            </div>
+
+                                                            {{-- ส่วนป้ายสถานะ --}}
+                                                            <div class="mt-2 flex flex-wrap gap-1 status-wrapper">
+                                                                @if($isPending)
+                                                                    <div class="text-[11px] font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-300 flex items-center gap-2">
+                                                                        <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                                                        รอตอบรับ... <span class="waiting-timer" data-time="{{ $logDt }}"></span>
+                                                                    </div>
+                                                                @elseif($officerGlobalStatus === 'Helping')
+                                                                    <div class="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg border border-purple-200 flex items-center gap-1">
+                                                                        <span class="material-symbols-outlined text-[14px]">sync_problem</span> กำลังช่วยเหลือเคสอื่น
+                                                                    </div>
+                                                                @elseif($officerGlobalStatus === 'None')
+                                                                    <div class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1">
+                                                                        <span class="material-symbols-outlined text-[14px]">person_off</span> ออฟไลน์
+                                                                    </div>
+                                                                @elseif($isRejected)
+                                                                    <div class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 flex items-center gap-1">
+                                                                        <span class="material-symbols-outlined text-[14px]">cancel</span> ปฏิเสธเคสล่าสุด
+                                                                    </div>
+                                                                @elseif($isNoRespond)
+                                                                    <div class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 flex items-center gap-1">
+                                                                        <span class="material-symbols-outlined text-[14px]">timer_off</span> ไม่ตอบสนอง (รอ {{ $timeText }})
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            @empty
+                                                <p>ไม่พบรายชื่อ</p>
+                                            @endforelse
                                         </div>
                                     </div>
-                                </label>
-                                @empty
-                                <div class="flex flex-col items-center justify-center py-10 text-slate-400 h-full">
-                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">person_off</span>
-                                    <p class="text-sm font-bold text-slate-600 mb-1">ไม่พบเจ้าหน้าที่แสตนด์บาย</p>
-                                </div>
-                                @endforelse
+                                @endforeach
+
                             </div>
 
                             <div class="p-5 border-t border-slate-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 z-20">
@@ -758,29 +801,31 @@
     // ================== ระบบนับเวลาสำหรับคนที่กำลังรอการตอบรับ ==================
     function updateWaitingTimers() {
         const timers = document.querySelectorAll('.waiting-timer');
-        if (timers.length === 0) return;
-        const now = new Date().getTime();
-
+        
         timers.forEach(timer => {
-            const commandTimeStr = timer.getAttribute('data-time');
-            if (!commandTimeStr) return;
-            const commandTime = new Date(commandTimeStr).getTime();
-            const distance = now - commandTime;
-            if (distance < 0) return;
+            const startTimeStr = timer.getAttribute('data-time');
+            if (!startTimeStr) return;
 
-            const totalSeconds = Math.floor(distance / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
+            const startTime = new Date(startTimeStr).getTime();
+            const now = new Date().getTime();
+            const diffSeconds = Math.floor((now - startTime) / 1000);
 
-            let timeString = "";
-            if (minutes > 0) timeString += minutes + " นาที ";
-            timeString += seconds + " วิ";
-            timer.innerHTML = timeString;
+            if (diffSeconds >= 0) {
+                if (diffSeconds < 60) {
+                    timer.innerText = diffSeconds + ' วิ';
+                } else {
+                    const mins = Math.floor(diffSeconds / 60);
+                    const secs = diffSeconds % 60;
+                    timer.innerText = `${mins} นาที ${secs} วิ`;
+                }
+            }
         });
     }
-    setInterval(updateWaitingTimers, 1000);
-    updateWaitingTimers();
 
+    // อัปเดตทุกๆ 1 วินาที
+    setInterval(updateWaitingTimers, 1000);
+    // เรียกใช้ทันทีเมื่อโหลดหน้าจอ
+    document.addEventListener('DOMContentLoaded', updateWaitingTimers);
 
     // ================== ระบบ Map & หมุด ==================
     let mapInstance;
@@ -898,6 +943,12 @@
         
         document.querySelectorAll('.assign-radio').forEach(radio => {
             radio.addEventListener('click', function(e) {
+
+                if (this.disabled) {
+                    e.preventDefault();
+                    return;
+                }
+
                 document.querySelectorAll('.officer-pulse').forEach(el => el.classList.add('hidden'));
 
                 if (currentSelectedRadio === this) {
@@ -1070,86 +1121,6 @@
                     updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
                 }
             }
-            
-            // if (currentOpStatus === 'กำลังไปช่วยเหลือ') {
-                
-            //     // === อัปเดตเวลาล่าสุดที่ได้รับพิกัด พร้อมข้อความ นาทีที่แล้ว ===
-            //     if (data.officer_last_update) {
-            //         const lastUpdate = new Date(data.officer_last_update);
-            //         const now = new Date();
-            //         const diffMs = now - lastUpdate;
-            //         const diffMins = Math.floor(diffMs / 60000); 
-
-            //         let relativeTime = diffMins > 0 ? `(${diffMins} นาทีที่แล้ว)` : `(เมื่อครู่)`;
-            //         const timeStr = lastUpdate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    
-            //         document.getElementById('last-location-time').innerHTML = `${timeStr} น. <span class="text-blue-500 font-medium ml-1">${relativeTime}</span>`;
-            //     }
-
-            //     // === ค้นหา Log การรับงานล่าสุดที่มีเส้นทาง ===
-            //     let activeLog = null;
-            //     if (data.log_command && Array.isArray(data.log_command)) {
-            //         const logs = [...data.log_command].reverse();
-            //         activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help'));
-            //     }
-
-            //     if (activeLog) {
-            //         // === แสดงเวลาออกเดินทาง และ เวลาคาดว่าจะถึง ===
-            //         if (activeLog.time_go_to_help) {
-            //             const startTime = new Date(activeLog.time_go_to_help);
-            //             document.getElementById('start-help-time').innerText = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-                        
-            //             // คำนวณเวลาคาดว่าจะถึง (เวลาเริ่ม + duration_value เป็นวินาที)
-            //             const durationValue = activeLog.duration_value ? parseInt(activeLog.duration_value) : 0;
-            //             const arrivalTime = new Date(startTime.getTime() + (durationValue * 1000));
-            //             const arrivalStr = arrivalTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                        
-            //             // แสดงผลเช่น 16:42 น. (19 นาที)
-            //             document.getElementById('duration-text').innerText = `${arrivalStr} น. (${activeLog.duration_text || '-'})`;
-            //         }
-
-            //         // === แสดงระยะทางจากจุดเริ่มต้น ===
-            //         document.getElementById('distance-text').innerText = activeLog.distance_text || '-';
-
-            //         // === วาดเส้นทางจากจุดเริ่มต้น (ทำแค่ครั้งเดียว) ===
-            //         if (!isRouteDrawn && activeLog.polyline) {
-            //             const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
-            //             directionsRenderer.setMap(mapInstance);
-                        
-            //             const recoveredPolyline = new google.maps.Polyline({
-            //                 path: decodedPath,
-            //                 strokeColor: "#3b82f6",
-            //                 strokeWeight: 5,
-            //                 strokeOpacity: 0.8
-            //             });
-            //             recoveredPolyline.setMap(mapInstance);
-                        
-            //             // ปรับมุมกล้อง
-            //             const bounds = new google.maps.LatLngBounds();
-            //             decodedPath.forEach(latLng => bounds.extend(latLng));
-            //             mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
-
-            //             // สร้างหมุดจุดเริ่มต้นสีดำ (Start Flag) ไว้ที่เดิมเสมอ
-            //             if (activeLog.start_lat && activeLog.start_lng) {
-            //                 createStartFlag(activeLog.start_lat, activeLog.start_lng);
-            //             }
-                        
-            //             isRouteDrawn = true;
-            //             hasRecoveredRoute = true;
-            //         }
-            //     }
-
-            //     // === อัปเดตพิกัดหมุดรถเจ้าหน้าที่บนแผนที่ ===
-            //     const currentLat = parseFloat(data.officer_lat);
-            //     const currentLng = parseFloat(data.officer_lng);
-                
-            //     if (currentLat && currentLng) {
-            //         updateOfficerLocationOnMap(currentLat, currentLng); 
-            //     } else if (!isRouteDrawn && activeLog && activeLog.start_lat && activeLog.start_lng) {
-            //         // ถ้ายังไม่มีพิกัดปัจจุบัน ให้เอาหมุดรถวางไว้ที่จุด Start ก่อน
-            //         updateOfficerLocationOnMap(activeLog.start_lat, activeLog.start_lng);
-            //     }
-            // }
 
             // 4. จัดการ UI หน้าสั่งการ (ล้างสถานะ ปิดปุ่ม ฯลฯ)
             if (['รับแจ้งเหตุ', 'สั่งการ'].includes(currentOpStatus)) {
@@ -1158,11 +1129,17 @@
                     const labelContainer = radio.closest('label');
                     const infoContainer = labelContainer.querySelector('.flex-1.pr-8');
 
+                    // ฟังก์ชันช่วยเช็คข้อมูลใน Array
                     const checkInArray = (arr, val) => arr && Array.isArray(arr) && arr.some(item => String(item) === String(val));
                     const isRefused = checkInArray(data.officer_refuse, officerId);
                     const isNoRespond = checkInArray(data.officer_no_respond, officerId);
                     const isWaiting = (String(data.waiting_reply) === String(officerId));
 
+                    // ดึงสถานะของเจ้าหน้าที่
+                    const officerGlobalStatus = radio.dataset.officerStatus;
+                    const isGlobalBusy = ['Helping', 'None'].includes(officerGlobalStatus);
+
+                    // --- คำนวณเวลาที่รอของคนที่ไม่ตอบสนอง ---
                     let waitMin = 0, waitSec = 0;
                     if (data.log_command && Array.isArray(data.log_command)) {
                         const logs = [...data.log_command].reverse();
@@ -1173,24 +1150,32 @@
                             waitSec = sumTime % 60;
                         }
                     }
-
                     let timeText = waitMin > 0 ? `${waitMin} นาที ` : '';
-                    timeText += `${waitSec} วินาที`;
+                    timeText += `${waitSec} วิ`;
 
+                    // ล้าง class เดิมที่ล็อกปุ่มไว้ก่อน
                     labelContainer.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed', 'ring-2', 'ring-blue-300');
-                    radio.disabled = false;
 
+                    // *** จัดการล็อกปุ่มใหม่ (สังเกตว่าผมเอา isNoRespond ออกแล้ว เพื่อให้กดได้!) ***
                     if (isWaiting) {
                         radio.disabled = true;
                         labelContainer.classList.add('pointer-events-none', 'cursor-not-allowed', 'ring-2', 'ring-blue-300');
-                    } else if (isRefused) {
+                    } else if (isRefused || isGlobalBusy) {
                         radio.disabled = true;
                         labelContainer.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
                         const targetMarker = document.getElementById(`officer-marker-${officerId}`);
-                        if (targetMarker) targetMarker.querySelector('.officer-pulse').classList.add('hidden');
+                        if (targetMarker && isRefused) {
+                            const pulse = targetMarker.querySelector('.officer-pulse');
+                            if (pulse) pulse.classList.add('hidden');
+                        }
+                    } else {
+                        // ว่าง หรือ ไม่ตอบสนอง = ให้กดส่งซ้ำได้
+                        radio.disabled = false;
                     }
 
+                    // จัดการแสดงผลป้าย Badge
                     let statusDiv = infoContainer.querySelector('.status-wrapper');
+                    
                     if (!statusDiv) {
                         const bladeStatus = infoContainer.querySelector('.mt-2');
                         let preserveTime = new Date().toISOString(); 
@@ -1200,24 +1185,48 @@
                             bladeStatus.remove();
                         }
                         statusDiv = document.createElement('div');
-                        statusDiv.className = 'status-wrapper';
+                        statusDiv.className = 'mt-2 flex flex-wrap gap-1 status-wrapper';
                         statusDiv.dataset.commandTime = preserveTime;
                         infoContainer.appendChild(statusDiv);
                     }
 
+                    // แทรก HTML ให้คลาสและไอคอนเหมือน Blade
                     if (isWaiting) {
+                        // เพื่อให้เวลาดึงค่า datetime ของ pending ล่าสุดมาแสดงได้ตรงเป๊ะแม้จะไม่ได้รีเฟรชหน้า
+                        let pendingTime = statusDiv.dataset.commandTime;
+                        if (data.log_command && Array.isArray(data.log_command)) {
+                            const logs = [...data.log_command].reverse();
+                            const pendingLog = logs.find(l => String(l.sendTo) === String(officerId) && l.status === 'pending');
+                            if (pendingLog && pendingLog.datetime) pendingTime = pendingLog.datetime;
+                        }
+
                         if (!statusDiv.querySelector('.waiting-timer')) {
                             statusDiv.innerHTML = `
-                                <div class="mt-2 text-[11px] font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-300 flex items-center gap-2 shadow-sm">
+                                <div class="text-[11px] font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-300 flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                                    กำลังรอการตอบรับ... 
-                                    <span class="waiting-timer" data-time="${statusDiv.dataset.commandTime}">0 วิ</span>
+                                    รอตอบรับ... <span class="waiting-timer" data-time="${pendingTime}">0 วิ</span>
                                 </div>`;
                         }
+                    } else if (officerGlobalStatus === 'Helping') {
+                        statusDiv.innerHTML = `
+                            <div class="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg border border-purple-200 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">sync_problem</span> กำลังช่วยเหลือเคสอื่น
+                            </div>`;
+                    } else if (officerGlobalStatus === 'None') {
+                        statusDiv.innerHTML = `
+                            <div class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">person_off</span> ออฟไลน์
+                            </div>`;
                     } else if (isRefused) {
-                        statusDiv.innerHTML = `<div class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 inline-block shadow-sm">ปฏิเสธเคส เวลารอ ${timeText}</div>`;
+                        statusDiv.innerHTML = `
+                            <div class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg border border-red-200 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">cancel</span> ปฏิเสธเคสล่าสุด
+                            </div>`;
                     } else if (isNoRespond) {
-                        statusDiv.innerHTML = `<div class="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-block shadow-sm">ไม่มีการตอบสนอง เวลารอ ${timeText}</div>`;
+                        statusDiv.innerHTML = `
+                            <div class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">timer_off</span> ไม่ตอบสนอง (รอ ${timeText})
+                            </div>`;
                     } else {
                         statusDiv.innerHTML = ''; 
                     }
