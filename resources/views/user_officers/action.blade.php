@@ -728,7 +728,11 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ emergency_id: emergencyId })
+                    body: JSON.stringify({ 
+                        emergency_id: emergencyId,
+                        lat: 0,
+                        lng: 0
+                    })
                 });
 
                 const data = await response.json();
