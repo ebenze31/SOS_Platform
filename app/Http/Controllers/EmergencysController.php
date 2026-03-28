@@ -492,8 +492,12 @@ class EmergencysController extends Controller
             'sum_time' => 0
         ];
 
+        // ค้นหา id command
+        $auth_id = auth()->id();
+        $data_command = User_command::where('user_id', $auth_id)->first();
+
         // อัปเดตข้อมูลตาราง Operation
-        $operation->command_by = auth()->id();
+        $operation->command_by = $data_command->id;
         $operation->waiting_reply = $newOfficerId;
         $operation->status = 'สั่งการ';
         $operation->notify = 'success';
