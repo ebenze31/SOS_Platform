@@ -721,58 +721,63 @@ class EmergencysController extends Controller
 
     public function getOperationData($emergency_id)
     {
-        // ค้นหาข้อมูล Operation จาก emergency_id
         $operation = DB::table('emergency_operations')->where('emergency_id', $emergency_id)->first();
 
         if (!$operation) {
             return response()->json(['error' => 'Not found'], 404);
         }
 
-        // ค้นหาข้อมูลเจ้าหน้าที่เพื่อดึงพิกัดล่าสุด
         $officer = null;
         $locationDiffMinutes = null;
+        $hasPolyline = false;
+
+        $logs = json_decode($operation->log_command, true) ?? [];
+        
+        foreach (array_reverse($logs) as $log) {
+            if (isset($log['status']) && $log['status'] === 'go_to_help' && !empty($log['polyline'])) {
+                $hasPolyline = true;
+                break;
+            }
+        }
 
         if (!empty($operation->user_officers_id)) {
             $officer = DB::table('user_officers')->where('id', $operation->user_officers_id)->first();
             
             if ($officer) {
-                // ตรวจสอบพิกัด
-                $isLocationOld = false;
-                
-                if (empty($officer->last_update_location)) {
-                    // ไม่มีพิกัด
-                    $isLocationOld = true; 
-                } else {
-                    // มีพิกัด แต่เช็คว่าเกิน 3 นาทีไหม
+                if (!empty($officer->last_update_location)) {
                     $lastUpdate = Carbon::parse($officer->last_update_location);
                     $locationDiffMinutes = now()->diffInMinutes($lastUpdate); 
-                    if ($locationDiffMinutes >= 3) {
-                        $isLocationOld = true;
-                    }
                 }
-                
-                // ถ้าสถานะ "กำลังไปช่วยเหลือ" และ "พิกัดเก่า/ไม่มีพิกัด"
-                if ($operation->status === 'กำลังไปช่วยเหลือ' && $isLocationOld) {
+
+                if ($operation->status === 'กำลังไปช่วยเหลือ' && !$hasPolyline) {
                     
-                    // เช็คเวลาแจ้งเตือนครั้งล่าสุดจาก Database (line_notified_at)
-                    $lastNotified = $officer->line_notified_at ? Carbon::parse($officer->line_notified_at) : null;
+                    $isLocationOld = false;
                     
-                    // ถ้ายังไม่เคยส่งเลย หรือ ส่งครั้งล่าสุดผ่านไปแล้วอย่างน้อย 3 นาที
-                    if (!$lastNotified || now()->diffInMinutes($lastNotified) >= 3) {
+                    if (empty($officer->lat) || empty($officer->lng) || empty($officer->last_update_location)) {
+                        $isLocationOld = true; 
+                    } else {
+                        if ($locationDiffMinutes > 5) {
+                            $isLocationOld = true;
+                        }
+                    }
+                    
+                    if ($isLocationOld) {
+                        $lastNotified = $officer->line_notified_at ? Carbon::parse($officer->line_notified_at) : null;
                         
-                        // ค้นหา Provider ID จากตาราง users
-                        $user = DB::table('users')->where('id', $officer->user_id)->first();
-                        
-                        if ($user && !empty($user->provider_id)) {
-                                    
-                            $message = "⚠️ แจ้งเตือนจากศูนย์ควบคุม\nกรุณากดปุ่มดำเนินการ เพื่อให้ศูนย์ควบคุมสามารถติดตามตำแหน่งปัจจุบันของท่านได้ครับ";
+                        if (!$lastNotified || now()->diffInMinutes($lastNotified) >= 3) {
                             
-                            \App\Http\Controllers\LineWebhookController::sendLineNotice($user->provider_id, $message);
+                            $user = DB::table('users')->where('id', $officer->user_id)->first();
                             
-                            // อัปเดตเวลาที่ส่ง LINE ลง Database ทันที ป้องกันการส่งซ้ำ
-                            DB::table('user_officers')
-                                ->where('id', $officer->id)
-                                ->update(['line_notified_at' => now()]);
+                            if ($user && !empty($user->provider_id)) {
+                                        
+                                $message = "⚠️ แจ้งเตือนจากศูนย์ควบคุม\nกรุณากดปุ่มดำเนินการ เพื่อให้ศูนย์ควบคุมสามารถติดตามตำแหน่งปัจจุบันของท่านได้ครับ";
+                                
+                                \App\Http\Controllers\LineWebhookController::sendLineNotice($user->provider_id, $message);
+                                
+                                DB::table('user_officers')
+                                    ->where('id', $officer->id)
+                                    ->update(['line_notified_at' => now()]);
+                            }
                         }
                     }
                 }
@@ -795,12 +800,10 @@ class EmergencysController extends Controller
             'remark_by_helper' => $operation->remark_by_helper ?? null,
             'officer_last_update' => $officer->last_update_location ?? null, 
             'location_diff_minutes' => $locationDiffMinutes,
-            'start_lat' => $operation->start_lat ?? null,
-            'start_lng' => $operation->start_lng ?? null,
             'waiting_reply' => $operation->waiting_reply,
             'officer_refuse' => json_decode($operation->officer_refuse, true) ?? [],
             'officer_no_respond' => json_decode($operation->officer_no_respond, true) ?? [],
-            'log_command' => json_decode($operation->log_command, true) ?? []
+            'log_command' => $logs
         ]);
     }
 
