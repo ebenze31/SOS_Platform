@@ -325,42 +325,76 @@
             return;
         }
 
-        // 1. ดึงหัวตารางภาษาไทยจาก Object แรกใน export_row
-        const headers = Object.keys(filtered[0].export_row);
+        // 1. กำหนดโครงสร้าง Mapping (Key ใน DB => ชื่อภาษาไทย)
+        // คอลัมน์ไหนไม่มีในนี้ และอยู่ในรายการ "ตัดออก" จะไม่ถูกนำมาแสดง
+        const columnMapping = {
+            // ตาราง emergencys
+            'name_reporter': 'ชื่อผู้แจ้ง',
+            'type_reporter': 'ประเภทผู้แจ้ง',
+            'phone_reporter': 'เบอร์โทรศัพท์ผู้แจ้ง',
+            'emergency_type': 'ประเภทเหตุ',
+            'emergency_detail': 'รายละเอียดเหตุ',
+            'emergency_lat': 'ละติจูด',
+            'emergency_lng': 'ลองจิจูด',
+            'emergency_location': 'สถานที่เกิดเหตุ',
+            'score_impression': 'คะแนนความพึงพอใจ',
+            'score_period': 'คะแนนระยะเวลา',
+            'score_total': 'คะแนนรวม',
+            'comment_help': 'ความคิดเห็นจากผู้แจ้ง',
 
-        // 2. ดึงข้อมูลเฉพาะ Row ที่กรองอยู่
+            // ตาราง emergency_operations (เฉพาะตัวที่ต้องการ)
+            'operating_code': 'เลขที่ปฏิบัติการ',
+            'name_command': 'ผู้สั่งการ (Command)',
+            'status': 'สถานะปัจจุบัน',
+            'remark_status': 'หมายเหตุสถานะ',
+            'name_area': 'พื้นที่รับผิดชอบ (Area)',
+            'name_officer': 'เจ้าหน้าที่ปฏิบัติงาน',
+            'time_create_sos': 'เวลาที่ได้รับแจ้ง',
+            'time_command': 'เวลาที่สั่งการ',
+            'time_go_to_help': 'เวลาที่กำลังไปช่วยเหลือ',
+            'time_to_the_scene': 'เวลาที่ถึงที่เกิดเหตุ',
+            'time_sos_success': 'เวลาที่เสร็จสิ้น (Success)',
+            'time_sum_sos': 'ระยะเวลารวม (Text)',
+            'calculated_response': 'เวลาตอบสนอง (นาที)',
+            'remark_by_helper': 'หมายเหตุจากผู้ช่วย'
+        };
+
+        // 2. สร้างหัวตารางภาษาไทย
+        const headers = Object.values(columnMapping);
+        const dataKeys = Object.keys(columnMapping);
+
+        // 3. จัดการข้อมูลแต่ละแถว
         const csvRows = filtered.map(row => {
-            const values = headers.map(header => {
-                let val = row.export_row[header];
+            // รวมข้อมูลทั้งหมดเข้าด้วยกันเพื่อให้ดึงง่าย
+            const combinedData = {
+                ...row.full_emergency,
+                ...row.full_operation,
+                ...row.extra_names
+            };
+
+            return dataKeys.map(key => {
+                let val = combinedData[key];
                 
-                // จัดการค่าว่าง
+                // จัดการค่า null / undefined
                 if (val === null || val === undefined) val = '';
                 
-                // ล้างเครื่องหมายคำพูดที่อาจทำให้ CSV พัง
+                // ล้างเครื่องหมายคำพูด
                 const escaped = String(val).replace(/"/g, '""');
                 return `"${escaped}"`;
-            });
-            return values.join(',');
+            }).join(',');
         });
 
-        // 3. รวมเนื้อหา (ใส่ BOM สำหรับ Excel ภาษาไทย)
+        // 4. กระบวนการดาวน์โหลด (ใส่ BOM สำหรับ Excel ภาษาไทย)
         const bom = "\uFEFF";
         const csvContent = bom + headers.join(',') + '\n' + csvRows.join('\n');
-        
-        // 4. ดาวน์โหลดไฟล์
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        const dateStr = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
-        
         link.setAttribute("href", url);
-        link.setAttribute("download", `รายงานเหตุฉุกเฉิน_${dateStr}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
+        link.setAttribute("download", `รายงานฉบับเต็ม_${new Date().getTime()}.csv`);
         link.click();
-        document.body.removeChild(link);
-
-        showToast(`ส่งออกข้อมูล ${filtered.length} รายการเสร็จสมบูรณ์`);
+        
+        showToast(`ส่งออก ${filtered.length} รายการสำเร็จ`);
     }
 </script>
 @endsection
