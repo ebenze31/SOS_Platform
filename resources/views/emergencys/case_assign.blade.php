@@ -294,7 +294,7 @@
                                 <div class="flex items-center gap-4 min-w-0">
                                     <div class="size-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border-2 border-white shadow-sm overflow-hidden">
                                         @if($officerPhoto)
-                                            <img src="{{ url('/storage') }}/{{ $officerPhoto }}" alt="Officer" class="w-full h-full object-cover" onerror="this.outerHTML='<span class=\'material-symbols-outlined text-[28px] text-blue-600\'>support_agent</span>'">
+                                            <img src="{{ url('/') }}/{{ $officerPhoto }}" alt="Officer" class="w-full h-full object-cover" onerror="this.outerHTML='<span class=\'material-symbols-outlined text-[28px] text-blue-600\'>support_agent</span>'">
                                         @else
                                             <span class="material-symbols-outlined text-[28px]">support_agent</span>
                                         @endif
