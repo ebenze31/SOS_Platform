@@ -40,7 +40,6 @@
                                 <h5 class="text-slate-600">{{ $emergency->emergency_detail }}</h5>
                             </div>
                             <div class="text-right bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
-                                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">เวลาที่ผ่านไป</div>
                                 <div id="timer-title" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">เวลาที่ผ่านไป</div>
                                 <div id="timer-wrapper" class="text-xl font-bold text-emerald-600 flex items-center gap-2 justify-end transition-colors duration-500">
                                     <span class="relative flex h-3 w-3">
@@ -1018,7 +1017,7 @@
                 let activeLog = null;
                 if (data.log_command && Array.isArray(data.log_command)) {
                     const logs = [...data.log_command].reverse();
-                    activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help' || l.status === 'accept' || l.status === 'on_way'));
+                    activeLog = logs.find(l => l.polyline && (l.status === 'go_to_help'));
                 }
 
                 if (activeLog) {
