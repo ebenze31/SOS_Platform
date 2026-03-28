@@ -1016,21 +1016,35 @@
                 }
 
                 if (currentOpStatus === 'ถึงที่เกิดเหตุ' || currentOpStatus === 'เสร็จสิ้น') {
-                    if (officerMarkerMap) officerMarkerMap.onRemove();
-                    if (directionsRenderer) directionsRenderer.setMap(null);
-                    if (startMarkerObj) startMarkerObj.onRemove();
-                    
                     const routingInfo = document.getElementById('routing-info-container');
                     const arrivedInfo = document.getElementById('arrived-info');
-                    if(routingInfo) routingInfo.classList.add('hidden');
-                    if(arrivedInfo) arrivedInfo.classList.remove('hidden');
+                    const successInfo = document.getElementById('success-info');
                     
-                    if(data.time_to_the_scene) {
-                        const time = new Date(data.time_to_the_scene).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
-                        document.getElementById('arrived-time-text').innerText = 'เวลา: ' + time + ' น.';
+                    // ซ่อนข้อมูลเส้นทางเสมอ เมื่อถึงที่เกิดเหตุหรือเสร็จสิ้นแล้ว
+                    if(routingInfo) routingInfo.classList.add('hidden');
+
+                    if (currentOpStatus === 'ถึงที่เกิดเหตุ') {
+                        // UI: โชว์ข้อมูลถึงที่เกิดเหตุ ซ่อนข้อมูลเสร็จสิ้น
+                        if(arrivedInfo) arrivedInfo.classList.remove('hidden'); 
+                        if(successInfo) successInfo.classList.add('hidden');    
+                        
+                        // Map: เคลียร์แผนที่ทั้งหมด
+                        if (officerMarkerMap) officerMarkerMap.onRemove();
+                        if (directionsRenderer) directionsRenderer.setMap(null);
+                        if (startMarkerObj) startMarkerObj.onRemove();
+                        isRouteDrawn = false; // รีเซ็ตเพื่อรอให้สถานะเสร็จสิ้นสามารถวาดเส้นประวัติศาสตร์ได้
+                        
+                        // อัปเดตเวลาถึงที่เกิดเหตุ
+                        if(data.time_to_the_scene) {
+                            const time = new Date(data.time_to_the_scene).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                            document.getElementById('arrived-time-text').innerText = 'เวลา: ' + time + ' น.';
+                        }
+                    } else if (currentOpStatus === 'เสร็จสิ้น') {
+                        // UI: โชว์ข้อมูลเสร็จสิ้น ซ่อนข้อมูลถึงที่เกิดเหตุ
+                        if(successInfo) successInfo.classList.remove('hidden'); 
+                        if(arrivedInfo) arrivedInfo.classList.add('hidden');    
                     }
                 }
-
             }
 
             // 2. จัดการข้อมูลคนปฏิเสธเคส
@@ -1295,17 +1309,23 @@
                 }
             }
 
-            // 6. จัดการสถานะ "เสร็จสิ้น"
+            // 6. จัดการสถานะ "เสร็จสิ้น" (วาดเส้นประวัติศาสตร์ + โชว์ข้อมูล)
             if (currentOpStatus === 'เสร็จสิ้น' || data.status === 'เสร็จสิ้น') {
 
+                // 1. เอาหมุดเจ้าหน้าที่ออก
                 if (officerMarkerMap) {
                     officerMarkerMap.onRemove();
                     officerMarkerMap = null;
                 }
 
-                const incidentPin = document.querySelector('.animate-ping');
-                if (incidentPin) incidentPin.classList.remove('animate-ping');
+                // 2. ปิดเส้นนำทางเดิมแบบ Realtime
+                if (directionsRenderer) directionsRenderer.setMap(null);
 
+                // 3. หยุดกระพริบหมุดจุดเกิดเหตุ
+                const incidentPing = document.querySelector('.animate-ping');
+                if (incidentPing) incidentPing.remove();
+
+                // 4. วาดเส้นทางประวัติศาสตร์จาก log_command
                 let activeLog = null;
                 if (data.log_command && Array.isArray(data.log_command)) {
                     const logs = [...data.log_command].reverse();
@@ -1313,13 +1333,15 @@
                     
                     const logWithDistance = logs.find(l => l.distance_text);
                     if (logWithDistance && logWithDistance.distance_text) {
-                        document.getElementById('tm-distance').innerText = logWithDistance.distance_text;
+                        const tmDistance = document.getElementById('tm-distance');
+                        if (tmDistance) tmDistance.innerText = logWithDistance.distance_text;
                     }
                 }
 
+                // วาดเส้นและปักหมุดเริ่มต้น หากยังไม่ได้วาด
                 if (activeLog && !isRouteDrawn) {
                     const decodedPath = google.maps.geometry.encoding.decodePath(activeLog.polyline);
-                    directionsRenderer.setMap(mapInstance);
+                    
                     const historyPolyline = new google.maps.Polyline({
                         path: decodedPath,
                         strokeColor: "#3b82f6",
@@ -1328,30 +1350,37 @@
                         map: mapInstance
                     });
 
-                    createStartFlag(activeLog.start_lat, activeLog.start_lng);
-
-                    const bounds = new google.maps.LatLngBounds();
-                    bounds.extend(new google.maps.LatLng(activeLog.start_lat, activeLog.start_lng));
-                    bounds.extend(incidentLatLng);
-                    mapInstance.fitBounds(bounds, { top: 80, bottom: 80, left: 80, right: 80 });
+                    if (activeLog.start_lat && activeLog.start_lng) {
+                        createStartFlag(activeLog.start_lat, activeLog.start_lng);
+                        
+                        const bounds = new google.maps.LatLngBounds();
+                        bounds.extend(new google.maps.LatLng(activeLog.start_lat, activeLog.start_lng));
+                        bounds.extend(incidentLatLng);
+                        mapInstance.fitBounds(bounds, { top: 80, bottom: 80, left: 80, right: 80 });
+                    }
                     
                     isRouteDrawn = true;
                 }
 
+                // 5. อัปเดตข้อมูล Text ในหน้าสรุป
                 document.getElementById('success-info').classList.remove('hidden');
 
                 function updateTimeAndDate(elementIdPrefix, dateString) {
+                    const timeEl = document.getElementById(`${elementIdPrefix}-time`);
+                    const dateEl = document.getElementById(`${elementIdPrefix}-date`);
+                    if (!timeEl || !dateEl) return;
+
                     if (!dateString) {
-                        document.getElementById(`${elementIdPrefix}-time`).innerText = '-';
-                        document.getElementById(`${elementIdPrefix}-date`).innerText = '-';
+                        timeEl.innerText = '-';
+                        dateEl.innerText = '-';
                         return;
                     }
                     const d = new Date(dateString);
                     if (isNaN(d)) return;
                     
                     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    document.getElementById(`${elementIdPrefix}-time`).innerText = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} น.`;
-                    document.getElementById(`${elementIdPrefix}-date`).innerText = `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                    timeEl.innerText = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} น.`;
+                    dateEl.innerText = `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
                 }
 
                 updateTimeAndDate('tm-create-sos', data.time_create_sos);
@@ -1360,8 +1389,10 @@
                 updateTimeAndDate('tm-at-scene', data.time_to_the_scene);
                 updateTimeAndDate('tm-success', data.time_sos_success);
 
-                document.getElementById('tm-sum').innerText = data.time_sum_sos || '-';
+                const tmSum = document.getElementById('tm-sum');
+                if (tmSum) tmSum.innerText = data.time_sum_sos || '-';
 
+                // อัปเดตรูปภาพ (ถ้ามี)
                 if (data.photo_by_officer) {
                     document.getElementById('no-img-officer').classList.add('hidden');
                     document.getElementById('img-officer').classList.remove('hidden');
@@ -1377,9 +1408,6 @@
                     document.getElementById('img-success').src = "{{ url('/storage') }}/" + data.photo_succeed;
                     document.getElementById('rm-success').innerText = data.remark_by_helper || 'ไม่มีหมายเหตุ';
                 }
-
-                const routingInfo = document.getElementById('routing-info-container');
-                if (routingInfo) routingInfo.classList.add('hidden');
             }
 
             // =========================================================

@@ -434,7 +434,6 @@ class User_officersController extends Controller
         return response()->json(['success' => false, 'message' => 'สถานะไม่ถูกต้อง'], 400);
     }
 
-    // เพิ่ม $id เข้ามาในพารามิเตอร์เพื่อรับค่าจาก Route {id}
     public function updateStatus_CaseSuccess(Request $request, $id) 
     {
         $lat = $request->input('lat');
@@ -442,29 +441,56 @@ class User_officersController extends Controller
         $remark = $request->input('remark');
         $user_id = auth()->id();
 
-        // 1. อัปเดตข้อมูลของ "เคสช่วยเหลือ" (ตาราง emergency_operations)
+        $operation = DB::table('emergency_operations')->where('emergency_id', $id)->first();
+        if (!$operation) {
+            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูลเคส']);
+        }
+
+        $photoPath = null;
+        // 1. จัดการอัปโหลดไฟล์รูปภาพ ถ้ามีแนบมา
+        if ($request->hasFile('photo_succeed')) {
+            $file = $request->file('photo_succeed');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/emergencys'), $filename);
+            $photoPath = 'uploads/emergencys/' . $filename;
+        }
+
+        // 2. คำนวณเวลารวม (Time Sum)
+        $timeSum = null;
+        if ($operation->time_create_sos) {
+            $created = Carbon::parse($operation->time_create_sos);
+            $diff = now()->diff($created);
+            $timeSum = $diff->format('%h ชม. %i นาที');
+        }
+
+        // อัปเดตข้อมูลของ "เคสช่วยเหลือ"
+        $updateCaseData = [
+            'status' => 'เสร็จสิ้น',
+            'remark_by_helper' => $remark,
+            'time_sos_success' => now(),
+            'time_sum_sos' => $timeSum
+        ];
+
+        // ถ้ามีรูปภาพให้เพิ่มเข้าไปใน Array อัปเดตด้วย
+        if ($photoPath) {
+            $updateCaseData['photo_succeed'] = $photoPath;
+        }
+
         DB::table('emergency_operations')
             ->where('emergency_id', $id)
-            ->update([
-                'status' => 'เสร็จสิ้น',
-                'remark_by_helper' => $remark,
-                'time_sos_success' => now()
-            ]);
+            ->update($updateCaseData);
 
-        // 2. อัปเดตสถานะของ "เจ้าหน้าที่" (ตาราง user_officers)
-        // บังคับเปลี่ยนสถานะกลับเป็นพร้อมปฏิบัติงานเสมอเมื่อจบเคส
-        $updateData = ['status' => 'Standby'];
-        
-        // อัปเดตพิกัดล่าสุดของเจ้าหน้าที่ถ้าอุปกรณ์มีการส่งพิกัดมาด้วยตอนกดปิดเคส
+        // อัปเดตสถานะของ "เจ้าหน้าที่"
+        $updateOfficerData = ['status' => 'Standby'];
         if (!empty($lat) && !empty($lng)) {
-            $updateData['lat'] = $lat;
-            $updateData['lng'] = $lng;
-            $updateData['last_update_location'] = now();
+            $updateOfficerData['lat'] = $lat;
+            $updateOfficerData['lng'] = $lng;
+            $updateOfficerData['last_update_location'] = now();
         }
 
         DB::table('user_officers')
             ->where('user_id', $user_id)
-            ->update($updateData);
+            ->update($updateOfficerData);
 
         return response()->json(['success' => true]);
     }
