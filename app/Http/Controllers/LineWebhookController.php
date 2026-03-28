@@ -66,6 +66,82 @@ class LineWebhookController extends Controller
     // Handlers
     // ==========================================
 
+    // private function postbackHandler($event)
+    // {
+    //     $this->Loading_Animation($event);
+
+    //     $dataString = $event['postback']['data'] ?? '';
+    //     parse_str($dataString, $parsedData);
+
+    //     // ตรวจสอบ action
+    //     if (isset($parsedData['action']) && $parsedData['action'] === 'accept') {
+            
+    //         $operationId = $parsedData['operation_id'] ?? null;
+    //         $lineUserId = $event['source']['userId'];
+
+    //         // ค้นหา User จากตาราง users ด้วย provider_id
+    //         $user = User::where('provider_id', $lineUserId)->first();
+
+    //         if ($user) {
+    //             // ค้นหาข้อมูลเจ้าหน้าที่จากตาราง user_officers ด้วย user_id
+    //             $officer = User_officer::where('user_id', $user->id)->first();
+
+    //             if ($officer) {
+    //                 // ดึงข้อมูลเคส (Operation)
+    //                 $operation = Emergency_operation::find($operationId);
+
+    //                 if ($operation) {
+    //                     // ป้องกันกรณีเคสถูกคนอื่นรับไปแล้ว หรือถูกยกเลิกไปแล้ว
+    //                     if ($operation->status !== 'สั่งการ') {
+    //                         $this->replyText($event['replyToken'], "ขออภัย เคสนี้ถูกดำเนินการไปแล้ว หรือไม่อยู่ในสถานะที่รับงานได้");
+    //                         return;
+    //                     }
+                        
+    //                     // --- อัปเดตตาราง emergency_operations ---
+    //                     $operation->waiting_reply = null;
+    //                     $operation->status = 'กำลังไปช่วยเหลือ';
+    //                     $operation->user_officers_id = $officer->id;
+    //                     $operation->time_go_to_help = now();
+
+    //                     // --- อัปเดตตาราง user_officers ---
+    //                     $officer->line_notified_at = now();
+    //                     $officer->save();
+
+    //                     // --- อัปเดตคอลัมน์ log_command ---
+    //                     $logs = json_decode($operation->log_command, true) ?? [];
+                        
+    //                     foreach ($logs as &$logItem) {
+    //                         // เช็ค Log ของเจ้าหน้าที่คนนี้ และสถานะยังเป็น pending หรือ no_respond
+    //                         if ($logItem['sendTo'] == $officer->id && in_array($logItem['status'], ['pending', 'no_respond'])) {
+    //                             $logItem['status'] = 'go_to_help';
+                                
+    //                             // เก็บเวลาที่กดรับงานจริงๆ ไว้ด้วย
+    //                             $logItem['time_accepted'] = now()->toIso8601String();
+                                
+    //                             // คำนวณเวลาที่ใช้ไป (sum_time) ตั้งแต่สั่งการจนถึงตอนกดรับ
+    //                             $startTime = strtotime($logItem['datetime']);
+    //                             $logItem['sum_time'] = time() - $startTime;
+    //                         }
+    //                     }
+                        
+    //                     $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
+    //                     $operation->save();
+
+    //                     // ส่ง Flex Message ตอบกลับไปยังเจ้าหน้าที่
+    //                     $this->replyFlexConfirm($event['replyToken'], $operation, $officer);
+
+    //                 } else {
+    //                     $this->replyText($event['replyToken'], "ขออภัย ไม่พบเคสนี้ในระบบ");
+    //                 }
+    //             } else {
+    //                 $this->replyText($event['replyToken'], "บัญชีของคุณยังไม่ได้ลงทะเบียนเจ้าหน้าที่");
+    //             }
+    //         } else {
+    //             $this->replyText($event['replyToken'], "ไม่พบข้อมูลผู้ใช้งานของคุณในระบบ กรุณาล็อกอินผ่าน LINE ในระบบหลัก");
+    //         }
+    //     }
+    // }
+
     private function postbackHandler($event)
     {
         $this->Loading_Animation($event);
@@ -73,72 +149,92 @@ class LineWebhookController extends Controller
         $dataString = $event['postback']['data'] ?? '';
         parse_str($dataString, $parsedData);
 
-        // ตรวจสอบ action
-        if (isset($parsedData['action']) && $parsedData['action'] === 'accept') {
-            
-            $operationId = $parsedData['operation_id'] ?? null;
-            $lineUserId = $event['source']['userId'];
+        if (!isset($parsedData['action'])) {
+            return;
+        }
 
-            // ค้นหา User จากตาราง users ด้วย provider_id
-            $user = User::where('provider_id', $lineUserId)->first();
+        $operationId = $parsedData['operation_id'] ?? null;
+        $lineUserId = $event['source']['userId'];
 
-            if ($user) {
-                // ค้นหาข้อมูลเจ้าหน้าที่จากตาราง user_officers ด้วย user_id
-                $officer = User_officer::where('user_id', $user->id)->first();
+        // ค้นหา User และ Officer จาก Provider ID
+        $user = User::where('provider_id', $lineUserId)->first();
+        if (!$user) {
+            $this->replyText($event['replyToken'], "ไม่พบข้อมูลผู้ใช้งานของคุณในระบบ");
+            return;
+        }
 
-                if ($officer) {
-                    // ดึงข้อมูลเคส (Operation)
-                    $operation = Emergency_operation::find($operationId);
+        $officer = User_officer::where('user_id', $user->id)->first();
+        if (!$officer) {
+            $this->replyText($event['replyToken'], "บัญชีของคุณยังไม่ได้ลงทะเบียนเจ้าหน้าที่");
+            return;
+        }
 
-                    if ($operation) {
-                        // ป้องกันกรณีเคสถูกคนอื่นรับไปแล้ว หรือถูกยกเลิกไปแล้ว
-                        if ($operation->status !== 'สั่งการ') {
-                            $this->replyText($event['replyToken'], "ขออภัย เคสนี้ถูกดำเนินการไปแล้ว หรือไม่อยู่ในสถานะที่รับงานได้");
-                            return;
-                        }
-                        
-                        // --- อัปเดตตาราง emergency_operations ---
-                        $operation->waiting_reply = null;
-                        $operation->status = 'กำลังไปช่วยเหลือ';
-                        $operation->user_officers_id = $officer->id;
-                        $operation->time_go_to_help = now();
+        $operation = Emergency_operation::find($operationId);
+        if (!$operation) {
+            $this->replyText($event['replyToken'], "ขออภัย ไม่พบเคสนี้ในระบบ");
+            return;
+        }
 
-                        // --- อัปเดตตาราง user_officers ---
-                        $officer->line_notified_at = now();
-                        $officer->save();
-
-                        // --- อัปเดตคอลัมน์ log_command ---
-                        $logs = json_decode($operation->log_command, true) ?? [];
-                        
-                        foreach ($logs as &$logItem) {
-                            // เช็ค Log ของเจ้าหน้าที่คนนี้ และสถานะยังเป็น pending หรือ no_respond
-                            if ($logItem['sendTo'] == $officer->id && in_array($logItem['status'], ['pending', 'no_respond'])) {
-                                $logItem['status'] = 'go_to_help';
-                                
-                                // เก็บเวลาที่กดรับงานจริงๆ ไว้ด้วย
-                                $logItem['time_accepted'] = now()->toIso8601String();
-                                
-                                // คำนวณเวลาที่ใช้ไป (sum_time) ตั้งแต่สั่งการจนถึงตอนกดรับ
-                                $startTime = strtotime($logItem['datetime']);
-                                $logItem['sum_time'] = time() - $startTime;
-                            }
-                        }
-                        
-                        $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
-                        $operation->save();
-
-                        // ส่ง Flex Message ตอบกลับไปยังเจ้าหน้าที่
-                        $this->replyFlexConfirm($event['replyToken'], $operation, $officer);
-
-                    } else {
-                        $this->replyText($event['replyToken'], "ขออภัย ไม่พบเคสนี้ในระบบ");
-                    }
-                } else {
-                    $this->replyText($event['replyToken'], "บัญชีของคุณยังไม่ได้ลงทะเบียนเจ้าหน้าที่");
-                }
-            } else {
-                $this->replyText($event['replyToken'], "ไม่พบข้อมูลผู้ใช้งานของคุณในระบบ กรุณาล็อกอินผ่าน LINE ในระบบหลัก");
+        // กรณีเจ้าหน้าที่กดรับงาน (Accept)
+        if ($parsedData['action'] === 'accept') {
+            if ($operation->status !== 'สั่งการ') {
+                $this->replyText($event['replyToken'], "ขออภัย เคสนี้ถูกดำเนินการไปแล้ว");
+                return;
             }
+
+            $operation->waiting_reply = null;
+            $operation->status = 'กำลังไปช่วยเหลือ';
+            $operation->user_officers_id = $officer->id;
+            $operation->time_go_to_help = now();
+
+            $officer->line_notified_at = now();
+            $officer->save();
+
+            $logs = json_decode($operation->log_command, true) ?? [];
+            foreach ($logs as &$logItem) {
+                if ($logItem['sendTo'] == $officer->id && in_array($logItem['status'], ['pending', 'no_respond'])) {
+                    $logItem['status'] = 'go_to_help';
+                    $logItem['time_accepted'] = now()->toIso8601String();
+                    $startTime = strtotime($logItem['datetime']);
+                    $logItem['sum_time'] = time() - $startTime;
+                }
+            }
+            
+            $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
+            $operation->save();
+
+            $this->replyFlexConfirm($event['replyToken'], $operation, $officer);
+        } 
+        // กรณีเจ้าหน้าที่กดปฏิเสธงาน (Reject)
+        elseif ($parsedData['action'] === 'reject') {
+            if ($operation->status !== 'สั่งการ' || $operation->waiting_reply != $officer->id) {
+                $this->replyText($event['replyToken'], "ขออภัย คุณไม่สามารถปฏิเสธเคสนี้ได้ในขณะนี้");
+                return;
+            }
+
+            // อัปเดตตาราง operations ล้างค่าคนรอตอบรับ และเพิ่มรายชื่อในคนปฏิเสธ
+            $operation->waiting_reply = null;
+            $refuseList = json_decode($operation->officer_refuse, true) ?? [];
+            if (!in_array($officer->id, $refuseList)) {
+                $refuseList[] = $officer->id;
+            }
+            $operation->officer_refuse = json_encode($refuseList);
+
+            // อัปเดต log_command เป็น reject
+            $logs = json_decode($operation->log_command, true) ?? [];
+            foreach ($logs as &$logItem) {
+                if ($logItem['sendTo'] == $officer->id && $logItem['status'] === 'pending') {
+                    $logItem['status'] = 'reject';
+                    $logItem['time_rejected'] = now()->toIso8601String();
+                    $startTime = strtotime($logItem['datetime']);
+                    $logItem['sum_time'] = time() - $startTime;
+                }
+            }
+
+            $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
+            $operation->save();
+
+            $this->replyText($event['replyToken'], "รับทราบครับ คุณได้ทำการปฏิเสธเคสเรียบร้อยแล้ว");
         }
     }
 

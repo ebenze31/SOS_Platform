@@ -806,7 +806,6 @@ class EmergencysController extends Controller
 
     public function updateRouteLog(Request $request, $id)
     {
-        // ค้นหา Operation โดยใช้ emergency_id
         $operation = Emergency_operation::where('emergency_id', $id)->first();
         
         if (!$operation) {
@@ -816,15 +815,17 @@ class EmergencysController extends Controller
         $logs = json_decode($operation->log_command, true) ?? [];
         $isUpdated = false;
 
-        // วนลูปจากอันล่าสุด เพื่อหา Log ที่ต้องการบันทึกพิกัดเส้นทาง
         for ($i = count($logs) - 1; $i >= 0; $i--) {
-
-            if (in_array($logs[$i]['status'], ['go_to_help'])) {
+            // ตรวจสอบสถานะที่เกี่ยวข้องกับการรับงานและการเดินทางเพื่อบันทึกพิกัดเริ่มต้นและเส้นทาง
+            if (isset($logs[$i]['status']) && in_array($logs[$i]['status'], ['accept', 'pending', 'go_to_help'])) {
+                
                 $logs[$i]['start_lat'] = $request->start_lat;
                 $logs[$i]['start_lng'] = $request->start_lng;
                 $logs[$i]['distance_text'] = $request->distance_text;
                 $logs[$i]['duration_text'] = $request->duration_text;
                 $logs[$i]['polyline'] = $request->polyline;
+                
+                $logs[$i]['status'] = 'go_to_help';
                 
                 $isUpdated = true;
                 break;
@@ -833,10 +834,15 @@ class EmergencysController extends Controller
 
         if ($isUpdated) {
             $operation->log_command = json_encode($logs, JSON_UNESCAPED_UNICODE);
+            
+            // บันทึกพิกัดจุดเริ่มต้นหลักของ Operation เพื่อใช้ในการคำนวณระยะทางคงที่
+            $operation->start_lat = $request->start_lat;
+            $operation->start_lng = $request->start_lng;
+            
             $operation->save();
             return response()->json(['success' => true]);
         }
 
-        return response()->json(['success' => false, 'message' => 'ไม่พบสถานะ Log ที่รอการอัปเดตเส้นทาง']);
+        return response()->json(['success' => false, 'message' => 'ไม่พบสถานะที่อนุญาตให้อัปเดตเส้นทาง']);
     }
 }

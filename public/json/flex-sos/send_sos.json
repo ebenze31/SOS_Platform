@@ -177,9 +177,9 @@
         "justifyContent": "center",
         "height": "9%",
         "action": {
-          "type": "message",
-          "label": "decline",
-          "text": "decline"
+          "type": "postback",
+          "label": "Reject",
+          "data": "action=reject&operation_id={operation_id}"
         },
         "offsetStart": "4%"
       },

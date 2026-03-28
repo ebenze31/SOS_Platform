@@ -1353,11 +1353,11 @@
     }
 
     function drawRouteToIncident(startLat, startLng) {
-        if (!CustomMarker || !mapInstance || isRouteDrawn) return;
+        if (!mapInstance || isRouteDrawn) return;
         
         const startLatLng = new google.maps.LatLng(startLat, startLng);
-        createStartFlag(startLat, startLng);
 
+        // ดึงข้อมูลเส้นทางจาก Google Maps Directions Service
         directionsService.route({
             origin: startLatLng,
             destination: incidentLatLng,
@@ -1370,17 +1370,15 @@
                 const leg = response.routes[0].legs[0];
                 const polyline = response.routes[0].overview_polyline; 
                 
-                const distanceText = document.getElementById('distance-text');
-                const durationText = document.getElementById('duration-text');
-                if(distanceText) distanceText.innerText = leg.distance.text;
-                if(durationText) durationText.innerText = leg.duration.text;
-                
-                const bounds = new google.maps.LatLngBounds();
-                bounds.extend(incidentLatLng);
-                bounds.extend(startLatLng);
-                mapInstance.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+                // อัปเดตข้อมูลระยะทางและเวลาที่คาดว่าจะใช้ไปยัง UI
+                if(document.getElementById('distance-text')) {
+                    document.getElementById('distance-text').innerText = leg.distance.text;
+                }
+                if(document.getElementById('duration-text')) {
+                    document.getElementById('duration-text').innerText = leg.duration.text;
+                }
 
-                // ยิงอัปเดตไปเก็บลง Log ทันทีที่คำนวณเส้นทางเสร็จ
+                // ส่งข้อมูลพิกัดเริ่มต้นและ Polyline ไปบันทึกลง log_command ผ่าน API
                 fetch(`{{ url('/api/emergency') }}/${emergencyId}/update-route-log`, {
                     method: 'POST',
                     headers: {
@@ -1390,20 +1388,20 @@
                     body: JSON.stringify({
                         start_lat: startLat,
                         start_lng: startLng,
-                        incident_lat: incidentLatLng.lat(),
-                        incident_lng: incidentLatLng.lng(),
                         distance_text: leg.distance.text,
-                        distance_value: leg.distance.value,
                         duration_text: leg.duration.text,
-                        duration_value: leg.duration.value,
                         polyline: polyline
                     })
-                }).catch(err => console.error('Error saving route to log:', err));
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(!data.success) console.error('Log update failed:', data.message);
+                })
+                .catch(err => console.error('API Error:', err));
             }
         });
     }
 </script>
 
-{{-- === อัปเดต URL นำเข้า Google Maps ต้องมี libraries=marker,geometry === --}}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initAssignMap&libraries=marker,geometry" async defer></script>
 @endsection
