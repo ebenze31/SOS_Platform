@@ -112,7 +112,16 @@
                             if($status == 'สั่งการ') $badgeClass = 'bg-amber-100 text-amber-700 border-amber-200';
                             elseif($status == 'กำลังไปช่วยเหลือ') $badgeClass = 'bg-orange-100 text-orange-700 border-orange-200';
                             elseif($status == 'ถึงที่เกิดเหตุ') $badgeClass = 'bg-purple-100 text-purple-700 border-purple-200';
+                            
+                            // ตรวจสอบการปฏิเสธ
+                            // decode ข้อมูล json จากคอลัมน์ officer_refuse
+                            $refuseArray = json_decode($case->operation->officer_refuse ?? '[]', true);
+                            $hasRefuse = is_array($refuseArray) && count($refuseArray) > 0;
+                            
+                            // เช็คว่า ณ ตอนนี้ไม่มีใครที่กำลังรอการตอบรับ (waiting_reply เป็น null หรือว่าง)
+                            $isNotWaiting = empty($case->operation->waiting_reply);
                         @endphp
+                        
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded border {{ $badgeClass }}">
                             {{ $status }}
                         </span>
