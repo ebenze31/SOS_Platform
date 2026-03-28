@@ -738,52 +738,55 @@
     const startTime = new Date(sosTime).getTime();
     
     function updateTimer() {
-        const now = new Date().getTime();
-        const distance = now - startTime;
-        if (distance < 0) return;
 
-        const totalMinutes = Math.floor(distance / (1000 * 60));
-
-        // 1. จัดการเรื่องสี
         const wrapper = document.getElementById("timer-wrapper");
         const ping = document.getElementById("timer-ping");
         const dot = document.getElementById("timer-dot");
-
-        wrapper.classList.remove("text-emerald-600", "text-orange-500", "text-red-600");
-        if (ping) ping.classList.remove("bg-emerald-400", "bg-orange-400", "bg-red-400");
-        if (dot) dot.classList.remove("bg-emerald-500", "bg-orange-500", "bg-red-500");
-
-        console.log(totalMinutes);
-
-        if (totalMinutes < 8) {
-            wrapper.classList.add("text-emerald-600");
-            if (ping) ping.classList.add("bg-emerald-400");
-            if (dot) dot.classList.add("bg-emerald-500");
-        } else if (totalMinutes < 12) {
-            wrapper.classList.add("text-orange-500");
-            if (ping) ping.classList.add("bg-orange-400");
-            if (dot) dot.classList.add("bg-orange-500");
-        } else {
-            wrapper.classList.add("text-red-600");
-            if (ping) ping.classList.add("bg-red-400");
-            if (dot) dot.classList.add("bg-red-500");
-        }
-
-        // 2. เช็คสถานะเสร็จสิ้น
+        const sumText = document.getElementById('tm-sum')?.innerText;
+        const elapsedTimeEl = document.getElementById("elapsed-time");
+        
+        // หากสถานะเสร็จสิ้นแล้ว ให้หยุดนับเวลาและดึงข้อมูลสรุปมาแสดงแทน
         if (currentOpStatus === 'เสร็จสิ้น') {
             const titleEl = document.getElementById('timer-title');
             if (titleEl) titleEl.innerText = 'ใช้เวลาสุทธิ';
             
-            if (ping) ping.classList.add('hidden'); // ซ่อนจุดกระพริบ
+            const pingEl = document.getElementById('timer-ping');
+            if (pingEl) pingEl.classList.add('hidden'); 
             
-            const sumText = document.getElementById('tm-sum')?.innerText;
             if (sumText && sumText !== '-') {
-                document.getElementById("elapsed-time").innerText = sumText;
+                if (elapsedTimeEl) elapsedTimeEl.innerText = sumText;
             }
-            return;
+
+            // ล้าง Class สีเดิมออกก่อน
+            const allColors = [
+                "text-emerald-600", "bg-emerald-400", "bg-emerald-500",
+                "text-orange-500", "bg-orange-400", "bg-orange-500",
+                "text-red-600", "bg-red-400", "bg-red-500"
+            ];
+            [wrapper, ping, dot].forEach(el => el?.classList.remove(...allColors));
+
+            // เช็คเงื่อนไขเวลา (check_sum คือนาทีที่คำนวณมา)
+            if (check_sum < 8) {
+                wrapper.classList.add("text-emerald-600");
+                ping.classList.add("bg-emerald-400");
+                dot.classList.add("bg-emerald-500");
+            } else if (check_sum < 12) {
+                wrapper.classList.add("text-orange-500");
+                ping.classList.add("bg-orange-400");
+                dot.classList.add("bg-orange-500");
+            } else {
+                wrapper.classList.add("text-red-600");
+                ping.classList.add("bg-red-400");
+                dot.classList.add("bg-red-500");
+            }
+            return; 
         }
 
-        // 3. ถ้ายังไม่เสร็จ ให้คำนวณเวลาเดินต่อไปตามปกติ
+        const now = new Date().getTime();
+        const distance = now - startTime;
+        if (distance < 0) return;
+        
+        const totalMinutes = Math.floor(distance / (1000 * 60));
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -795,7 +798,26 @@
         if (days === 0 && hours === 0 && minutes === 0) timeString = "เพิ่งแจ้งเหตุ";
         
         document.getElementById("elapsed-time").innerHTML = timeString.trim();
+
         if (ping) ping.classList.remove("hidden");
+
+        wrapper.classList.remove("text-emerald-600", "text-orange-500", "text-red-600");
+        ping.classList.remove("bg-emerald-400", "bg-orange-400", "bg-red-400");
+        dot.classList.remove("bg-emerald-500", "bg-orange-500", "bg-red-500");
+
+        if (totalMinutes < 8) {
+            wrapper.classList.add("text-emerald-600");
+            ping.classList.add("bg-emerald-400");
+            dot.classList.add("bg-emerald-500");
+        } else if (totalMinutes < 12) {
+            wrapper.classList.add("text-orange-500");
+            ping.classList.add("bg-orange-400");
+            dot.classList.add("bg-orange-500");
+        } else {
+            wrapper.classList.add("text-red-600");
+            ping.classList.add("bg-red-400");
+            dot.classList.add("bg-red-500");
+        }
     }
 
     setInterval(updateTimer, 60000);
