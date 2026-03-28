@@ -1239,8 +1239,11 @@
             // 5. "ถึงที่เกิดเหตุ" และข้อมูลภาพถ่าย
             if (currentOpStatus === 'ถึงที่เกิดเหตุ' || data.status === 'ถึงที่เกิดเหตุ') {
                 
-                // เอาเส้นทางและหมุดเจ้าหน้าที่ออก
-                if (directionsRenderer) directionsRenderer.setMap(null);
+                // เอาเส้นทางและหมุดเจ้าหน้าที่ / หมุดจุดเริ่มต้นออก
+                if (directionsRenderer) {
+                    directionsRenderer.setMap(null);
+                    isRouteDrawn = false; // คลีนสถานะการวาดเส้น
+                }
                 if (officerMarkerMap) {
                     officerMarkerMap.onRemove();
                     officerMarkerMap = null;
@@ -1276,21 +1279,21 @@
                         let durationParts = [];
                         if (hours > 0) durationParts.push(hours + " ชม.");
                         if (minutes > 0) durationParts.push(minutes + " นาที");
-                        if (seconds > 0 || durationParts.length === 0) durationParts.push(seconds + " วินาที");
+                        if (seconds > 0 || durationParts.length === 0) durationParts.push(seconds + " วิ");
 
                         document.getElementById('travel-duration-text').innerText = durationParts.join(" ");
                     }
                 }
 
-                // แสดงรูปภาพและ Remark จากเจ้าหน้าที่
+                // แสดงรูปภาพและ Remark จากเจ้าหน้าที่ทันทีที่มีข้อมูลส่งมา
                 if (data.photo_by_officer) {
                     const photoBox = document.getElementById('officer-report-photo');
                     const imgTag = document.getElementById('img-from-officer');
                     const remarkTag = document.getElementById('remark-from-officer');
                     
-                    photoBox.classList.remove('hidden');
-                    imgTag.src = "{{ url('/storage') }}/" + data.photo_by_officer;
-                    remarkTag.innerText = data.remark_photo_by_officer || 'ไม่มีหมายเหตุ';
+                    if (photoBox) photoBox.classList.remove('hidden');
+                    if (imgTag) imgTag.src = "{{ url('/storage') }}/" + data.photo_by_officer;
+                    if (remarkTag) remarkTag.innerText = data.remark_photo_by_officer || 'ไม่มีหมายเหตุ';
                 }
             }
 
