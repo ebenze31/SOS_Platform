@@ -158,7 +158,7 @@
 
                     {{-- แสดง Badge แจ้งเตือนสีแดง เมื่อมีคนปฏิเสธและไม่มีคนรอตอบรับ --}}
                     @if($status == 'สั่งการ' && $hasRefuse && $isNotWaiting)
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded border bg-red-100 text-red-700 border-red-200 animate-pulse">
+                        <span class="inline-flex items-center mb-2 text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 animate-pulse">
                             <span class="flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[12px]">warning</span>
                                 ถูกปฏิเสธ ({{ count($refuseArray) }} )
