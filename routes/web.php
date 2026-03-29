@@ -59,8 +59,6 @@ Route::get('/demo/dashboard', function () {
     return view('demo/dashboard');
 });
 
-// หน้า monitor ควรมีปุ่มดูเคสทั้งหมดอยู่ด้านบนอีกไหม
-
 // หน้า Map ดำเนินการ เจ้าหน้าที่ปุ่มกล้องลอยทับ navbar
 // หน้า Map ดำเนินการ จัดการการแสดงผลหมุดและ map หลังเสร็จสิ้น
 

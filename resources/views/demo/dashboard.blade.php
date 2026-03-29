@@ -373,7 +373,8 @@
                 <span class="relative inline-flex w-2 h-2"><span class="live-dot absolute w-full h-full rounded-full bg-green-500"></span><span class="relative w-2 h-2 rounded-full bg-green-500"></span></span>
                 LIVE
               </div>
-              <button onclick="switchTab('cases')" class="text-xs text-blue-600 font-bold border border-blue-500/30 px-2 py-1 rounded-lg hover:bg-blue-600/5">ดูทั้งหมด</button>
+              <!-- <button onclick="switchTab('cases')" class="text-xs text-blue-600 font-bold border border-blue-500/30 px-2 py-1 rounded-lg hover:bg-blue-600/5">ดูทั้งหมด</button> -->
+              <a href="{{ url('/report/data_emergency') }}" class="text-xs text-blue-600 font-bold border border-blue-500/30 px-2 py-1 rounded-lg hover:bg-blue-600/5">ดูทั้งหมด</a>
             </div>
           </div>
           <div class="overflow-x-auto flex-1">
