@@ -235,7 +235,7 @@
                             <div class="h-32 w-32 rounded-full border-4 border-white dark:border-slate-800 shadow-md overflow-hidden">
                                 <img id="main-avatar" class="h-full w-full object-cover"
                                     src="{{ !empty($data_user->photo) 
-        ? asset('storage/' . $data_user->photo) 
+        ? asset($data_user->photo) 
         : 'https://ui-avatars.com/api/?name=' . urlencode($data_user->name) . '&background=e2e8f0&color=94a3b8&size=200&rounded=true'
     }}"
                                     alt="avatar">
@@ -374,7 +374,7 @@
                                         <div class="relative h-32 w-32 rounded-full border-4 border-slate-100 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-inner">
                                             <img id="modal-avatar-preview" class="h-full w-full object-cover"
                                                 src="{{ !empty($data_user->photo) 
-        ? asset('storage/' . $data_user->photo) 
+        ? asset($data_user->photo) 
         : 'https://ui-avatars.com/api/?name=' . urlencode($data_user->name) . '&background=e2e8f0&color=94a3b8&size=200&rounded=true'
     }}"
                                                 alt="avatar">
