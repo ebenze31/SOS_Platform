@@ -29,9 +29,9 @@
         "offsetBottom": "13%",
         "offsetStart": "5%",
         "action": {
-          "type": "message",
+          "type": "uri",
           "label": "action",
-          "text": "ลงทะเบียน"
+          "uri": "https://www.uat.viicheck.com/user_officers/scan?openExternalBrowser=1"
         }
       }
     ],

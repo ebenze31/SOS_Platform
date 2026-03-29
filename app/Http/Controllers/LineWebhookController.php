@@ -55,11 +55,38 @@ class LineWebhookController extends Controller
                 $this->messageHandler($event);
             }
             elseif ($eventType === 'follow') {
-                // $this->messageHello($event);
+                $this->messageHello($event);
             }
         }
 
         return response()->json(['status' => 'success'], 200);
+    }
+
+    private function messageHello($event)
+    {
+        $template_path = public_path('json/flex-sos/officer_register.json');
+        $string_json = file_get_contents($template_path);
+
+        $flexMessage = json_decode($string_json, true);
+
+        $url = 'https://api.line.me/v2/bot/message/reply';
+        $data = [
+            'replyToken' => $event['replyToken'],
+            'messages' => [ $flexMessage ]
+        ];
+
+        $headers = [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . env('CHANNEL_ACCESS_TOKEN')
+        ];
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_exec($ch);
+        curl_close($ch);
     }
 
     // ==========================================
