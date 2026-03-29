@@ -181,14 +181,9 @@ class UserController extends Controller
         $user->update($data);
 
         if($user->role == "officer"){
-            // อัปเดตข้อมูลรถ
             DB::table('user_officers')
-                ->update(
-                    ['user_id' => $id],
-                    [
-                        'vehicle_type' => $request->vehicle_type,
-                    ]
-                );
+                ->where('user_id', $id)
+                ->update(['vehicle_type' => $request->vehicle_type]);
         }
 
         return redirect()->back()->with('success', 'อัปเดตสำเร็จ');
