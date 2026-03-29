@@ -180,14 +180,16 @@ class UserController extends Controller
 
         $user->update($data);
 
-        // อัปเดตข้อมูลรถ
-        DB::table('user_officers')
-            ->updateOrInsert(
-                ['user_id' => $id],
-                [
-                    'vehicle_type' => $request->vehicle_type,
-                ]
-            );
+        if($user->role == "officer"){
+            // อัปเดตข้อมูลรถ
+            DB::table('user_officers')
+                ->updateOrInsert(
+                    ['user_id' => $id],
+                    [
+                        'vehicle_type' => $request->vehicle_type,
+                    ]
+                );
+        }
 
         return redirect()->back()->with('success', 'อัปเดตสำเร็จ');
     }
