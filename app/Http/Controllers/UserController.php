@@ -183,7 +183,7 @@ class UserController extends Controller
         if($user->role == "officer"){
             // อัปเดตข้อมูลรถ
             DB::table('user_officers')
-                ->updateOrInsert(
+                ->update(
                     ['user_id' => $id],
                     [
                         'vehicle_type' => $request->vehicle_type,
