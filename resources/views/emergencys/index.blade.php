@@ -54,10 +54,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex w-full md:w-auto flex-col sm:flex-row items-center gap-3 mt-3">
-                            <button onclick="checkGPSAndOpenModal()" class="flex w-full min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-white shadow-lg transition-all hover:bg-blue-700 active:scale-[0.98] order-1 sm:order-2">
-                                <span>ยืนยันและส่งข้อมูล</span>
-                                <span class="material-symbols-outlined text-lg">send</span>
+                        <div id="action-buttons-container" class="flex w-full md:w-auto flex-col sm:flex-row flex-wrap items-center gap-3 mt-3">
+                            <button disabled class="flex w-full min-w-[200px] cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-200 dark:bg-slate-800 px-8 py-3.5 text-base font-bold text-slate-400 dark:text-slate-500 shadow-sm transition-all order-1 sm:order-2">
+                                <span class="material-symbols-outlined animate-spin text-lg">refresh</span>
+                                <span>กำลังตรวจสอบพื้นที่...</span>
                             </button>
                         </div>
                     </div>
@@ -97,7 +97,9 @@
         <div class="relative w-full max-w-md bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 flex flex-col max-h-[90vh] transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
 
             <header class="shrink-0 px-3 py-3 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between rounded-t-2xl">
-                <h1 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">รายงานเหตุการณ์</h1>
+                <h1 id="area_display_alert" class="hidden text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                    พื้นที่: <span id="area_name_display"></span>
+                </h1>
                 <button onclick="closeModal()" type="button" class="h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-sm transition-colors">
                     <span class="material-symbols-outlined text-xl">close</span>
                 </button>
@@ -108,8 +110,10 @@
                 <input type="hidden" name="emergency_lat" id="lat_input" value="">
                 <input type="hidden" name="emergency_lng" id="lng_input" value="">
                 <input type="hidden" name="emergency_location" id="location_input" value="">
+                <input type="hidden" name="area_id" id="area_id_input" value="">
 
                 <section class="flex-1 overflow-y-auto px-5 py-2 custom-scrollbar">
+
                     <div class="grid grid-cols-1 gap-3">
                         
                         <div class="space-y-1.5">
@@ -331,11 +335,14 @@
     </script>
 
     {{-- Script Google Maps --}}
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initMap&libraries=places" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ env('MAP_API_KEY') }}&callback=initMap&libraries=places,geometry" async defer></script>
     <script>
         let map;
         let marker = null;
         let geocoder;
+
+        const areasData = @json($areas ?? []);
+        let mapPolygons = [];
 
         function initMap() {
             // ตั้งค่าเริ่มต้นเป็นประเทศไทย (ซูมระดับ 6)
@@ -350,6 +357,24 @@
 
             geocoder = new google.maps.Geocoder();
 
+            // สร้าง Polygon Objects ไว้ล่วงหน้าสำหรับการคำนวณ
+            areasData.forEach(area => {
+                let coords = [];
+                try {
+                    coords = typeof area.polygon === 'string' ? JSON.parse(area.polygon) : area.polygon;
+                } catch (e) {
+                    console.error("Invalid polygon data for area: ", area.id);
+                }
+
+                if (coords.length > 0) {
+                    mapPolygons.push({
+                        id: area.id,
+                        name: area.name_area,
+                        polygonObj: new google.maps.Polygon({ paths: coords })
+                    });
+                }
+            });
+
             document.getElementById('map-loading').style.display = 'none';
             
             // เริ่มต้นค้นหาพิกัด GPS ทันที
@@ -361,7 +386,7 @@
                 marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    draggable: true, // อนุญาตให้ลากขยับหมุดได้
+                    draggable: true,
                     animation: google.maps.Animation.DROP,
                 });
 
@@ -370,13 +395,100 @@
                     updateLocationData(pos.lat(), pos.lng());
                 });
             } else {
-                // ถ้ามีหมุดอยู่แล้ว แค่ย้ายตำแหน่ง
                 marker.setPosition(position);
             }
             
-            // อัปเดตข้อมูลพิกัดลงใน Input ซ่อน และแสดงข้อความ
-            updateLocationData(typeof position.lat === 'function' ? position.lat() : position.lat, 
-                               typeof position.lng === 'function' ? position.lng() : position.lng);
+            updateLocationData(
+                typeof position.lat === 'function' ? position.lat() : position.lat, 
+                typeof position.lng === 'function' ? position.lng() : position.lng
+            );
+        }
+
+        // เช็คพื้นที่และสร้างปุ่ม
+        function checkAreaIntersections(point) {
+            const btnContainer = document.getElementById('action-buttons-container');
+            btnContainer.innerHTML = ''; 
+
+            let matchedAreas = [];
+
+            // ตรวจสอบจุดว่าอยู่ใน Polygon ไหนบ้าง
+            mapPolygons.forEach(areaData => {
+                if (google.maps.geometry.poly.containsLocation(point, areaData.polygonObj)) {
+                    matchedAreas.push(areaData);
+                }
+            });
+
+            if (matchedAreas.length > 0) {
+                // วนลูปสร้างปุ่มตามจำนวนพื้นที่ที่ทับซ้อนกัน
+                matchedAreas.forEach(area => {
+                    const btn = document.createElement('button');
+                    btn.type = "button";
+                    btn.className = "flex w-full md:w-auto min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-blue-700 active:scale-[0.98]";
+                    // ส่งค่า id และ name เข้าไปในฟังก์ชันเปิด Modal
+                    btn.onclick = () => checkGPSAndOpenModal(area.id, area.name);
+                    btn.innerHTML = `
+                        <span class="truncate">${area.name}</span>
+                        <span class="material-symbols-outlined text-lg shrink-0">send</span>
+                    `;
+                    btnContainer.appendChild(btn);
+                });
+            } else {
+                // กรณีไม่อยู่ในเขตพื้นที่ใดเลย
+                btnContainer.innerHTML = `
+                    <button disabled type="button" class="flex w-full min-w-[200px] cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-200 dark:bg-slate-800 px-8 py-3.5 text-base font-bold text-slate-500 dark:text-slate-400 shadow-sm transition-all order-1 sm:order-2">
+                        <span class="material-symbols-outlined text-lg">location_off</span>
+                        <span>นอกเขตพื้นที่ให้บริการ</span>
+                    </button>
+                `;
+            }
+        }
+
+        function updateLocationData(lat, lng) {
+            document.getElementById('lat_input').value = lat;
+            document.getElementById('lng_input').value = lng;
+            
+            const statusText = document.getElementById('location-text');
+            statusText.textContent = `พิกัด: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+            const latlng = { lat: parseFloat(lat), lng: parseFloat(lng) };
+            const googlePoint = new google.maps.LatLng(latlng.lat, latlng.lng);
+            
+            // เรียกใช้ฟังก์ชันตรวจสอบพื้นที่
+            checkAreaIntersections(googlePoint);
+            
+            geocoder.geocode({ location: latlng })
+                .then((response) => {
+                    if (response.results[0]) {
+                        const address = response.results[0].formatted_address;
+                        document.getElementById('location_input').value = address;
+                        statusText.textContent = address; 
+                    } else {
+                        document.getElementById('location_input').value = `พิกัด: ${lat}, ${lng}`;
+                    }
+                })
+                .catch((e) => {
+                    console.log("Geocoder failed: " + e);
+                    document.getElementById('location_input').value = `พิกัด: ${lat}, ${lng}`;
+                });
+        }
+
+        // รับ Parameter เพิ่มเติมตอนกดปุ่ม
+        function checkGPSAndOpenModal(selectedAreaId = null, selectedAreaName = null) {
+            const lat = document.getElementById('lat_input').value;
+            const lng = document.getElementById('lng_input').value;
+
+            if (!lat || !lng || lat === "" || lng === "") {
+                openGpsAlertModal();
+            } else {
+                // เซ็ตค่าลง Input ฟอร์มและอัปเดตข้อความบน Modal
+                if (selectedAreaId) {
+                    document.getElementById('area_id_input').value = selectedAreaId;
+                    document.getElementById('area_display_alert').classList.remove('hidden');
+                    document.getElementById('area_name_display').innerText = selectedAreaName;
+                }
+                
+                openModal();
+            }
         }
 
         function getCurrentLocation() {
@@ -406,45 +518,6 @@
             } else {
                 // บราว์เซอร์เก่ามาก ไม่รองรับ GPS
                 statusText.textContent = "อุปกรณ์ของคุณไม่รองรับการระบุตำแหน่ง";
-            }
-        }
-
-        function updateLocationData(lat, lng) {
-            document.getElementById('lat_input').value = lat;
-            document.getElementById('lng_input').value = lng;
-            
-            const statusText = document.getElementById('location-text');
-            statusText.textContent = `พิกัด: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
-            const latlng = { lat: parseFloat(lat), lng: parseFloat(lng) };
-            
-            geocoder.geocode({ location: latlng })
-                .then((response) => {
-                    if (response.results[0]) {
-                        const address = response.results[0].formatted_address;
-                        document.getElementById('location_input').value = address;
-                        statusText.textContent = address; 
-                    } else {
-                        document.getElementById('location_input').value = `พิกัด: ${lat}, ${lng}`;
-                    }
-                })
-                .catch((e) => {
-                    console.log("Geocoder failed: " + e);
-                    document.getElementById('location_input').value = `พิกัด: ${lat}, ${lng}`;
-                });
-        }
-
-        // ตรวจสอบพิกัดก่อนเปิดฟอร์ม
-        function checkGPSAndOpenModal() {
-            const lat = document.getElementById('lat_input').value;
-            const lng = document.getElementById('lng_input').value;
-
-            if (!lat || !lng || lat === "" || lng === "") {
-                // ถ้าไม่มีพิกัด ให้เปิด Modal แจ้งเตือน
-                openGpsAlertModal();
-            } else {
-                // ถ้ามีพิกัดครบ ให้เปิด Modal ฟอร์มตามปกติ
-                openModal();
             }
         }
 

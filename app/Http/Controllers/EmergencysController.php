@@ -30,13 +30,14 @@ class EmergencysController extends Controller
     {
         $user = auth()->user();
 
+        $areas = Area::where('status', 'active')->get();
         $emergencyTypes = Emergency_type::where('status', 'Active')->get();
 
         $phoneEmergencies = Phone_emergency::where('status', 'Active')
             ->orderBy('priority', 'asc')
             ->get();
 
-        return view('emergencys.index', compact('user', 'emergencyTypes', 'phoneEmergencies'));
+        return view('emergencys.index', compact('user', 'emergencyTypes', 'phoneEmergencies', 'areas'));
     }
 
     /**
@@ -66,6 +67,7 @@ class EmergencysController extends Controller
             'emergency_detail' => 'required',
             'photo_cam' => 'nullable|image|mimes:jpeg,png,jpg,gif', 
             'photo_gal' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+            'area_id' => 'required',
         ]);
 
         DB::beginTransaction();
@@ -147,6 +149,7 @@ class EmergencysController extends Controller
             // บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
             $operation = new Emergency_operation();
             $operation->emergency_id = $emergency->id;
+            $operation->area_id = $request->area_id;
             $operation->status = 'รับแจ้งเหตุ';
             $operation->notify = "none";
             $operation->time_create_sos = Carbon::now();
@@ -481,7 +484,7 @@ class EmergencysController extends Controller
             $operation->operating_code = "{$datePrefix}-{$formattedAreaId}-{$runningNumber}";
             
             // บันทึกพื้นที่รับผิดชอบของเคสนี้ลงไปเพื่อใช้อ้างอิงในอนาคต
-            $operation->area_id = $areaIdForCode;
+            // $operation->area_id = $areaIdForCode;
         }
 
         // เพิ่มการส่งงานให้เจ้าหน้าที่คนใหม่ลงใน Log
