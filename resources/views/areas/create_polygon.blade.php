@@ -377,7 +377,7 @@
             // เพิ่มข้อมูลใหม่
             groups.forEach(group => {
                 const option = document.createElement('option');
-                option.value = group.groupId;
+                option.value = group.id;
                 option.textContent = group.groupName;
                 select.appendChild(option);
             });
