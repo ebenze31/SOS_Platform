@@ -86,17 +86,30 @@
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-sm font-bold text-slate-700 mb-1.5 text-xs">เวลาเริ่ม</label>
-                                                <input type="time" name="time_start_command" id="time_start_command"
-                                                       onclick="this.showPicker()"
-                                                       onchange="handleTimeChange()"
-                                                       class="w-full rounded-lg border-slate-200 bg-slate-50 p-2.5 text-sm focus:ring-primary focus:border-primary cursor-pointer">
+                                                <select name="time_start_command" id="time_start_command" onchange="handleTimeChange()"
+                                                        class="w-full rounded-lg border-slate-200 bg-slate-50 p-2.5 text-sm focus:ring-primary focus:border-primary cursor-pointer custom-scrollbar">
+                                                    <option value="">-- เลือกเวลา --</option>
+                                                    @php
+                                                        // ใช้ Blade สร้างช่วงเวลาทีละ 30 นาที (00:00 - 23:30)
+                                                        for ($h = 0; $h < 24; $h++) {
+                                                            echo '<option value="'.sprintf("%02d:00", $h).'">'.sprintf("%02d:00", $h).'</option>';
+                                                            echo '<option value="'.sprintf("%02d:30", $h).'">'.sprintf("%02d:30", $h).'</option>';
+                                                        }
+                                                    @endphp
+                                                </select>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-bold text-slate-700 mb-1.5 text-xs">เวลาสิ้นสุด</label>
-                                                <input type="time" name="time_end_command" id="time_end_command"
-                                                       onclick="this.showPicker()"
-                                                       onchange="validateEndTime()"
-                                                       class="w-full rounded-lg border-slate-200 bg-slate-50 p-2.5 text-sm focus:ring-primary focus:border-primary cursor-pointer">
+                                                <select name="time_end_command" id="time_end_command"
+                                                        class="w-full rounded-lg border-slate-200 bg-slate-50 p-2.5 text-sm focus:ring-primary focus:border-primary cursor-pointer custom-scrollbar disabled:opacity-50">
+                                                    <option value="">-- เลือกเวลา --</option>
+                                                    @php
+                                                        for ($h = 0; $h < 24; $h++) {
+                                                            echo '<option value="'.sprintf("%02d:00", $h).'">'.sprintf("%02d:00", $h).'</option>';
+                                                            echo '<option value="'.sprintf("%02d:30", $h).'">'.sprintf("%02d:30", $h).'</option>';
+                                                        }
+                                                    @endphp
+                                                </select>
                                             </div>
                                         </div>
 
@@ -448,36 +461,27 @@
     }
 
     function handleTimeChange() {
-        const startTime = document.getElementById('time_start_command').value;
-        const endTimeInput = document.getElementById('time_end_command');
+        const startSelect = document.getElementById('time_start_command');
+        const endSelect = document.getElementById('time_end_command');
+        const startValue = startSelect.value;
 
-        // เมื่อเปลี่ยนเวลาเริ่ม ให้ล้างค่าเวลาสิ้นสุดออกทันที
-        endTimeInput.value = "";
-        
-        // ตั้งค่า min ของเวลาสิ้นสุด ให้เท่ากับเวลาเริ่ม (บางเบราว์เซอร์จะช่วยล็อคให้)
-        if (startTime) {
-            endTimeInput.min = startTime;
-        }
-    }
+        // 1. เคลียร์ค่าเวลาสิ้นสุดทุกครั้งที่มีการเปลี่ยนเวลาเริ่ม
+        endSelect.value = "";
 
-    function validateEndTime() {
-        const startTime = document.getElementById('time_start_command').value;
-        const endTime = document.getElementById('time_end_command').value;
-        const endTimeInput = document.getElementById('time_end_command');
+        // 2. วนลูปเช็คตัวเลือก (Option) ในช่องเวลาสิ้นสุด
+        Array.from(endSelect.options).forEach(option => {
+            // ข้ามตัวเลือกที่เป็น "-- เลือกเวลา --"
+            if (option.value === "") return; 
 
-        if (!startTime && endTime) {
-            alert("กรุณาเลือกเวลาเริ่มก่อนกำหนดเวลาสิ้นสุด");
-            endTimeInput.value = "";
-            return;
-        }
-
-        if (startTime && endTime) {
-            // เปรียบเทียบเวลา (String "HH:mm" สามารถเปรียบเทียบตรงๆ ได้)
-            if (endTime <= startTime) {
-                alert("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มเสมอ");
-                endTimeInput.value = "";
+            // ถ้ามีการเลือกเวลาเริ่ม และ เวลาของ option นี้น้อยกว่าหรือเท่ากับเวลาเริ่ม
+            if (startValue && option.value <= startValue) {
+                option.disabled = true;                  // ปิดการคลิก
+                option.classList.add('text-slate-300');  // เปลี่ยนตัวหนังสือเป็นสีเทาอ่อน
+            } else {
+                option.disabled = false;                 // เปิดให้คลิกได้
+                option.classList.remove('text-slate-300'); // เอาสีเทาออก
             }
-        }
+        });
     }
 </script>
 

@@ -189,8 +189,10 @@ class AreasController extends Controller
         if ($request->auto_assign === 'Yes') {
             $area->auto_assign = 'Yes';
             $area->day_command = json_encode($request->day_command);
-            $area->time_start_command = $request->time_start_command;
-            $area->time_end_command = $request->time_end_command;
+            
+            $area->time_start_command = $request->time_start_command ? $request->time_start_command . ':00' : null;
+            $area->time_end_command   = $request->time_end_command ? $request->time_end_command . ':00' : null;
+            
             $area->groupID = $request->groupID;
         } else {
             $area->auto_assign = 'No';
@@ -205,7 +207,7 @@ class AreasController extends Controller
         }
 
         return redirect()->route('area.manage_area', $area->id)
-                         ->with('success', 'สร้างพื้นที่สำเร็จและมอบหมายสิทธิ์การจัดการให้ท่านเรียบร้อยแล้ว');
+                         ->with('success', 'สร้างพื้นที่เรียบร้อยแล้ว');
     }
 
     public function area_main(Request $request)
