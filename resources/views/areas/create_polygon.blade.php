@@ -107,7 +107,7 @@
                                                 <select name="groupID" id="groupID" class="flex-1 rounded-lg border-slate-200 bg-slate-50 p-3 text-sm focus:ring-primary focus:border-primary">
                                                     <option value="">-- เลือกกลุ่มไลน์ --</option>
                                                     @foreach($groups as $group)
-                                                        <option value="{{ $group->id }}">{{ $group->group_name }}</option>
+                                                        <option value="{{ $group->id }}">{{ $group->groupName }}</option>
                                                     @endforeach
                                                 </select>
                                                 <button type="button" onclick="refreshGroupLine()" class="bg-white border border-slate-200 p-2 rounded-lg hover:bg-slate-100 transition-colors shadow-sm" title="รีเฟรชข้อมูลกลุ่ม">
