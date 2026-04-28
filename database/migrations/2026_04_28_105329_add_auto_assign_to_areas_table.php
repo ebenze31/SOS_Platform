@@ -16,8 +16,8 @@ class AddAutoAssignToAreasTable extends Migration
         Schema::table('areas', function (Blueprint $table) {
             $table->string('auto_assign')->nullable();
             $table->string('day_command')->nullable();
-            $table->dateTime('time_start_command')->nullable();
-            $table->dateTime('time_end_command')->nullable();
+            $table->time('time_start_command')->nullable();
+            $table->time('time_end_command')->nullable();
             $table->string('groupID')->nullable();
             $table->longText('officer_priority')->nullable();
         });
