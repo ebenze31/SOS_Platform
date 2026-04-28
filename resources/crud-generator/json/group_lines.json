@@ -1,0 +1,32 @@
+{
+    "fields": [
+        {
+            "name": "groupId",
+            "type": "string"
+        },
+        {
+            "name": "groupName",
+            "type": "string"
+        },
+        {
+            "name": "pictureUrl",
+            "type": "longtext"
+        },
+        {
+            "name": "time_zone",
+            "type": "string"
+        },
+        {
+            "name": "language",
+            "type": "string"
+        },
+        {
+            "name": "area_id",
+            "type": "string"
+        },
+        {
+            "name": "status",
+            "type": "string"
+        }
+    ]
+}

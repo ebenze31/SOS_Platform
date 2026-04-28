@@ -130,13 +130,13 @@
                         
                         <a href="{{ url('/area/area_main') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-t-lg border-b border-slate-50 transition-colors">
                             <span class="material-symbols-outlined text-[18px]">format_list_bulleted</span> 
-                            พื้นที่ทั้งหมด
+                            การจัดการพื้นที่
                         </a>
                         
-                        <a href="{{ url('/area/create_polygon') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary border-b border-slate-50 transition-colors">
+                        <!-- <a href="{{ url('/area/create_polygon') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary border-b border-slate-50 transition-colors">
                             <span class="material-symbols-outlined text-[18px]">add_location</span> 
                             สร้างพื้นที่ใหม่
-                        </a>
+                        </a> -->
 
                         <a href="{{ url('/command/requests') }}" class="relative flex items-center justify-between px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary border-b border-slate-50 transition-colors overflow-hidden">
                             <div class="flex items-center gap-3">

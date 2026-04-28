@@ -175,3 +175,5 @@ Route::middleware(['auth'])->group(function () {
 Route::resource('data_organizations', 'Data_organizationsController');
 Route::resource('user_commands', 'User_commandsController');
 Route::resource('profile', 'UserController');
+
+Route::resource('group_lines', 'Group_linesController');

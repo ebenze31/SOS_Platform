@@ -1,7 +1,6 @@
 @extends('layouts.theme')
 
 @section('content')
-
 <div class="bg-background-light h-[calc(100vh-71.75px)] dark:bg-background-dark text-slate-900 flex flex-col relative mt-[71.75px] overflow-hidden">
     <div class="flex-1 bg-slate-50/50 p-4 sm:p-6 pb-4 sm:pb-6 z-0 flex flex-col">
         <div class="max-w-[1600px] w-full mx-auto flex flex-col h-full flex-1">
@@ -26,31 +25,116 @@
 
                         <h3 class="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 shrink-0">ข้อมูลพื้นที่</h3>
 
-                        <div class="space-y-5 flex-1 overflow-y-auto custom-scrollbar pr-2">
-                            <div>
-                                <label for="name_area" class="block text-sm font-bold text-slate-700 mb-1.5">ชื่อพื้นที่ <span class="text-red-500">*</span></label>
-                                <input type="text" name="name_area" id="name_area" required class="w-full rounded-lg border-slate-200 bg-slate-50 p-3 text-sm focus:ring-primary focus:border-primary placeholder:text-slate-400" placeholder="เช่น เขตเทศบาลเมือง, โซนนิคมอุตสาหกรรม...">
-                            </div>
+                        {{-- ส่วนที่ปรับแต่งเพื่อบังคับ Scroll --}}
+                        <div class="flex-1 relative min-h-0">
+                            <div class="absolute inset-0 overflow-y-auto custom-scrollbar pr-2">
+                                <div class="space-y-5 pb-2">
+                                    
+                                    <div>
+                                        <label for="name_area" class="block text-sm font-bold text-slate-700 mb-1.5">ชื่อพื้นที่ <span class="text-red-500">*</span></label>
+                                        <input type="text" name="name_area" id="name_area" required class="w-full rounded-lg border-slate-200 bg-slate-50 p-3 text-sm focus:ring-primary focus:border-primary placeholder:text-slate-400" >
+                                    </div>
 
-                            <input type="hidden" name="type" value="ทั่วไป">
+                                    <input type="hidden" name="type" value="ทั่วไป">
 
-                            <div>
-                                <label for="status" class="block text-sm font-bold text-slate-700 mb-1.5">สถานะ <span class="text-red-500">*</span></label>
-                                <select name="status" id="status" required class="w-full rounded-lg border-slate-200 bg-slate-50 p-3 text-sm focus:ring-primary focus:border-primary">
-                                    <option value="active" selected>เปิดใช้งาน (Active)</option>
-                                    <option value="inactive">ปิดใช้งานชั่วคราว (Inactive)</option>
-                                </select>
-                            </div>
+                                    <div>
+                                        <label for="status" class="block text-sm font-bold text-slate-700 mb-1.5">สถานะ <span class="text-red-500">*</span></label>
+                                        <select name="status" id="status" required class="w-full rounded-lg border-slate-200 bg-slate-50 p-3 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="active" selected>เปิดใช้งาน (Active)</option>
+                                            <option value="inactive">ปิดใช้งานชั่วคราว (Inactive)</option>
+                                        </select>
+                                    </div>
 
-                            <input type="hidden" name="polygon" id="polygon_data" required>
+                                    <div class="mt-6 border-t border-slate-100 pt-6">
+                                        <label class="block text-sm font-bold text-slate-700 mb-3">การรับเคสอัตโนมัติ (Auto Assign)</label>
+                                        <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="auto_assign" id="auto_assign" value="Yes" class="sr-only peer" onchange="toggleAutoAssignFields()">
+                                                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                                <span class="ml-3 text-sm font-medium text-slate-700">เปิดใช้งานเวลาเปิด/ปิดทำการ</span>
+                                            </label>
+                                        </div>
+                                    </div>
 
-                            <div id="polygon-status" class="hidden mt-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                                <div class="text-xs font-bold">วาดขอบเขตพื้นที่เรียบร้อยแล้ว</div>
+                                    {{-- ส่วนที่จะซ่อน/แสดง --}}
+                                    <div id="auto_assign_container" class="hidden space-y-5 mt-5 animate-fade-in">
+                                        
+                                        <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg">
+                                            <div class="flex gap-2 text-blue-700 mb-2">
+                                                <span class="material-symbols-outlined text-sm">info</span>
+                                                <p class="text-xs font-bold">ข้อมูลสำคัญ</p>
+                                            </div>
+                                            <p class="text-xs text-blue-600 leading-relaxed">
+                                                หากเปิดใช้งานเวลาเปิด/ปิดทำการ <b>จำเป็นต้องเลือกกลุ่มไลน์</b> ระบบจะส่งเคสเข้ากลุ่มไลน์ต่อเมื่อไม่มีเจ้าหน้าที่ที่เปิดรับเคสอัตโนมัติออนไลน์อยู่เท่านั้น (เรียงลำดับตาม Priority)
+                                            </p>
+                                        </div>
+
+                                        {{-- วันที่เปิดทำการ --}}
+                                        <div>
+                                            <label class="block text-sm font-bold text-slate-700 mb-2">วันทำการ</label>
+                                            <div class="grid grid-cols-4 gap-2">
+                                                @foreach(['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'] as $day)
+                                                    <label class="flex items-center justify-center p-2 border border-slate-200 rounded-lg text-xs cursor-pointer hover:bg-slate-100 has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary transition-all">
+                                                        <input type="checkbox" name="day_command[]" value="{{ $day }}" class="hidden">
+                                                        {{ $day }}
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        {{-- เวลาเปิด/ปิด --}}
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-bold text-slate-700 mb-1.5 text-xs">เวลาเริ่ม</label>
+                                                <input type="time" name="time_start_command" id="time_start_command"
+                                                       onclick="this.showPicker()"
+                                                       onchange="handleTimeChange()"
+                                                       class="w-full rounded-lg border-slate-200 bg-slate-50 p-2.5 text-sm focus:ring-primary focus:border-primary cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-bold text-slate-700 mb-1.5 text-xs">เวลาสิ้นสุด</label>
+                                                <input type="time" name="time_end_command" id="time_end_command"
+                                                       onclick="this.showPicker()"
+                                                       onchange="validateEndTime()"
+                                                       class="w-full rounded-lg border-slate-200 bg-slate-50 p-2.5 text-sm focus:ring-primary focus:border-primary cursor-pointer">
+                                            </div>
+                                        </div>
+
+                                        {{-- กลุ่มไลน์ --}}
+                                        <div>
+                                            <label for="groupID" class="block text-sm font-bold text-slate-700 mb-1.5">กลุ่มไลน์แจ้งเตือน <span class="text-red-500">*</span></label>
+                                            <div class="flex gap-2">
+                                                <select name="groupID" id="groupID" class="flex-1 rounded-lg border-slate-200 bg-slate-50 p-3 text-sm focus:ring-primary focus:border-primary">
+                                                    <option value="">-- เลือกกลุ่มไลน์ --</option>
+                                                    @foreach($groups as $group)
+                                                        <option value="{{ $group->id }}">{{ $group->group_name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <button type="button" onclick="refreshGroupLine()" class="bg-white border border-slate-200 p-2 rounded-lg hover:bg-slate-100 transition-colors shadow-sm" title="รีเฟรชข้อมูลกลุ่ม">
+                                                    <span class="material-symbols-outlined text-slate-600 block" id="refresh-icon">refresh</span>
+                                                </button>
+                                            </div>
+                                            <p class="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-xs">help</span>
+                                                กรุณาเชิญบอทเข้ากลุ่มไลน์ก่อนแล้วกดรีเฟรช
+                                            </p>
+                                        </div>
+
+                                        {{-- ลำดับเจ้าหน้าที่ (Priority) - ตัวอย่างเป็น Input ซ่อนไว้รับค่า Array --}}
+                                        <input type="hidden" name="officer_priority" id="officer_priority" value="[]">
+                                    </div>
+
+                                    <input type="hidden" name="polygon" id="polygon_data" required>
+
+                                    <div id="polygon-status" class="hidden mt-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                                        <div class="text-xs font-bold">วาดขอบเขตพื้นที่เรียบร้อยแล้ว</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="pt-6 mt-4 border-t border-slate-100 shrink-0">
+                        <div class="pt-6 mt-4 border-t border-slate-100 shrink-0 z-10 bg-white">
                             <button type="button" onclick="validateAndSubmit()" class="w-full py-3.5 bg-primary hover:bg-blue-600 text-white font-bold text-sm uppercase tracking-wide rounded-xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-transform transform hover:-translate-y-0.5">
                                 <span class="material-symbols-outlined text-[20px]">save</span>
                                 ยืนยันการสร้างพื้นที่
@@ -249,22 +333,151 @@
         }
     }
 
-    // ฟังก์ชันเช็คก่อน Submit
+    function toggleAutoAssignFields() {
+        const isChecked = document.getElementById('auto_assign').checked;
+        const container = document.getElementById('auto_assign_container');
+        const groupSelect = document.getElementById('groupID');
+
+        if (isChecked) {
+            container.classList.remove('hidden');
+            groupSelect.setAttribute('required', 'required');
+        } else {
+            container.classList.add('hidden');
+            groupSelect.removeAttribute('required');
+        }
+    }
+
+    async function refreshGroupLine() {
+        const icon = document.getElementById('refresh-icon');
+        const select = document.getElementById('groupID');
+        
+        // ใส่ Animation หมุนปุ่ม
+        icon.classList.add('animate-spin');
+        
+        try {
+            const response = await fetch("{{ url('/api/area/refreshGroupLine') }}");
+            const groups = await response.json();
+
+            // ล้างข้อมูลเดิม
+            select.innerHTML = '<option value="">-- เลือกกลุ่มไลน์ --</option>';
+
+            // เพิ่มข้อมูลใหม่
+            groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.group_name;
+                select.appendChild(option);
+            });
+
+            console.log('Groups updated');
+        } catch (error) {
+            alert('ไม่สามารถดึงข้อมูลกลุ่มไลน์ได้');
+            console.error(error);
+        } finally {
+            // หยุดการหมุน
+            setTimeout(() => icon.classList.remove('animate-spin'), 500);
+        }
+    }
+
     function validateAndSubmit() {
         const form = document.getElementById('areaForm');
         const polygonData = document.getElementById('polygon_data').value;
+        const nameArea = document.getElementById('name_area').value;
+        const status = document.getElementById('status').value;
+        
+        const autoAssign = document.getElementById('auto_assign').checked;
+        
+        // ดึงค่าสำหรับกรณีเปิด Auto Assign
+        const groupID = document.getElementById('groupID').value;
+        const startTime = document.getElementById('time_start_command').value;
+        const endTime = document.getElementById('time_end_command').value;
+        
+        // เช็คว่ามีการเลือกวันทำการหรือไม่ (เนื่องจากเป็น Array/Checkbox)
+        const dayCommands = document.querySelectorAll('input[name="day_command[]"]:checked');
 
-        if(!form.checkValidity()) {
-            form.reportValidity();
+        // --- ส่วนที่ 1: ตรวจสอบพื้นฐาน (ต้องมีไม่ว่าจะเปิดหรือปิด Auto Assign) ---
+        if (!nameArea.trim()) {
+            alert("กรุณาระบุชื่อพื้นที่");
+            document.getElementById('name_area').focus();
             return;
         }
 
-        if(polygonData === "" || polygonData === "[]") {
+        if (!status) {
+            alert("กรุณาเลือกสถานะ");
+            document.getElementById('status').focus();
+            return;
+        }
+
+        if (polygonData === "" || polygonData === "[]") {
             alert("กรุณาวาดขอบเขตพื้นที่บนแผนที่ก่อนบันทึก");
             return;
         }
 
+        // --- ส่วนที่ 2: ตรวจสอบกรณี "เปิดใช้งานเวลาเปิด/ปิดทำการ" (Auto Assign = Yes) ---
+        if (autoAssign) {
+            // 1. ตรวจสอบวันทำการ (ต้องเลือกอย่างน้อย 1 วัน)
+            if (dayCommands.length === 0) {
+                alert("กรุณาเลือกวันทำการอย่างน้อย 1 วัน");
+                return;
+            }
+
+            // 2. ตรวจสอบเวลาเริ่ม
+            if (!startTime) {
+                alert("กรุณาระบุเวลาเริ่มทำการ");
+                document.getElementById('time_start_command').focus();
+                return;
+            }
+
+            // 3. ตรวจสอบเวลาสิ้นสุด
+            if (!endTime) {
+                alert("กรุณาระบุเวลาสิ้นสุดทำการ");
+                document.getElementById('time_end_command').focus();
+                return;
+            }
+
+            // 4. ตรวจสอบกลุ่มไลน์
+            if (!groupID) {
+                alert("กรุณาเลือกกลุ่มไลน์ เนื่องจากคุณเปิดใช้งานการรับเคสอัตโนมัติ");
+                document.getElementById('groupID').focus();
+                return;
+            }
+        }
+
+        // หากผ่านทุกเงื่อนไข ให้ทำการ Submit
         form.submit();
+    }
+
+    function handleTimeChange() {
+        const startTime = document.getElementById('time_start_command').value;
+        const endTimeInput = document.getElementById('time_end_command');
+
+        // เมื่อเปลี่ยนเวลาเริ่ม ให้ล้างค่าเวลาสิ้นสุดออกทันที
+        endTimeInput.value = "";
+        
+        // ตั้งค่า min ของเวลาสิ้นสุด ให้เท่ากับเวลาเริ่ม (บางเบราว์เซอร์จะช่วยล็อคให้)
+        if (startTime) {
+            endTimeInput.min = startTime;
+        }
+    }
+
+    function validateEndTime() {
+        const startTime = document.getElementById('time_start_command').value;
+        const endTime = document.getElementById('time_end_command').value;
+        const endTimeInput = document.getElementById('time_end_command');
+
+        if (!startTime && endTime) {
+            alert("กรุณาเลือกเวลาเริ่มก่อนกำหนดเวลาสิ้นสุด");
+            endTimeInput.value = "";
+            return;
+        }
+
+        if (startTime && endTime) {
+            // เปรียบเทียบเวลา (String "HH:mm" สามารถเปรียบเทียบตรงๆ ได้)
+            if (endTime <= startTime) {
+                alert("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มเสมอ");
+                endTimeInput.value = "";
+            }
+        }
     }
 </script>
 

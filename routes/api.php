@@ -26,3 +26,5 @@ Route::post('/mark-notifications-alert', 'NotificationController@markAlert');
 Route::get('/emergency/tracking/{operation_id}', 'EmergencysController@trackingData');
 Route::get('/emergency/{emergency_id}/operation', 'EmergencysController@getOperationData');
 Route::post('/emergency/{emergency_id}/update-route-log', 'EmergencysController@updateRouteLog');
+
+Route::get('/area/refreshGroupLine', 'AreasController@get_groups_ajax');

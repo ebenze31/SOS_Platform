@@ -54,34 +54,44 @@
                     
                     <div class="p-2 grid grid-cols-1 xl:grid-cols-2 gap-6">
                         <div class="bg-slate-50/50 rounded-xl border border-slate-200 p-2">
-                            <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[16px]">person</span>
                                     ผู้แจ้งเหตุ
                                 </h3>
-                                <span class="text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">{{ $emergency->type_reporter }}</span>
+                                <a href="tel:{{ str_replace('-', '', $emergency->phone_reporter) }}" class="text-[12px] font-medium text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                                    <span class="text-[12px] material-symbols-outlined group-hover:animate-pulse">call</span>
+                                    โทรติดต่อ
+                                </a>
                             </div>
                             <div class="flex items-center justify-between gap-4 flex-wrap">
                                 <div>
-                                    <div class="text-xl font-bold text-slate-900">{{ $emergency->name_reporter }}</div>
-                                    <div class="text-sm text-slate-500">{{ $emergency->phone_reporter }}</div>
+                                    <div class="text-xl font-bold text-slate-900">
+                                        {{ $emergency->name_reporter }}
+                                    </div>
+                                    <div class="text-sm text-slate-500">
+                                        {{ $emergency->phone_reporter }}
+                                    </div>
+                                    <span class="text-sm text-slate-500">
+                                        {{ $emergency->type_reporter }}
+                                    </span>
                                 </div>
-                                <a href="tel:{{ str_replace('-', '', $emergency->phone_reporter) }}" class="flex items-center gap-2 px-4 py-2.5 max-sm:w-full max-sm:justify-center bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-lg hover:border-blue-500 hover:text-blue-600 hover:shadow-md transition-all group">
-                                    <span class="material-symbols-outlined text-[20px] group-hover:animate-pulse">call</span>
-                                    โทรติดต่อ
-                                </a>
                             </div>
                         </div>
 
                         <div class="bg-slate-50/50 rounded-xl border border-slate-200 p-2">
-                            <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[16px]">location_on</span>
-                                    สถานที่เกิดเหตุ
+                                    สถานที่เกิดเหตุ 
                                 </h3>
                             </div>
                             <div class="space-y-1">
-                                <div class="text-sm font-bold text-slate-900 leading-tight">{{ $emergency->emergency_location }}</div>
+                                <div class="text-sm">
+                                    <span class="font-bold text-slate-900 leading-tight">พื้นที่ : {{ $emergency->operation->area->name_area }}</span>
+                                    <br>
+                                    {{ $emergency->emergency_location }}
+                                </div>
                                 <div class="text-xs text-slate-500 font-mono mt-1">
                                     พิกัด: {{ number_format($emergency->emergency_lat, 5) }}, {{ number_format($emergency->emergency_lng, 5) }}
                                 </div>

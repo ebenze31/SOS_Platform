@@ -8,6 +8,7 @@ use App\Models\My_log;
 use App\Models\Emergency_operation;
 use App\Models\User_officer;
 use App\User;
+use Illuminate\Support\Facades\DB;
 
 class LineWebhookController extends Controller
 {
@@ -56,6 +57,9 @@ class LineWebhookController extends Controller
             }
             elseif ($eventType === 'follow') {
                 $this->messageHello($event);
+            }
+            elseif ($eventType === 'join') {
+                $this->groupJoinHandler($event);
             }
         }
 
@@ -168,6 +172,68 @@ class LineWebhookController extends Controller
     //         }
     //     }
     // }
+
+    protected function groupJoinHandler($event)
+    {
+        $groupId = $event['source']['groupId'] ?? null;
+        $replyToken = $event['replyToken'] ?? null;
+
+        if (!$groupId) return;
+
+        // 1. ดึงข้อมูลกลุ่มจาก LINE API (Group Summary)
+        $groupSummary = $this->getGroupSummary($groupId);
+
+        // 2. บันทึกหรืออัปเดตข้อมูลลงตาราง group_lines
+        // ใช้ updateOrInsert เพื่อป้องกันข้อมูลซ้ำถ้าบอทเคยเข้ากลุ่มนี้มาแล้ว
+        DB::table('group_lines')->updateOrInsert(
+            ['groupId' => $groupId],
+            [
+                'groupName'  => $groupSummary['groupName'] ?? 'ไม่ทราบชื่อกลุ่ม',
+                'pictureUrl' => $groupSummary['pictureUrl'] ?? null,
+                'status'     => 'active',
+                'area_id'    => null, 
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 3. ส่งข้อความสวัสดีและลิงก์ลงทะเบียน
+        $text = "สวัสดีครับ! บอทรับแจ้งเหตุ SOS พร้อมทำงานในกลุ่มนี้แล้ว 🛡️\n\n";
+        $text .= "คุณสามารถเลือกกลุ่มนี้ได้ในเมนู 'สร้างพื้นที่' บนเว็บไซต์ได้ทันทีครับ (หากไม่พบชื่อกลุ่ม ให้กดปุ่มรีเฟรชข้างช่องเลือกกลุ่ม)";
+
+        $this->replyMessage($replyToken, $text);
+    }
+
+    protected function getGroupSummary($groupId)
+    {
+        $channelToken = env('CHANNEL_ACCESS_TOKEN');
+        $url = "https://api.line.me/v2/bot/group/{$groupId}/summary";
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$channelToken}"
+        ])->get($url);
+
+        return $response->json();
+    }
+
+    protected function replyMessage($replyToken, $text)
+    {
+        $channelToken = env('CHANNEL_ACCESS_TOKEN');
+        $url = "https://api.line.me/v2/bot/message/reply";
+
+        Http::withHeaders([
+            'Authorization' => "Bearer {$channelToken}",
+            'Content-Type'  => 'application/json'
+        ])->post($url, [
+            'replyToken' => $replyToken,
+            'messages'   => [
+                [
+                    'type' => 'text',
+                    'text' => $text
+                ]
+            ]
+        ]);
+    }
 
     private function postbackHandler($event)
     {

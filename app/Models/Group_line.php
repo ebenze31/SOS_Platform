@@ -4,14 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Area extends Model
+class Group_line extends Model
 {
     /**
      * The database table used by the model.
      *
      * @var string
      */
-    protected $table = 'areas';
+    protected $table = 'group_lines';
 
     /**
     * The database primary key value.
@@ -25,10 +25,7 @@ class Area extends Model
      *
      * @var array
      */
-    protected $fillable = ['name_area', 'type', 'polygon', 'status', 'creator','auto_assign','day_command','time_start_command','time_end_command','groupID','officer_priority'];
+    protected $fillable = ['groupId', 'groupName', 'pictureUrl', 'time_zone', 'language', 'area_id', 'status','creator'];
 
-    public function operations()
-    {
-        return $this->hasMany(Emergency_operation::class, 'area_id', 'id');
-    }
+    
 }

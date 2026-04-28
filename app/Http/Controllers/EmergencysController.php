@@ -346,23 +346,14 @@ class EmergencysController extends Controller
         $emergency = Emergency::with('operation')->findOrFail($id);
         $incidentLat = $emergency->emergency_lat;
         $incidentLng = $emergency->emergency_lng;
+        
+        // ดึง Area ID ของจุดเกิดเหตุที่บันทึกมาตั้งแต่ตอนแจ้งเหตุ
+        $incidentAreaId = $emergency->area_id; 
 
-        // 2. ตรวจสอบว่าจุดเกิดเหตุอยู่ใน Area ใดบ้าง (Geofencing)
-        $areas = Area::where('status', 'active')->get(); 
-        $matchedAreaIds = [];
-        foreach ($areas as $area) {
-            $polygon = json_decode($area->polygon, true) ?? [];
-            if (!empty($polygon) && $this->isPointInPolygon($incidentLat, $incidentLng, $polygon)) {
-                $matchedAreaIds[] = (int)$area->id; 
-            }
-        }
-
-        $isOutOfArea = empty($matchedAreaIds);
-
-        // 3. ดึงข้อมูลเจ้าหน้าที่ "ทั้งหมด"
+        // 2. ดึงข้อมูลเจ้าหน้าที่ "ทั้งหมด"
         $allOfficers = User_officer::get();
 
-        // 4. จัดการคำนวณระยะทางและแยกกลุ่ม
+        // 3. เตรียม Collection สำหรับแยกกลุ่ม
         $officersInArea = collect();
         $officersOther = collect();
 
@@ -373,12 +364,24 @@ class EmergencysController extends Controller
             $distance = $this->calculateDistance($incidentLat, $incidentLng, $offLat, $offLng);
             $officer->distance_km = round($distance, 1);
 
-            // เช็คว่าเจ้าหน้าที่คนนี้ "อยู่ในพื้นที่เกิดเหตุ" หรือไม่ (เช็คจาก column area_id ใน DB)
-            $officerAreaIds = json_decode($officer->area_id, true) ?? [];
+            // 4. เช็คพื้นที่ของเจ้าหน้าที่
+            $officerAreaIds = [];
+            if (!empty($officer->area_id)) {
+                $decoded = json_decode($officer->area_id, true);
+                // ตรวจสอบว่าเก็บเป็น Array
+                $officerAreaIds = is_array($decoded) ? $decoded : [$officer->area_id];
+            }
             
-            // ตรวจสอบจุดตัดของ Array (ถ้ามีพื้นที่ตรงกันอย่างน้อยหนึ่งที่)
-            $hasMatchingArea = !empty(array_intersect($officerAreaIds, $matchedAreaIds));
+            // ตรวจสอบว่ามี Area ตรงกับจุดเกิดเหตุหรือไม่
+            $hasMatchingArea = false;
+            foreach ($officerAreaIds as $offAreaId) {
+                if ($offAreaId == $incidentAreaId) {
+                    $hasMatchingArea = true;
+                    break;
+                }
+            }
 
+            // 5. คัดแยกเข้ากลุ่ม
             if ($hasMatchingArea) {
                 $officersInArea->push($officer);
             } else {
@@ -386,17 +389,20 @@ class EmergencysController extends Controller
             }
         }
 
-        // 5. เรียงลำดับตามระยะทาง
+        // 6. เรียงลำดับตามระยะทางจากใกล้ไปไกล
         $officersInArea = $officersInArea->sortBy('distance_km')->values();
         $officersOther = $officersOther->sortBy('distance_km')->values();
 
-        // 6. ส่งตัวแปรไปที่หน้า View ให้ครบตามที่ Blade เรียกใช้
+        // ถ้าไม่มีเจ้าหน้าที่ในพื้นที่เลย ให้ถือว่า Out Of Area
+        $isOutOfArea = $officersInArea->isEmpty();
+
+        // 7. ส่งตัวแปรไปที่หน้า View
         return view('emergencys.case_assign', [
-            'emergency' => $emergency,
-            'isOutOfArea' => $isOutOfArea,
+            'emergency'      => $emergency,
+            'isOutOfArea'    => $isOutOfArea,
             'officersInArea' => $officersInArea,
-            'officersOther' => $officersOther,
-            'officers' => $allOfficers // Fallback สำหรับกรณีอื่นๆ
+            'officersOther'  => $officersOther,
+            'officers'       => $allOfficers
         ]);
     }
 
@@ -443,11 +449,8 @@ class EmergencysController extends Controller
         // สร้าง Operating Code หากยังไม่มี
         if (empty($operation->operating_code)) {
 
-            $areaIdForCode = 0;
-            $areasArray = json_decode($officer->area_id, true) ?? [];
-            if (!empty($areasArray)) {
-                $areaIdForCode = $areasArray[0]; 
-            }
+            // area_id จากตาราง emergency_operations
+            $areaIdForCode = $operation->area_id ?? 0; 
             
             // วันที่
             $datePrefix = now()->format('ymd');
@@ -459,7 +462,7 @@ class EmergencysController extends Controller
             $currentYear = now()->year;
             $currentMonth = now()->month;
 
-            // ค้นหาเคสล่าสุดของ "เดือนนี้" และ "พื้นที่นี้"
+            // ค้นหาเคสล่าสุดของ "เดือนนี้" และ "พื้นที่นี้" จากตารางตัวเอง
             $latestOperation = Emergency_operation::whereYear('created_at', $currentYear)
                 ->whereMonth('created_at', $currentMonth)
                 ->where('area_id', $areaIdForCode)
@@ -470,21 +473,18 @@ class EmergencysController extends Controller
             $runningNumberValue = 1; // ค่าเริ่มต้นถ้ายังไม่มีเคสเลยในเดือนนี้
 
             if ($latestOperation && !empty($latestOperation->operating_code)) {
-                // แยกข้อความ แล้วเอาตัวเลขชุดสุดท้ายมา +1
+                // แยกข้อความด้วย "-" แล้วเอาตัวเลขชุดสุดท้าย (index 2) มา +1
                 $parts = explode('-', $latestOperation->operating_code);
                 if (isset($parts[2])) {
                     $runningNumberValue = intval($parts[2]) + 1;
                 }
             }
             
-            // แปลงตัวเลขให้เป็น 4 หลัก
+            // แปลงตัวเลข Running ให้เป็น 4 หลัก (เช่น 1 จะได้ "0001")
             $runningNumber = str_pad($runningNumberValue, 4, '0', STR_PAD_LEFT);
             
-            // รวมโค้ด
+            // รวม operating_code
             $operation->operating_code = "{$datePrefix}-{$formattedAreaId}-{$runningNumber}";
-            
-            // บันทึกพื้นที่รับผิดชอบของเคสนี้ลงไปเพื่อใช้อ้างอิงในอนาคต
-            // $operation->area_id = $areaIdForCode;
         }
 
         // เพิ่มการส่งงานให้เจ้าหน้าที่คนใหม่ลงใน Log

@@ -9,6 +9,7 @@ use App\Models\Area;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\User_officer;
+use Illuminate\Support\Facades\DB;
 
 class AreasController extends Controller
 {
@@ -127,31 +128,84 @@ class AreasController extends Controller
     // เปิดหน้าฟอร์มวาดแผนที่
     public function create_polygon()
     {
-        return view('areas.create_polygon');
+        // ตรวจสอบสิทธิ์จากตาราง user_commands
+        $isSupervisor = DB::table('user_commands')
+            ->where('user_id', auth()->id())
+            ->where('command_role', 'supervisor')
+            ->exists();
+
+        if (!$isSupervisor) {
+            return redirect()->back()->with('error', 'ข้อผิดพลาด: เฉพาะผู้ดูแลระบบ (Supervisor) เท่านั้นที่สามารถสร้างพื้นที่ใหม่ได้');
+        }
+
+        $groups = DB::table('group_lines')
+                    ->whereNull('area_id')
+                    ->where('status', 'active')
+                    ->get();
+
+        return view('areas.create_polygon', compact('groups'));
+    }
+
+    public function get_groups_ajax()
+    {
+        $groups = DB::table('group_lines')
+                    ->whereNull('area_id')
+                    ->where('status', 'active')
+                    ->select('id', 'groupName')
+                    ->get();
+
+        return response()->json($groups);
     }
 
     // บันทึกข้อมูลลง DB
     public function store_polygon(Request $request)
     {
+        // 1. ตรวจสอบสิทธิ์ระดับ Supervisor
+        $isSupervisor = DB::table('user_commands')
+            ->where('user_id', auth()->id())
+            ->where('command_role', 'supervisor')
+            ->exists();
+
+        if (!$isSupervisor) {
+            abort(403, 'Unauthorized: Supervisor role required.');
+        }
+
         $request->validate([
             'name_area' => 'required|string|max:255',
             'type'      => 'required|string|max:100',
             'status'    => 'required|string',
             'polygon'   => 'required|json',
+            'groupID'   => 'required_if:auto_assign,Yes',
         ]);
 
-        // บันทึกลงตาราง areas
+        // 2. บันทึกลงตาราง areas
         $area = new Area();
         $area->name_area = $request->name_area;
         $area->type      = $request->type;
         $area->status    = $request->status;
         $area->polygon   = $request->polygon;
-        $area->creator = auth()->user()->id; 
+        $area->creator   = auth()->id();
+
+        if ($request->auto_assign === 'Yes') {
+            $area->auto_assign = 'Yes';
+            $area->day_command = json_encode($request->day_command);
+            $area->time_start_command = $request->time_start_command;
+            $area->time_end_command = $request->time_end_command;
+            $area->groupID = $request->groupID;
+        } else {
+            $area->auto_assign = 'No';
+        }
         $area->save();
 
-        // ส่งต่อไปหน้าแสดง QR Code สำหรับให้เจ้าหน้าที่สแกนลงทะเบียน
+        // 3. ผูกกลุ่มไลน์ (ถ้ามี)
+        if ($request->auto_assign === 'Yes' && $request->groupID) {
+            DB::table('group_lines')
+                ->where('id', $request->groupID)
+                ->update(['area_id' => $area->id, 'updated_at' => now()]);
+        }
+
         return redirect()->route('area.manage_area', $area->id)
-                         ->with('success', 'สร้างพื้นที่เรียบร้อยแล้ว');
+                         ->with('success', 'สร้างพื้นที่สำเร็จและมอบหมายสิทธิ์การจัดการให้ท่านเรียบร้อยแล้ว');
     }
 
     public function area_main(Request $request)
