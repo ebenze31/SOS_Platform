@@ -146,10 +146,21 @@ class AreasController extends Controller
         return view('areas.create_polygon', compact('groups'));
     }
 
-    public function get_groups_ajax()
+    public function get_groups_ajax(Request $request)
     {
+        // รับค่า area_id ที่ส่งมาจากหน้า manage_area (ถ้ามี)
+        $currentAreaId = $request->query('area_id');
+
         $groups = DB::table('group_lines')
-                    ->whereNull('area_id')
+                    ->where(function($query) use ($currentAreaId) {
+                        // เงื่อนไขที่ 1: กลุ่มที่ยังว่างอยู่
+                        $query->whereNull('area_id');
+                        
+                        // เงื่อนไขที่ 2: หรือเป็นกลุ่มที่ผูกกับพื้นที่นี้อยู่แล้ว (ถ้าส่ง currentAreaId มา)
+                        if ($currentAreaId) {
+                            $query->orWhere('area_id', $currentAreaId);
+                        }
+                    })
                     ->where('status', 'active')
                     ->select('id', 'groupName')
                     ->get();
@@ -210,53 +221,183 @@ class AreasController extends Controller
                          ->with('success', 'สร้างพื้นที่เรียบร้อยแล้ว');
     }
 
+    // public function area_main(Request $request)
+    // {
+    //     $query = Area::withCount('operations');
+
+    //     if ($request->has('search') && $request->search != '') {
+    //         $search = $request->search;
+    //         $query->where(function($q) use ($search) {
+    //             $q->where('name_area', 'like', '%' . $search . '%')
+    //               ->orWhere('type', 'like', '%' . $search . '%');
+    //         });
+    //     }
+
+    //     $areas = $query->orderBy('id', 'desc')->paginate(10);
+
+    //     return view('areas.area_main', compact('areas'));
+    // }
+
+    // public function manage_area($id)
+    // {
+    //     $area = Area::findOrFail($id);
+        
+    //     $registerUrl = route('user_officers.register', ['area_id' => $area->id]);
+
+    //     // ดึงข้อมูลเจ้าหน้าที่ที่อยู่ในพื้นที่
+    //     $officers = User_officer::whereJsonContains('area_id', (string)$area->id)
+    //                         ->orWhereJsonContains('area_id', (int)$area->id)
+    //                         ->get();
+
+    //     return view('areas.manage_area', compact('area', 'registerUrl', 'officers'));
+    // }
+
     public function area_main(Request $request)
     {
-        $query = Area::withCount('operations');
+        $user = auth()->user();
 
+        // 1. เช็คสิทธิ์ว่าเป็น Supervisor หรือไม่
+        $isSupervisor = DB::table('user_commands')
+            ->where('user_id', $user->id)
+            ->where('command_role', 'supervisor')
+            ->exists();
+
+        // 2. สร้าง Base Query: ดึง Area + Join หาชื่อกลุ่มไลน์
+        $query = Area::withCount('operations')
+            ->leftJoin('group_lines', 'areas.groupID', '=', 'group_lines.id')
+            ->select('areas.*', 'group_lines.groupName as group_name');
+
+        // 3. กรองข้อมูลตามสิทธิ์ (ถ้าระดับ Command ให้ดูได้เฉพาะ Area ตัวเอง)
+        if (!$isSupervisor) {
+            $allowedAreaIds = DB::table('user_commands')
+                ->where('user_id', $user->id)
+                ->where('command_role', 'command')
+                ->pluck('area_id');
+
+            $query->whereIn('areas.id', $allowedAreaIds);
+        }
+
+        // 4. ค้นหาข้อมูล (ต้องระบุ areas. นำหน้าเพื่อป้องกัน column ambiguity)
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name_area', 'like', '%' . $search . '%')
-                  ->orWhere('type', 'like', '%' . $search . '%');
+                $q->where('areas.name_area', 'like', '%' . $search . '%')
+                  ->orWhere('group_lines.groupName', 'like', '%' . $search . '%');
             });
         }
 
-        $areas = $query->orderBy('id', 'desc')->paginate(10);
+        $areas = $query->orderBy('areas.id', 'desc')->paginate(10);
 
-        return view('areas.area_main', compact('areas'));
+        return view('areas.area_main', compact('areas', 'isSupervisor'));
     }
 
     public function manage_area($id)
     {
         $area = Area::findOrFail($id);
-        
+        $user = auth()->user();
+
+        // --- ตรวจสอบสิทธิ์ ---
+        $userCommand = DB::table('user_commands')
+            ->where('user_id', $user->id)
+            ->where('area_id', $id)
+            ->first();
+
+        $isSupervisor = DB::table('user_commands')
+            ->where('user_id', $user->id)
+            ->where('command_role', 'supervisor')
+            ->exists();
+
+        // ถ้าไม่ใช่ supervisor และ ไม่มีสิทธิ์ในพื้นที่นี้ (ไม่ใช่ command ของพื้นที่นี้) ให้เตะออก
+        if (!$isSupervisor && (!$userCommand || $userCommand->command_role !== 'command')) {
+            return redirect()->back()->with('error', 'คุณไม่มีสิทธิ์เข้าถึงการจัดการพื้นที่นี้');
+        }
+
         $registerUrl = route('user_officers.register', ['area_id' => $area->id]);
 
-        // ดึงข้อมูลเจ้าหน้าที่ที่อยู่ในพื้นที่
+        // ดึงข้อมูลเจ้าหน้าที่
         $officers = User_officer::whereJsonContains('area_id', (string)$area->id)
-                            ->orWhereJsonContains('area_id', (int)$area->id)
-                            ->get();
+                                ->orWhereJsonContains('area_id', (int)$area->id)
+                                ->get();
 
-        return view('areas.manage_area', compact('area', 'registerUrl', 'officers'));
+        // ดึงกลุ่มไลน์: เอาที่ว่างอยู่ (area_id is null) หรือ กลุ่มที่ผูกกับพื้นที่นี้อยู่แล้ว
+        $groups = DB::table('group_lines')
+                    ->where(function($query) use ($area) {
+                        $query->whereNull('area_id')
+                              ->orWhere('area_id', $area->id);
+                    })
+                    ->where('status', 'active')
+                    ->get();
+
+        return view('areas.manage_area', compact('area', 'registerUrl', 'officers', 'groups'));
     }
+
+    // public function update_manage_area(Request $request, $id)
+    // {
+    //     $area = Area::findOrFail($id);
+
+    //     $request->validate([
+    //         'name_area' => 'required|string|max:255',
+    //         'status'    => 'required|string',
+    //         'polygon'   => 'required|json',
+    //     ]);
+
+    //     $area->name_area = $request->name_area;
+    //     $area->status    = $request->status;
+    //     $area->polygon   = $request->polygon;
+    //     $area->save();
+
+    //     return redirect()->back()->with('success', 'บันทึกการแก้ไขข้อมูลพื้นที่เรียบร้อยแล้ว');
+    // }
 
     public function update_manage_area(Request $request, $id)
     {
         $area = Area::findOrFail($id);
+        
+        // ตรวจสอบสิทธิ์ซ้ำอีกครั้ง (Security)
+        $isSupervisor = DB::table('user_commands')->where('user_id', auth()->id())->where('command_role', 'supervisor')->exists();
+        $isCommandOfArea = DB::table('user_commands')->where('user_id', auth()->id())->where('area_id', $id)->where('command_role', 'command')->exists();
+
+        if (!$isSupervisor && !$isCommandOfArea) {
+            abort(403);
+        }
 
         $request->validate([
             'name_area' => 'required|string|max:255',
             'status'    => 'required|string',
             'polygon'   => 'required|json',
+            'groupID'   => 'required_if:auto_assign,Yes',
         ]);
 
+        // เดิมทีกลุ่มไลน์ไหนผูกอยู่กับพื้นที่นี้ ให้เคลียร์ออกก่อน (เผื่อมีการเปลี่ยนกลุ่ม)
+        DB::table('group_lines')->where('area_id', $id)->update(['area_id' => null]);
+
+        // อัปเดตข้อมูล Area
         $area->name_area = $request->name_area;
         $area->status    = $request->status;
         $area->polygon   = $request->polygon;
+
+        if ($request->auto_assign === 'Yes') {
+            $area->auto_assign = 'Yes';
+            $area->day_command = json_encode($request->day_command);
+            // เติม :00 เพื่อให้ Format ตรงกับ TIME ใน DB
+            $area->time_start_command = $request->time_start_command ? $request->time_start_command . ':00' : null;
+            $area->time_end_command   = $request->time_end_command ? $request->time_end_command . ':00' : null;
+            $area->groupID = $request->groupID;
+
+            // ผูกกลุ่มไลน์ใหม่
+            DB::table('group_lines')->where('id', $request->groupID)->update(['area_id' => $id]);
+        } else {
+            $area->auto_assign = 'No';
+            // เคลียร์ค่าที่เกี่ยวข้องถ้าปิดใช้งาน
+            $area->day_command = null;
+            $area->time_start_command = null;
+            $area->time_end_command = null;
+            $area->groupID = null;
+        }
+
         $area->save();
 
-        return redirect()->back()->with('success', 'บันทึกการแก้ไขข้อมูลพื้นที่เรียบร้อยแล้ว');
+        return redirect()->back()->with('success', 'อัปเดตข้อมูลพื้นที่เรียบร้อยแล้ว');
     }
 
     public function toggle_status(Request $request, $id)

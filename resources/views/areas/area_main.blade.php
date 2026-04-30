@@ -1,7 +1,6 @@
 @extends('layouts.theme')
 
 @section('content')
-{{-- จำเป็นต้องมี CSRF Token สำหรับยิง AJAX --}}
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <div class="bg-background-light text-text-main font-display antialiased min-h-screen flex flex-col overflow-x-hidden mt-[61px]">
@@ -12,10 +11,12 @@
                 <h2 class="text-2xl md:text-3xl font-bold text-text-main mb-2">พื้นที่ทั้งหมด</h2>
             </div>
             <div class="flex gap-3">
+                @if($isSupervisor)
                 <a href="{{ route('area.create_polygon') }}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm transition-all">
                     <span class="material-symbols-outlined mr-2 text-lg">add_location_alt</span>
                     เพิ่มพื้นที่ใหม่
                 </a>
+                @endif
             </div>
         </div>
 
@@ -37,10 +38,11 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50/50 border-b border-border-color text-xs uppercase tracking-wider text-text-sub font-semibold">
-                            <th class="px-6 py-4 w-[35%] min-w-[200px]">ชื่อพื้นที่รับผิดชอบ</th>
-                            <th class="px-6 py-4 w-[20%] min-w-[120px]">ประเภท</th>
-                            <th class="px-6 py-4 w-[20%] min-w-[150px]">สถิติรับแจ้งเหตุ</th>
-                            <th class="px-6 py-4 w-[15%] min-w-[150px]">สถานะ</th>
+                            <th class="px-6 py-4 w-[25%] min-w-[200px]">ชื่อพื้นที่รับผิดชอบ</th>
+                            <th class="px-6 py-4 w-[25%] min-w-[200px]">รูปแบบการรับเคส</th>
+                            <th class="px-6 py-4 w-[15%] min-w-[150px]">จนท. เปิดออโต้</th>
+                            <th class="px-6 py-4 w-[15%] min-w-[150px]">สถิติรับแจ้งเหตุ</th>
+                            <th class="px-6 py-4 w-[10%] min-w-[120px]">สถานะ</th>
                             <th class="px-6 py-4 w-[10%] text-right min-w-[130px]">จัดการ</th>
                         </tr>
                     </thead>
@@ -48,6 +50,7 @@
                         
                         @forelse($areas as $area)
                         <tr class="group hover:bg-primary-light/30 transition-colors">
+                            {{-- 1. ชื่อพื้นที่ --}}
                             <td class="px-6 py-4 align-top">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
@@ -58,11 +61,51 @@
                                     </div>
                                 </div>
                             </td>
+
+                            {{-- 2. รูปแบบการรับเคส (เวลา/กลุ่มไลน์) --}}
                             <td class="px-6 py-4 align-top">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                    {{ $area->type ?? 'ไม่ระบุประเภท' }}
-                                </span>
+                                @if($area->auto_assign === 'Yes')
+                                    @php
+                                        // แกะ JSON วันที่ออกมา เช่น ["จ", "อ"]
+                                        $days = json_decode($area->day_command, true) ?? [];
+                                        $timeStart = substr($area->time_start_command, 0, 5); // ตัดวิออก 08:00
+                                        $timeEnd = substr($area->time_end_command, 0, 5);
+                                    @endphp
+                                    <div class="text-[11px] font-bold text-primary mb-1">
+                                        <span class="material-symbols-outlined text-[14px] align-middle mr-0.5">schedule</span>
+                                        เปิดตามเวลาทำการ
+                                    </div>
+                                    <div class="text-xs text-slate-600 mb-1.5 leading-relaxed">
+                                        <span class="font-bold">วัน:</span> {{ implode(', ', $days) }}<br>
+                                        <span class="font-bold">เวลา:</span> {{ $timeStart }} - {{ $timeEnd }} น.
+                                    </div>
+                                    <div class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded truncate max-w-[180px] inline-flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[12px]">forum</span>
+                                        {{ $area->group_name ?? 'ไม่พบข้อมูลกลุ่มไลน์' }}
+                                    </div>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                        ตลอด 24 ชม.
+                                    </span>
+                                @endif
                             </td>
+
+                            {{-- 3. จนท. เปิดออโต้ (นับจาก JSON) --}}
+                            <td class="px-6 py-4 align-top">
+                                @php
+                                    // แกะ JSON officer_priority และนับเฉพาะคนที่ auto_assign == 'Yes'
+                                    $officers = json_decode($area->officer_priority, true) ?? [];
+                                    $autoCount = collect($officers)->where('auto_assign', 'Yes')->count();
+                                @endphp
+                                <div class="flex items-center gap-2">
+                                    <div>
+                                        <div class="text-sm font-bold text-text-main">{{ $autoCount }} คน</div>
+                                        <div class="text-[10px] text-text-sub">พร้อมรับ Auto</div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            {{-- 4. สถิติ --}}
                             <td class="px-6 py-4 align-top">
                                 <div class="flex items-center gap-2">
                                     <div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
@@ -74,15 +117,18 @@
                                     </div>
                                 </div>
                             </td>
+
+                            {{-- 5. สถานะ Toggle --}}
                             <td class="px-6 py-4 align-top">
-                                {{-- เปลี่ยนเป็น Toggle Switch --}}
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" 
                                            class="sr-only peer status-toggle" 
                                            data-id="{{ $area->id }}" 
                                            {{ strtolower($area->status) === 'active' ? 'checked' : '' }}>
-                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                                    <span class="ml-3 text-xs font-bold text-gray-600 status-label" id="status-label-{{ $area->id }}">
+                                           
+                                    <div class="relative shrink-0 w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                    
+                                    <span class="ml-3 text-xs font-bold text-gray-600 status-label whitespace-nowrap" id="status-label-{{ $area->id }}">
                                         @if(strtolower($area->status) === 'active')
                                             <span class="text-green-600">เปิดใช้งาน</span>
                                         @else
@@ -91,18 +137,20 @@
                                     </span>
                                 </label>
                             </td>
+
+                            {{-- 6. จัดการ --}}
                             <td class="px-6 py-4 align-top text-right">
-                                <a href="{{ route('area.manage_area', ['id' => $area->id]) }}" class="inline-flex items-center justify-center px-3 py-1.5 border border-primary text-primary hover:bg-primary hover:text-white rounded-md text-xs font-medium transition-colors gap-1">
-                                    <span class="material-symbols-outlined text-sm">map</span>
-                                    ดูพื้นที่
+                                <a href="{{ route('area.manage_area', ['id' => $area->id]) }}" class="inline-flex items-center justify-center px-3 py-1.5 border border-primary text-primary hover:bg-primary hover:text-white rounded-md text-xs font-medium transition-colors gap-1 whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-sm">edit_location_alt</span>
+                                    จัดการพื้นที่
                                 </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                 <span class="material-symbols-outlined text-4xl mb-2 text-gray-300">location_off</span>
-                                <p>ยังไม่มีข้อมูลพื้นที่ในระบบ</p>
+                                <p>ยังไม่มีข้อมูลพื้นที่ในระบบ หรือคุณยังไม่ได้รับสิทธิ์ให้ดูแลพื้นที่ใดๆ</p>
                             </td>
                         </tr>
                         @endforelse
@@ -118,7 +166,7 @@
             @else
             <div class="px-6 py-4 border-t border-border-color flex flex-wrap gap-4 items-center justify-between bg-gray-50/30">
                 <div class="text-sm text-text-sub">
-                    แสดง <span class="font-medium text-text-main">1</span> ถึง <span class="font-medium text-text-main">{{ count($areas ?? []) }}</span> รายการ
+                    แสดง <span class="font-medium text-text-main">{{ count($areas ?? []) > 0 ? 1 : 0 }}</span> ถึง <span class="font-medium text-text-main">{{ count($areas ?? []) }}</span> รายการ
                 </div>
             </div>
             @endif
@@ -177,7 +225,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if(!data.success) {
-                        // ถ้า Backend ตอบว่าพัง ให้สลับ Toggle คืน
                         alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถอัปเดตสถานะได้'));
                         this.checked = !isChecked;
                         labelElement.innerHTML = !isChecked 
@@ -197,5 +244,4 @@
         });
     });
 </script>
-
 @endsection

@@ -4,16 +4,6 @@
 <div class="bg-background-light h-[calc(100vh-71.75px)] dark:bg-background-dark text-slate-900 flex flex-col relative mt-[71.75px] overflow-hidden">
     <div class="flex-1 bg-slate-50/50 p-4 sm:p-6 pb-4 sm:pb-6 z-0 flex flex-col">
         <div class="max-w-[1600px] w-full mx-auto flex flex-col h-full flex-1">
-            
-            <div class="flex items-center justify-between mb-4 shrink-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-3xl">add_location_alt</span>
-                        สร้างพื้นที่
-                    </h1>
-                    <p class="text-sm text-slate-500 mt-1">กำหนดข้อมูลและวาดขอบเขตพื้นที่บนแผนที่</p>
-                </div>
-            </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 overflow-hidden">
                 

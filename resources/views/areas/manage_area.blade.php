@@ -6,21 +6,6 @@
     <div class="flex-1 bg-slate-50/50 p-4 sm:p-6 pb-4 sm:pb-6 flex flex-col h-full z-0">
         <div class="max-w-[1800px] w-full mx-auto flex flex-col h-full flex-1">
             
-            {{-- Header --}}
-            <div class="flex items-center justify-between mb-4 shrink-0">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-3xl">map</span>
-                        จัดการพื้นที่: {{ $area->name_area }}
-                    </h1>
-                </div>
-                <div class="flex gap-2">
-                    <a href="{{ route('area.create_polygon') }}" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2">
-                        สร้างพื้นที่ใหม่
-                    </a>
-                </div>
-            </div>
-
             @if(session('success'))
             <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl mb-4 flex items-center gap-3 shadow-sm animate-pulse-short shrink-0">
                 <span class="material-symbols-outlined">check_circle</span>
@@ -56,6 +41,86 @@
                                         <span class="material-symbols-outlined text-[18px]">save</span>
                                         บันทึกการแก้ไข
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- การ์ดข้อมูล Auto Assign --}}
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 shrink-0">
+                            <div class="flex items-center justify-between mb-4">
+                                <label class="text-sm font-bold text-slate-700">การรับเคสอัตโนมัติ (Auto Assign)</label>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="auto_assign" id="auto_assign" value="Yes" class="sr-only peer" onchange="toggleAutoAssignFields()" {{ $area->auto_assign == 'Yes' ? 'checked' : '' }}>
+                                    <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+
+                            <div id="auto_assign_container" class="{{ $area->auto_assign == 'Yes' ? '' : 'hidden' }} space-y-4 border-t border-slate-100 pt-4">
+                                {{-- วันทำการ --}}
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-2">วันทำการ</label>
+                                    <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                        @php
+                                            $selectedDays = json_decode($area->day_command) ?? [];
+                                        @endphp
+                                        @foreach(['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'] as $day)
+                                            <label class="flex items-center justify-center p-2 border border-slate-200 rounded-lg text-xs cursor-pointer hover:bg-slate-100 has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary transition-all">
+                                                <input type="checkbox" name="day_command[]" value="{{ $day }}" class="hidden" {{ in_array($day, $selectedDays) ? 'checked' : '' }}>
+                                                {{ $day }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                {{-- เวลาเปิด/ปิด --}}
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">เวลาเริ่ม</label>
+                                        <select name="time_start_command" id="time_start_command" onchange="handleTimeChange()" class="w-full rounded-lg border-slate-200 bg-slate-50 p-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="">-- เลือกเวลา --</option>
+                                            @for($h = 0; $h < 24; $h++)
+                                                @php 
+                                                    $t1 = sprintf("%02d:00", $h); 
+                                                    $t2 = sprintf("%02d:30", $h);
+                                                    // ตัดวินาทีออกจากค่าใน DB มาเทียบ (08:00:00 -> 08:00)
+                                                    $currentTime = substr($area->time_start_command, 0, 5);
+                                                @endphp
+                                                <option value="{{ $t1 }}" {{ $currentTime == $t1 ? 'selected' : '' }}>{{ $t1 }}</option>
+                                                <option value="{{ $t2 }}" {{ $currentTime == $t2 ? 'selected' : '' }}>{{ $t2 }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">เวลาสิ้นสุด</label>
+                                        <select name="time_end_command" id="time_end_command" class="w-full rounded-lg border-slate-200 bg-slate-50 p-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="">-- เลือกเวลา --</option>
+                                            @for($h = 0; $h < 24; $h++)
+                                                @php 
+                                                    $t1 = sprintf("%02d:00", $h); 
+                                                    $t2 = sprintf("%02d:30", $h);
+                                                    $currentTimeEnd = substr($area->time_end_command, 0, 5);
+                                                @endphp
+                                                <option value="{{ $t1 }}" {{ $currentTimeEnd == $t1 ? 'selected' : '' }}>{{ $t1 }}</option>
+                                                <option value="{{ $t2 }}" {{ $currentTimeEnd == $t2 ? 'selected' : '' }}>{{ $t2 }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {{-- กลุ่มไลน์ --}}
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">กลุ่มไลน์แจ้งเตือน</label>
+                                    <div class="flex gap-2">
+                                        <select name="groupID" id="groupID" class="flex-1 rounded-lg border-slate-200 bg-slate-50 p-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="">-- เลือกกลุ่มไลน์ --</option>
+                                            @foreach($groups as $group)
+                                                <option value="{{ $group->id }}" {{ $area->groupID == $group->id ? 'selected' : '' }}>{{ $group->groupName }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button type="button" onclick="refreshGroupLine()" class="p-2 border border-slate-200 rounded-lg hover:bg-slate-50">
+                                            <span class="material-symbols-outlined text-slate-500 text-[20px]" id="refresh-icon">refresh</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -206,15 +271,6 @@
         document.getElementById('polygon_data').value = JSON.stringify(coords);
     }
 
-    function validateAndSubmit() {
-        const form = document.getElementById('manageAreaForm');
-        if(!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        form.submit();
-    }
-
     // ==========================================
     // ดาวน์โหลด QR Code เป็นรูปภาพ
     // ==========================================
@@ -239,6 +295,95 @@
             // ซ่อนชื่อกลับไปเหมือนเดิม
             textLabel.classList.add('hidden');
         });
+    }
+
+    function toggleAutoAssignFields() {
+        const isChecked = document.getElementById('auto_assign').checked;
+        const container = document.getElementById('auto_assign_container');
+        if (isChecked) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    function handleTimeChange() {
+        const startSelect = document.getElementById('time_start_command');
+        const endSelect = document.getElementById('time_end_command');
+        const startValue = startSelect.value;
+
+        Array.from(endSelect.options).forEach(option => {
+            if (option.value === "") return;
+            if (startValue && option.value <= startValue) {
+                option.disabled = true;
+                option.classList.add('text-slate-300');
+            } else {
+                option.disabled = false;
+                option.classList.remove('text-slate-300');
+            }
+        });
+    }
+
+    // เรียกใช้ handleTimeChange ทันทีเมื่อโหลดหน้าเพื่อให้เงื่อนไขเวลาสิ้นสุดถูกต้องตามค่าเดิมใน DB
+    document.addEventListener('DOMContentLoaded', function() {
+        handleTimeChange();
+    });
+
+    async function refreshGroupLine() {
+        const icon = document.getElementById('refresh-icon');
+        const select = document.getElementById('groupID');
+        const currentAreaId = "{{ $area->id }}";
+        
+        icon.classList.add('animate-spin');
+        try {
+            const response = await fetch("{{ route('groups.ajax') }}?area_id=" + currentAreaId);
+            const groups = await response.json();
+
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- เลือกกลุ่มไลน์ --</option>';
+
+            groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.groupName;
+                if(group.id == currentVal) option.selected = true;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setTimeout(() => icon.classList.remove('animate-spin'), 500);
+        }
+    }
+
+    function validateAndSubmit() {
+        const form = document.getElementById('manageAreaForm');
+        const autoAssign = document.getElementById('auto_assign').checked;
+        const polygonData = document.getElementById('polygon_data').value;
+
+        if(!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        if(polygonData === "" || polygonData === "[]") {
+            alert("กรุณาวาดขอบเขตพื้นที่บนแผนที่");
+            return;
+        }
+
+        if(autoAssign) {
+            const dayCommands = document.querySelectorAll('input[name="day_command[]"]:checked');
+            const startTime = document.getElementById('time_start_command').value;
+            const endTime = document.getElementById('time_end_command').value;
+            const groupID = document.getElementById('groupID').value;
+
+            if(dayCommands.length === 0) { alert("กรุณาเลือกวันทำการ"); return; }
+            if(!startTime) { alert("กรุณาเลือกเวลาเริ่ม"); return; }
+            if(!endTime) { alert("กรุณาเลือกเวลาสิ้นสุด"); return; }
+            if(!groupID) { alert("กรุณาเลือกกลุ่มไลน์"); return; }
+        }
+
+        form.submit();
     }
 </script>
 

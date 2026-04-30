@@ -26,7 +26,7 @@ class User_command extends Model
      *
      * @var array
      */
-    protected $fillable = ['name_command', 'command_role', 'number', 'status', 'creator', 'user_id'];
+    protected $fillable = ['name_command', 'command_role', 'number', 'status', 'creator', 'user_id','area_id'];
 
     public function user()
     {

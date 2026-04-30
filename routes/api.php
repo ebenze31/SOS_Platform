@@ -27,4 +27,4 @@ Route::get('/emergency/tracking/{operation_id}', 'EmergencysController@trackingD
 Route::get('/emergency/{emergency_id}/operation', 'EmergencysController@getOperationData');
 Route::post('/emergency/{emergency_id}/update-route-log', 'EmergencysController@updateRouteLog');
 
-Route::get('/area/refreshGroupLine', 'AreasController@get_groups_ajax');
+Route::get('/area/refreshGroupLine', 'AreasController@get_groups_ajax')->name('groups.ajax');
