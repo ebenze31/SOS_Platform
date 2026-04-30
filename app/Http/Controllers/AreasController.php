@@ -263,9 +263,10 @@ class AreasController extends Controller
             ->exists();
 
         // 2. สร้าง Base Query: ดึง Area + Join หาชื่อกลุ่มไลน์
-        $query = Area::withCount('operations')
-            ->leftJoin('group_lines', 'areas.groupID', '=', 'group_lines.id')
-            ->select('areas.*', 'group_lines.groupName as group_name');
+        // **แก้ไขแล้ว**: ย้าย withCount() มาไว้หลังสุด เพื่อไม่ให้ ->select() ไปเขียนทับมัน
+        $query = Area::leftJoin('group_lines', 'areas.groupID', '=', 'group_lines.id')
+            ->select('areas.*', 'group_lines.groupName as group_name')
+            ->withCount('operations');
 
         // 3. กรองข้อมูลตามสิทธิ์ (ถ้าระดับ Command ให้ดูได้เฉพาะ Area ตัวเอง)
         if (!$isSupervisor) {
