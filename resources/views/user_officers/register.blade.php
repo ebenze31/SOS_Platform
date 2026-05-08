@@ -115,6 +115,30 @@
                                     @error('vehicle_type') <span class="text-xs text-red-500 ml-1">{{ $message }}</span> @enderror
                                 </div>
                             </div>
+
+                            {{-- ตั้งค่ารับงานอัตโนมัติ (Auto Assign) --}}
+                            <div class="px-6 md:p-8 space-y-5">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200">รับเคสอัตโนมัติ (Auto Assign)</span>
+                                        <span class="text-[11px] text-slate-500 dark:text-slate-400">รับเคสอัตโนมัติเมื่ออยู่นอกเวลาทำการของศูนย์ควบคุม</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        {{-- เช็คว่าถ้ามีโปรไฟล์เดิมและ auto_assign เป็น Yes ให้ Checked --}}
+                                        <input type="checkbox" name="auto_assign" value="Yes" class="sr-only peer" 
+                                            {{ (old('auto_assign') || (isset($userProfile) && $userProfile->auto_assign == 'Yes')) ? 'checked' : '' }}>
+                                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <span class="material-symbols-outlined text-red-500 text-sm">info</span>
+                                    <p class="text-[10px] leading-relaxed text-red-500 font-medium">
+                                        * หากท่านเปิดใช้งานฟังก์ชันรับเคสอัตโนมัติจะมีผลกับ <span class="underline">ทุกพื้นที่</span> ที่ท่านสังกัดและได้รับการอนุมัติแล้ว
+                                    </p>
+                                </div>
+                                <hr>
+                            </div>
                             
                             <div class="px-8 pb-8 pt-2">
                                 <button type="submit" class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 active:scale-[0.98] text-sm">

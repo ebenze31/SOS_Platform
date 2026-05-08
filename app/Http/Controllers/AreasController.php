@@ -263,7 +263,6 @@ class AreasController extends Controller
             ->exists();
 
         // 2. สร้าง Base Query: ดึง Area + Join หาชื่อกลุ่มไลน์
-        // **แก้ไขแล้ว**: ย้าย withCount() มาไว้หลังสุด เพื่อไม่ให้ ->select() ไปเขียนทับมัน
         $query = Area::leftJoin('group_lines', 'areas.groupID', '=', 'group_lines.id')
             ->select('areas.*', 'group_lines.groupName as group_name')
             ->withCount('operations');
@@ -288,6 +287,25 @@ class AreasController extends Controller
         }
 
         $areas = $query->orderBy('areas.id', 'desc')->paginate(10);
+
+        // 5. ดึงข้อมูลเจ้าหน้าที่ทั้งหมดมาเตรียมไว้เพื่อนับ (เพื่อลดจำนวน Query)
+        $allOfficers = DB::table('user_officers')
+            ->select('id', 'area_id')
+            ->whereNotNull('area_id') // เอาเฉพาะคนที่มีพื้นที่สังกัด
+            ->get();
+
+        // 6. วนลูปนับจำนวนเจ้าหน้าที่ทั้งหมดของแต่ละพื้นที่ แล้วแนบใส่ object ไปเลย
+        foreach ($areas as $area) {
+            $totalOfficers = 0;
+            foreach ($allOfficers as $officer) {
+                $officerAreas = json_decode($officer->area_id, true) ?? [];
+                // เช็คว่า ID ของพื้นที่นี้ อยู่ใน array สังกัดของเจ้าหน้าที่คนนี้ไหม
+                if (in_array((string)$area->id, $officerAreas) || in_array((int)$area->id, $officerAreas)) {
+                    $totalOfficers++;
+                }
+            }
+            $area->total_officers_count = $totalOfficers;
+        }
 
         return view('areas.area_main', compact('areas', 'isSupervisor'));
     }

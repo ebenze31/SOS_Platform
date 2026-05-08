@@ -40,10 +40,10 @@
                         <tr class="bg-gray-50/50 border-b border-border-color text-xs uppercase tracking-wider text-text-sub font-semibold">
                             <th class="px-6 py-4 w-[25%] min-w-[200px]">ชื่อพื้นที่รับผิดชอบ</th>
                             <th class="px-6 py-4 w-[25%] min-w-[200px]">รูปแบบการรับเคส</th>
-                            <th class="px-6 py-4 w-[15%] min-w-[150px]">จนท. เปิดออโต้</th>
+                            <th class="px-6 py-4 w-[15%] min-w-[150px]">เจ้าหน้าที่</th>
                             <th class="px-6 py-4 w-[15%] min-w-[150px]">สถิติรับแจ้งเหตุ</th>
                             <th class="px-6 py-4 w-[10%] min-w-[120px]">สถานะ</th>
-                            <th class="px-6 py-4 w-[10%] text-right min-w-[130px]">จัดการ</th>
+                            <th class="px-6 py-4 w-[10%] min-w-[130px]">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border-color bg-white">
@@ -90,17 +90,21 @@
                                 @endif
                             </td>
 
-                            {{-- 3. จนท. เปิดออโต้ (นับจาก JSON) --}}
+                            {{-- 3. จำนวนเจ้าหน้าที่ (ทั้งหมด / ออโต้) --}}
                             <td class="px-6 py-4 align-top">
                                 @php
                                     // แกะ JSON officer_priority และนับเฉพาะคนที่ auto_assign == 'Yes'
                                     $officers = json_decode($area->officer_priority, true) ?? [];
                                     $autoCount = collect($officers)->where('auto_assign', 'Yes')->count();
+                                    $totalCount = $area->total_officers_count ?? 0;
                                 @endphp
                                 <div class="flex items-center gap-2">
                                     <div>
-                                        <div class="text-sm font-bold text-text-main">{{ $autoCount }} คน</div>
-                                        <div class="text-[10px] text-text-sub">พร้อมรับ Auto</div>
+                                        {{-- แสดงผลแบบ ทั้งหมด / ออโต้ --}}
+                                        <div class="text-sm font-bold text-text-main">
+                                            {{ $totalCount }} <span class="text-slate-400 font-normal">/</span> <span class="text-indigo-600">{{ $autoCount }}</span>
+                                        </div>
+                                        <div class="text-[10px] text-text-sub">ทั้งหมด / เปิดออโต้</div>
                                     </div>
                                 </div>
                             </td>
@@ -108,12 +112,10 @@
                             {{-- 4. สถิติ --}}
                             <td class="px-6 py-4 align-top">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
-                                        <span class="material-symbols-outlined text-[16px]">notifications_active</span>
-                                    </div>
                                     <div>
-                                        <div class="text-sm font-bold text-text-main">{{ number_format($area->operations_count ?? 0) }} ครั้ง</div>
-                                        <div class="text-[10px] text-text-sub">เคสทั้งหมด</div>
+                                        <div class="text-sm font-bold text-text-main">
+                                            {{ number_format($area->operations_count ?? 0) }} ครั้ง
+                                        </div>
                                     </div>
                                 </div>
                             </td>

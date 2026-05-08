@@ -181,19 +181,21 @@ class User_officersController extends Controller
             'name_officer' => 'required|string|max:255',
             'vehicle_type' => 'required|string',
             'area_id'      => 'required',
+            // เพิ่ม validation สำหรับ auto_assign
+            'auto_assign'  => 'nullable|string|in:Yes,No',
         ]);
 
         $areaId = (int) $request->area_id;
+        // ถ้าไม่ได้ติ๊กมาให้เป็น No
+        $autoAssignValue = $request->has('auto_assign') ? 'Yes' : 'No';
 
-        // ค้นหาประวัติเดิม
         $officer = User_officer::where('user_id', auth()->id())->first();
 
         if ($officer) {
-            // == กรณีที่ 1: เคยมี Row ในระบบแล้ว (อัปเดตข้อมูล) ==
             $officer->name_officer = $request->name_officer;
             $officer->vehicle_type = $request->vehicle_type;
+            $officer->auto_assign  = $autoAssignValue; // อัปเดตสถานะ Auto Assign (มีผล Global)
 
-            // จัดการ status_register JSON
             $statusArray = json_decode($officer->status_register, true) ?? [];
             $foundIndex = -1;
 
@@ -205,30 +207,26 @@ class User_officersController extends Controller
             }
 
             if ($foundIndex >= 0) {
-                // ถ้าเคยมีประวัติพื้นที่นี้ ให้ปรับเป็น Pending ใหม่ และล้างเหตุผลการปฏิเสธเดิม
                 $statusArray[$foundIndex]['status'] = 'Pending';
                 $statusArray[$foundIndex]['remark'] = null;
             } else {
-                // ถ้าสแกนพื้นที่ใหม่ที่ไม่เคยลงทะเบียน ให้ Push เข้า Array
                 $statusArray[] = [
                     'area_id' => $areaId,
                     'status'  => 'Pending',
                     'remark'  => null
                 ];
             }
-
             $officer->status_register = json_encode($statusArray);
 
         } else {
-            // == กรณีที่ 2: เพิ่งเคยลงทะเบียนครั้งแรกสุด (สร้าง Row ใหม่) ==
             $officer = new User_officer();
             $officer->user_id      = auth()->id();
             $officer->name_officer = $request->name_officer;
             $officer->vehicle_type = $request->vehicle_type;
-            $officer->area_id = json_encode([]); 
-            $officer->status  = 'Inactive'; 
+            $officer->auto_assign  = $autoAssignValue;
+            $officer->area_id      = json_encode([]); 
+            $officer->status       = 'Inactive'; 
 
-            // สร้าง JSON status_register อันแรก
             $officer->status_register = json_encode([
                 [
                     'area_id' => $areaId,
