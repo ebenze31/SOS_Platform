@@ -132,7 +132,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="material-symbols-outlined text-slate-400">search</span>
                     </div>
-                    <input type="text" onkeyup="searchTable('commands-tbody', this.value)" class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm shadow-sm" placeholder="ค้นหาชื่อเจ้าหน้าที่, ผู้สร้าง, Role..." />
+                    <input type="text" onkeyup="searchTable('commands-tbody', this.value)" class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm shadow-sm" placeholder="ค้นหาชื่อเจ้าหน้าที่, ผู้สร้าง, Role, พื้นที่..." />
                 </div>
             </div>
 
@@ -143,6 +143,7 @@
                             <th class="px-6 py-4 font-semibold">ชื่อศูนย์สั่งการ</th>
                             <th class="px-6 py-4 font-semibold">ผู้สร้าง (Creator)</th>
                             <th class="px-6 py-4 font-semibold text-center">Role</th>
+                            <th class="px-6 py-4 font-semibold">พื้นที่ดูแล</th> {{-- เพิ่มหัวตารางพื้นที่ --}}
                             <th class="px-6 py-4 font-semibold text-center">สั่งการ (เสร็จ/ดำเนินการ/รวม)</th>
                             <th class="px-6 py-4 font-semibold">เริ่มงานเมื่อ</th>
                             <th class="px-6 py-4 font-semibold">สถานะ</th>
@@ -165,6 +166,21 @@
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Command</span>
                                 @endif
                             </td>
+
+                            {{-- เพิ่มข้อมูลพื้นที่ --}}
+                            <td class="px-6 py-4">
+                                @if($command->command_role == 'supervisor')
+                                    <span class="text-xs font-bold text-slate-400">(Supervisor)</span>
+                                @else
+                                    @if(isset($areas[$command->area_id]))
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                            {{ $areas[$command->area_id] }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-red-500">ไม่พบพื้นที่</span>
+                                    @endif
+                                @endif
+                            </td>
                             
                             <td class="px-6 py-4 text-center font-medium">
                                 <span class="text-green-600" title="เสร็จสิ้น">{{ $command->success_ops ?? 0 }}</span> / 
@@ -182,17 +198,11 @@
                             
                             <td class="px-6 py-4 text-right">
                                 @php
-                                    // เช็คว่าคนที่กำลังถูกลูป(แถวนี้) เป็นระดับ Supervisor หรือไม่
                                     $isTargetSupervisor = $command->command_role == 'supervisor';
-                                    
-                                    // เช็คสิทธิ์ของคนที่กำลังใช้งานระบบอยู่ ว่าเป็น Supervisor หรือไม่
                                     $currentUser = auth()->user();
                                     $isCurrentUserSupervisor = $currentUser && $currentUser->role == 'admin' && $currentUser->userCommand && $currentUser->userCommand->command_role == 'supervisor';
                                     
-                                    // ตัวแปรกำหนดว่าจะแสดงปุ่มเปลี่ยนสถานะหรือไม่
                                     $canChangeCommandStatus = false;
-
-                                    // ถ้าคนล็อกอินเป็น Supervisor และ เป้าหมายไม่ได้เป็น Supervisor เหมือนกัน ถึงจะให้สิทธิ์เปลี่ยน
                                     if ($isCurrentUserSupervisor && !$isTargetSupervisor) {
                                         $canChangeCommandStatus = true;
                                     }
@@ -349,9 +359,20 @@
 
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">บทบาท (Command Role)</label>
-                            <select name="command_role" required class="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm">
-                                <option value="command">Command (เจ้าหน้าที่ทั่วไป)</option>
-                                <option value="supervisor">Supervisor (หัวหน้าศูนย์)</option>
+                            <select name="command_role" id="select_command_role" onchange="toggleAreaRequirement()" required class="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm">
+                                <option value="command">Command</option>
+                                <option value="supervisor">Supervisor</option>
+                            </select>
+                        </div>
+
+                        {{-- เพิ่มฟิลด์เลือกพื้นที่ (ซ่อนไว้ก่อนถ้าเลือก Supervisor) --}}
+                        <div id="area_selection_wrapper">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">พื้นที่รับผิดชอบ <span class="text-red-500">*</span></label>
+                            <select name="area_id" id="select_area_id" required class="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm">
+                                <option value="">-- เลือกพื้นที่ดูแล --</option>
+                                @foreach($areas as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
@@ -419,11 +440,19 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
+        .then(async response => {
+            // ถ้าเซิร์ฟเวอร์ตอบกลับมาว่ามี Error (เช่น 422 Validation Failed)
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw errorData; // โยนไปให้ catch ด้านล่างจัดการ
+            }
+            return response.json();
+        })
         .then(res => {
             if(res.success) {
                 // ซ่อนฟอร์ม และแสดงหน้า Success
@@ -441,7 +470,18 @@
         })
         .catch(err => {
             console.error('Error:', err);
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            
+            // แจ้งเตือนกรณีข้อมูลไม่ผ่านเงื่อนไข (เช่น Username ซ้ำ, ไม่ได้กรอก Area)
+            if (err.errors) {
+                let errorMsg = 'กรุณาตรวจสอบข้อมูล:\n';
+                for (let field in err.errors) {
+                    errorMsg += `- ${err.errors[field][0]}\n`;
+                }
+                alert(errorMsg);
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + (err.message || 'เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ'));
+            }
+
             btn.disabled = false;
             btn.innerHTML = 'บันทึกข้อมูล';
         });
@@ -486,6 +526,11 @@
         
         if (validTabs.includes(hash)) {
             switchTab(hash);
+        }
+
+        // เรียกตอนโหลดเว็บ
+        if(document.getElementById('select_command_role')) {
+            toggleAreaRequirement();
         }
     });
 
@@ -590,6 +635,23 @@
             }
         })
         .catch(error => console.error('Error:', error));
+    }
+
+    function toggleAreaRequirement() {
+        const roleSelect = document.getElementById('select_command_role').value;
+        const areaWrapper = document.getElementById('area_selection_wrapper');
+        const areaSelect = document.getElementById('select_area_id');
+
+        if (roleSelect === 'supervisor') {
+            // ถ้าเป็น Supervisor ให้ซ่อนและยกเลิกบังคับกรอก (required)
+            areaWrapper.classList.add('hidden');
+            areaSelect.removeAttribute('required');
+            areaSelect.value = ''; // ล้างค่า
+        } else {
+            // ถ้าเป็น Command ให้โชว์และบังคับกรอก
+            areaWrapper.classList.remove('hidden');
+            areaSelect.setAttribute('required', 'required');
+        }
     }
 </script>
 @endsection

@@ -151,6 +151,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/officer/open_status', 'User_officersController@showStatus')->name('officer.status');
         Route::post('/officer/update-status', 'User_officersController@updateStatusStandby');
         Route::post('/officer/update-location', 'User_officersController@updateLocationOnly');
+        Route::post('/officer/update-auto-assign', 'User_officersController@updateAutoAssign');
 
         // ============  Map ดำเนินการช่วยเหลือ ============
         Route::get('/officer/action/{id}', 'User_officersController@actionPage')->name('officer.action');

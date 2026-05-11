@@ -20,6 +20,7 @@ class MemberController extends Controller
     {
         $users = User::withCount('emergencys')->paginate(25, ['*'], 'users_page');
         
+        // อัปเดตส่วน Command
         $commands = User_command::with('creator_info')
             ->withCount([
                 'emergency_operations as total_ops',
@@ -30,6 +31,10 @@ class MemberController extends Controller
                     $query->where('status', '!=', 'เสร็จสิ้น');
                 }
             ])
+            // 1. เรียงให้ supervisor ขึ้นก่อน command
+            ->orderByRaw("FIELD(command_role, 'supervisor', 'command')")
+            // 2. เรียงตามเวลาที่สร้าง จากใหม่ไปเก่า (เวลาเป็นสมาชิกน้อยสุดขึ้นก่อน)
+            ->orderBy('created_at', 'desc')
             ->paginate(25, ['*'], 'commands_page');
         
         $officers = User_officer::with('user')->paginate(25, ['*'], 'officers_page');
@@ -41,31 +46,35 @@ class MemberController extends Controller
 
     public function storeCommand(Request $request)
     {
-        // ตรวจสอบความถูกต้องของข้อมูล (Username ต้องไม่ซ้ำในระบบ)
+        // 1. เพิ่มกฎ Validation สำหรับ area_id (อนุญาตให้เป็นค่าว่างได้)
         $request->validate([
             'name_command' => 'required|string|max:255',
             'username'     => 'required|string|max:255|unique:users,username',
             'password'     => 'required|string|min:6',
             'command_role' => 'required|in:command,supervisor',
+            'area_id'      => 'nullable|string',
         ]);
 
-        // ใช้ Transaction เพื่อป้องกันกรณีบันทึกตารางใดตารางหนึ่งไม่สำเร็จ
         DB::beginTransaction();
         try {
             // สร้างข้อมูลในตาราง users
             $user = User::create([
                 'name'     => $request->name_command,
-                'email' => $request->username,
+                'email'    => $request->username,
                 'username' => $request->username,
                 'password' => Hash::make($request->password),
                 'role'     => 'admin', 
                 'status'   => 'Active',
             ]);
 
-            // นำ id ที่ได้ไปผูกกับตาราง user_commands
+            // 2. เช็คเงื่อนไข: ถ้าเป็น supervisor ให้ area_id เป็น null 
+            $areaId = $request->command_role === 'supervisor' ? null : $request->area_id;
+
+            // 3. นำ id ที่ได้ไปผูกกับตาราง user_commands และบันทึก area_id
             User_command::create([
                 'name_command' => $request->name_command,
                 'command_role' => $request->command_role,
+                'area_id'      => $areaId,           
                 'creator'      => Auth::id() ?? null, 
                 'user_id'      => $user->id,
                 'status'       => 'Active',
@@ -80,6 +89,7 @@ class MemberController extends Controller
                     'username'     => $request->username,
                     'password'     => $request->password,
                     'command_role' => $request->command_role,
+                    'area_id'      => $areaId,       
                 ]
             ]);
 

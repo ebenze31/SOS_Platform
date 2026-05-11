@@ -432,6 +432,55 @@ class User_officersController extends Controller
         return response()->json(['success' => false, 'message' => 'สถานะไม่ถูกต้อง'], 400);
     }
 
+    public function updateAutoAssign(Request $request)
+    {
+        $request->validate([
+            'auto_assign' => 'required|boolean'
+        ]);
+
+        $user_id = Auth::id();
+        $officer = DB::table('user_officers')->where('user_id', $user_id)->first();
+
+        if (!$officer) {
+            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูลเจ้าหน้าที่']);
+        }
+
+        $newAutoValue = $request->auto_assign ? 'Yes' : 'No';
+
+        // 1. อัปเดตในตาราง user_officers
+        DB::table('user_officers')
+            ->where('id', $officer->id)
+            ->update(['auto_assign' => $newAutoValue]);
+
+        // 2. ดึงพื้นที่ที่สังกัดมาลูปอัปเดต
+        $areaIds = json_decode($officer->area_id, true) ?? [];
+        
+        foreach ($areaIds as $areaId) {
+            $area = DB::table('areas')->where('id', $areaId)->first();
+            
+            if ($area && $area->officer_priority) {
+                $priorities = json_decode($area->officer_priority, true) ?? [];
+                $updated = false;
+
+                foreach ($priorities as &$item) {
+                    if ($item['user_officers_id'] == $officer->id) {
+                        $item['auto_assign'] = $newAutoValue;
+                        $updated = true;
+                        break;
+                    }
+                }
+
+                if ($updated) {
+                    DB::table('areas')
+                        ->where('id', $areaId)
+                        ->update(['officer_priority' => json_encode($priorities)]);
+                }
+            }
+        }
+
+        return response()->json(['success' => true, 'auto_assign' => $newAutoValue]);
+    }
+
     public function updateStatus_CaseSuccess(Request $request, $id) 
     {
         $lat = $request->input('lat');

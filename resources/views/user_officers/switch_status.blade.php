@@ -68,7 +68,7 @@
         <main class="relative z-20 flex flex-1 flex-col items-center justify-end px-4 pb-12 pointer-events-none">
             <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl pointer-events-auto">
                 
-                <div class="mb-6 flex items-center gap-4 border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-4 pb-3">
                     <div class="h-14 w-14 overflow-hidden rounded-full border-2 border-primary/20 bg-slate-100 bg-center bg-no-repeat bg-cover shadow-sm"
                          style='background-image: url("{{ $switch_profileImage }}");'>
                     </div>
@@ -82,7 +82,8 @@
                 </div>
 
                 <div class="flex flex-col items-center gap-4">
-                    <div class="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-5 py-4">
+
+                    <div class="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <div class="flex flex-col gap-1">
                             <span class="text-sm font-bold uppercase tracking-wider text-slate-500">สถานะปัจจุบัน</span>
                             <div class="flex items-center gap-2">
@@ -123,6 +124,22 @@
                         * ไม่สามารถปิดสถานะได้ในขณะนี้
                     </p>
                     @endif
+
+                    {{-- Auto Assign --}}
+                    <div class="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white px-2 py-1 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">ระบบรับงานอัตโนมัติ</span>
+                                <span class="text-sm font-bold text-slate-700" id="auto-text">
+                                    {{ $officer->auto_assign == 'Yes' ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
+                                </span>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex cursor-pointer items-center">
+                            <input type="checkbox" id="auto-assign-toggle" class="peer sr-only" {{ $officer->auto_assign == 'Yes' ? 'checked' : '' }}>
+                            <div class="h-5 w-9 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:border-gray-600"></div>
+                        </label>
+                    </div>
 
                 </div>
             </div>
@@ -439,6 +456,41 @@
             
             stopLocationTracking();
         }
+    }
+
+    const autoToggle = document.getElementById('auto-assign-toggle');
+    const autoText = document.getElementById('auto-text');
+
+    if (autoToggle) {
+        autoToggle.addEventListener('change', function() {
+            const isAuto = this.checked;
+            autoToggle.disabled = true; // ล็อกปุ่มชั่วคราวขณะทำรายการ
+
+            fetch("{{ url('/officer/update-auto-assign') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ auto_assign: isAuto })
+            })
+            .then(response => response.json())
+            .then(data => {
+                autoToggle.disabled = false;
+                if (data.success) {
+                    autoText.textContent = isAuto ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+                } else {
+                    alert('ไม่สามารถอัปเดตระบบรับงานอัตโนมัติได้');
+                    autoToggle.checked = !isAuto;
+                }
+            })
+            .catch(error => {
+                console.error('Auto Assign Error:', error);
+                autoToggle.disabled = false;
+                autoToggle.checked = !isAuto;
+            });
+        });
     }
 </script>
 @endsection
