@@ -310,6 +310,46 @@ class AreasController extends Controller
         return view('areas.area_main', compact('areas', 'isSupervisor'));
     }
 
+    // public function manage_area($id)
+    // {
+    //     $area = Area::findOrFail($id);
+    //     $user = auth()->user();
+
+    //     // --- ตรวจสอบสิทธิ์ ---
+    //     $userCommand = DB::table('user_commands')
+    //         ->where('user_id', $user->id)
+    //         ->where('area_id', $id)
+    //         ->first();
+
+    //     $isSupervisor = DB::table('user_commands')
+    //         ->where('user_id', $user->id)
+    //         ->where('command_role', 'supervisor')
+    //         ->exists();
+
+    //     // ถ้าไม่ใช่ supervisor และ ไม่มีสิทธิ์ในพื้นที่นี้ (ไม่ใช่ command ของพื้นที่นี้) ให้เตะออก
+    //     if (!$isSupervisor && (!$userCommand || $userCommand->command_role !== 'command')) {
+    //         return redirect()->back()->with('error', 'คุณไม่มีสิทธิ์เข้าถึงการจัดการพื้นที่นี้');
+    //     }
+
+    //     $registerUrl = route('user_officers.register', ['area_id' => $area->id]);
+
+    //     // ดึงข้อมูลเจ้าหน้าที่
+    //     $officers = User_officer::whereJsonContains('area_id', (string)$area->id)
+    //                             ->orWhereJsonContains('area_id', (int)$area->id)
+    //                             ->get();
+
+    //     // ดึงกลุ่มไลน์: เอาที่ว่างอยู่ (area_id is null) หรือ กลุ่มที่ผูกกับพื้นที่นี้อยู่แล้ว
+    //     $groups = DB::table('group_lines')
+    //                 ->where(function($query) use ($area) {
+    //                     $query->whereNull('area_id')
+    //                           ->orWhere('area_id', $area->id);
+    //                 })
+    //                 ->where('status', 'active')
+    //                 ->get();
+
+    //     return view('areas.manage_area', compact('area', 'registerUrl', 'officers', 'groups'));
+    // }
+
     public function manage_area($id)
     {
         $area = Area::findOrFail($id);
@@ -326,7 +366,6 @@ class AreasController extends Controller
             ->where('command_role', 'supervisor')
             ->exists();
 
-        // ถ้าไม่ใช่ supervisor และ ไม่มีสิทธิ์ในพื้นที่นี้ (ไม่ใช่ command ของพื้นที่นี้) ให้เตะออก
         if (!$isSupervisor && (!$userCommand || $userCommand->command_role !== 'command')) {
             return redirect()->back()->with('error', 'คุณไม่มีสิทธิ์เข้าถึงการจัดการพื้นที่นี้');
         }
@@ -338,7 +377,18 @@ class AreasController extends Controller
                                 ->orWhereJsonContains('area_id', (int)$area->id)
                                 ->get();
 
-        // ดึงกลุ่มไลน์: เอาที่ว่างอยู่ (area_id is null) หรือ กลุ่มที่ผูกกับพื้นที่นี้อยู่แล้ว
+        // --- จัดเรียงลำดับตาม officer_priority (JSON) ---
+        $priorityData = json_decode($area->officer_priority, true) ?? [];
+        $priorityMap = collect($priorityData)->keyBy('user_officers_id');
+
+        $officers = $officers->map(function ($officer) use ($priorityMap) {
+            $p = $priorityMap->get($officer->id);
+            $officer->priority = $p['priority'] ?? 9999;
+            $officer->auto_assign_status = $p['auto_assign'] ?? 'No';
+            return $officer;
+        })->sortBy('priority')->values();
+
+        // ดึงกลุ่มไลน์
         $groups = DB::table('group_lines')
                     ->where(function($query) use ($area) {
                         $query->whereNull('area_id')
@@ -348,6 +398,35 @@ class AreasController extends Controller
                     ->get();
 
         return view('areas.manage_area', compact('area', 'registerUrl', 'officers', 'groups'));
+    }
+
+    public function update_priority(Request $request, $id)
+    {
+        $area = Area::findOrFail($id);
+        $orderedIds = $request->priorities ?? []; // ได้มาเป็น Array ของ user_officers_id เช่น [5, 2, 6]
+
+        $currentPriority = json_decode($area->officer_priority, true) ?? [];
+        $priorityMap = collect($currentPriority)->keyBy('user_officers_id');
+
+        $newPriority = [];
+        $rank = 1;
+
+        foreach ($orderedIds as $uid) {
+            $uid = (int) $uid;
+            // ดึง auto_assign เดิมมาใช้ ถ้าไม่มีค่าให้เป็น No
+            $autoAssign = $priorityMap->has($uid) ? $priorityMap->get($uid)['auto_assign'] : 'No';
+            
+            $newPriority[] = [
+                'user_officers_id' => $uid,
+                'priority'         => $rank++, // ให้ลำดับ 1, 2, 3... ตาม Array ที่ส่งมา
+                'auto_assign'      => $autoAssign
+            ];
+        }
+
+        $area->officer_priority = json_encode($newPriority);
+        $area->save();
+
+        return response()->json(['success' => true, 'message' => 'บันทึกลำดับเรียบร้อยแล้ว']);
     }
 
     // public function update_manage_area(Request $request, $id)

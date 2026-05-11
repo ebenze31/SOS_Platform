@@ -108,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/area/{id}/manage', 'AreasController@manage_area')->name('area.manage_area');
         Route::post('/area/{id}/manage/update', 'AreasController@update_manage_area')->name('area.update_manage');
         Route::post('/area/{id}/toggle-status', 'AreasController@toggle_status')->name('area.toggle_status');
+        Route::post('/area/{id}/update-priority', 'AreasController@update_priority')->name('area.update_priority');
 
         // ============ Command monitor ============
         Route::get('/monitor', 'EmergencysController@monitor')->name('emergency.monitor');
