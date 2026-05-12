@@ -476,7 +476,7 @@ class AreasController extends Controller
 
         if ($request->auto_assign === 'Yes') {
             $area->auto_assign = 'Yes';
-            $area->day_command = json_encode($request->day_command);
+            $area->day_command = json_encode($request->day_command, JSON_UNESCAPED_UNICODE);
             // เติม :00 เพื่อให้ Format ตรงกับ TIME ใน DB
             $area->time_start_command = $request->time_start_command ? $request->time_start_command . ':00' : null;
             $area->time_end_command   = $request->time_end_command ? $request->time_end_command . ':00' : null;
