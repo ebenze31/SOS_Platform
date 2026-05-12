@@ -57,6 +57,114 @@ class EmergencysController extends Controller
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
+    // public function store(Request $request)
+    // {
+    //     // Validate ข้อมูล
+    //     $request->validate([
+    //         'name_reporter' => 'required|string|max:255',
+    //         'phone_reporter' => 'required|string|max:20',
+    //         'emergency_type' => 'required',
+    //         'emergency_detail' => 'required',
+    //         'photo_cam' => 'nullable|image|mimes:jpeg,png,jpg,gif', 
+    //         'photo_gal' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+    //         'area_id' => 'required',
+    //     ]);
+
+    //     DB::beginTransaction();
+
+    //     try {
+    //         // อัปเดตเบอร์โทรศัพท์ผู้ใช้เข้าตาราง users
+    //         if (auth()->check()) {
+    //             auth()->user()->update([
+    //                 'phone' => $request->phone_reporter
+    //             ]);
+    //         }
+
+    //         // จัดการไฟล์รูปภาพ (ถ้ามี)
+    //         $photoPath = null;
+    //         // รับไฟล์จากปุ่มถ่ายภาพ หรือ ปุ่มเลือกจากอัลบั้ม
+    //         $file = $request->file('photo_cam') ?? $request->file('photo_gal');
+            
+    //         if ($file) {
+    //             // ดึงนามสกุลไฟล์เดิม
+    //             $extension = $file->getClientOriginalExtension();
+                
+    //             // ตั้งชื่อไฟล์
+    //             $filename = date('Ymd_His') . '_' . rand(100, 999) . '.' . $extension;
+                
+    //             // กำหนด Path ปลายทางที่เป็น Absolute Path (สำหรับ Intervention)
+    //             $destinationPath = storage_path('app/public/emergencys');
+                
+    //             // สร้างโฟลเดอร์ถ้ายังไม่มี
+    //             if (!file_exists($destinationPath)) {
+    //                 mkdir($destinationPath, 0775, true);
+    //             }
+
+    //             // Intervention Image ย่อขนาดและลด Quality
+    //             $img = Image::make($file->getRealPath());
+                
+    //             // ย่อขนาดให้ความกว้างไม่เกิน 1200px (ความสูงจะปรับตามสัดส่วน)
+    //             $img->resize(1200, null, function ($constraint) {
+    //                 $constraint->aspectRatio();
+    //                 $constraint->upsize(); // ป้องกันภาพเล็กถูกขยายจนแตก
+    //             });
+
+    //             // เซฟลงโฟลเดอร์ พร้อมลด Quality เหลือ 75%
+    //             $img->save($destinationPath . '/' . $filename, 75);
+                
+    //             // Path สำหรับเรียกใช้งานหน้าเว็บ (ดึงผ่าน Storage Symlink)
+    //             $photoPath = 'storage/emergencys/' . $filename;
+    //         }
+
+    //         $typeReporter = $request->input('type_reporter');
+
+    //         // ถ้าเลือก "อื่นๆ" ให้เอาค่าจากช่องกรอกข้อความมาใช้แทน
+    //         if ($typeReporter === 'อื่นๆ') {
+    //             $typeReporter = $request->input('type_reporter_other');
+    //         }
+
+    //         // บันทึกตาราง emergencys
+    //         $emergency = new Emergency();
+    //         $emergency->user_id = auth()->id();
+    //         $emergency->name_reporter = $request->name_reporter;
+    //         $emergency->type_reporter = $typeReporter;
+    //         $emergency->phone_reporter = $request->phone_reporter;
+    //         $emergency->emergency_type = $request->emergency_type;
+    //         $emergency->emergency_detail = $request->emergency_detail;
+            
+    //         // รับค่าพิกัดจาก Hidden Input
+    //         $emergency->emergency_lat = $request->emergency_lat ?? 0.0;
+    //         $emergency->emergency_lng = $request->emergency_lng ?? 0.0;
+    //         $emergency->emergency_location = $request->emergency_location ?? 'Unknown Location';
+    //         $emergency->emergency_photo = $photoPath;
+            
+    //         // ค่า default สำหรับส่วนประเมิน (ยังไม่มีคะแนนตอนแจ้งเหตุ)
+    //         $emergency->score_impression = 0;
+    //         $emergency->score_period = 0;
+    //         $emergency->score_total = 0;
+    //         $emergency->comment_help = null;
+            
+    //         $emergency->save();
+
+    //         // บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
+    //         $operation = new Emergency_operation();
+    //         $operation->emergency_id = $emergency->id;
+    //         $operation->area_id = $request->area_id;
+    //         $operation->status = 'รับแจ้งเหตุ';
+    //         $operation->notify = "none";
+    //         $operation->time_create_sos = Carbon::now();
+    //         $operation->save();
+
+    //         DB::commit();
+
+    //         return redirect()->route('emergency.tracking', ['id' => $emergency->id]);
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return redirect()->back()->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage())->withInput();
+    //     }
+    // }
+
     public function store(Request $request)
     {
         // Validate ข้อมูล
@@ -82,48 +190,33 @@ class EmergencysController extends Controller
 
             // จัดการไฟล์รูปภาพ (ถ้ามี)
             $photoPath = null;
-            // รับไฟล์จากปุ่มถ่ายภาพ หรือ ปุ่มเลือกจากอัลบั้ม
             $file = $request->file('photo_cam') ?? $request->file('photo_gal');
             
             if ($file) {
-                // ดึงนามสกุลไฟล์เดิม
                 $extension = $file->getClientOriginalExtension();
-                
-                // ตั้งชื่อไฟล์
                 $filename = date('Ymd_His') . '_' . rand(100, 999) . '.' . $extension;
-                
-                // กำหนด Path ปลายทางที่เป็น Absolute Path (สำหรับ Intervention)
                 $destinationPath = storage_path('app/public/emergencys');
                 
-                // สร้างโฟลเดอร์ถ้ายังไม่มี
                 if (!file_exists($destinationPath)) {
                     mkdir($destinationPath, 0775, true);
                 }
 
-                // Intervention Image ย่อขนาดและลด Quality
                 $img = Image::make($file->getRealPath());
-                
-                // ย่อขนาดให้ความกว้างไม่เกิน 1200px (ความสูงจะปรับตามสัดส่วน)
                 $img->resize(1200, null, function ($constraint) {
                     $constraint->aspectRatio();
-                    $constraint->upsize(); // ป้องกันภาพเล็กถูกขยายจนแตก
+                    $constraint->upsize();
                 });
 
-                // เซฟลงโฟลเดอร์ พร้อมลด Quality เหลือ 75%
                 $img->save($destinationPath . '/' . $filename, 75);
-                
-                // Path สำหรับเรียกใช้งานหน้าเว็บ (ดึงผ่าน Storage Symlink)
                 $photoPath = 'storage/emergencys/' . $filename;
             }
 
             $typeReporter = $request->input('type_reporter');
-
-            // ถ้าเลือก "อื่นๆ" ให้เอาค่าจากช่องกรอกข้อความมาใช้แทน
             if ($typeReporter === 'อื่นๆ') {
                 $typeReporter = $request->input('type_reporter_other');
             }
 
-            // บันทึกตาราง emergencys
+            // 1. บันทึกตาราง emergencys
             $emergency = new Emergency();
             $emergency->user_id = auth()->id();
             $emergency->name_reporter = $request->name_reporter;
@@ -132,13 +225,11 @@ class EmergencysController extends Controller
             $emergency->emergency_type = $request->emergency_type;
             $emergency->emergency_detail = $request->emergency_detail;
             
-            // รับค่าพิกัดจาก Hidden Input
             $emergency->emergency_lat = $request->emergency_lat ?? 0.0;
             $emergency->emergency_lng = $request->emergency_lng ?? 0.0;
             $emergency->emergency_location = $request->emergency_location ?? 'Unknown Location';
             $emergency->emergency_photo = $photoPath;
             
-            // ค่า default สำหรับส่วนประเมิน (ยังไม่มีคะแนนตอนแจ้งเหตุ)
             $emergency->score_impression = 0;
             $emergency->score_period = 0;
             $emergency->score_total = 0;
@@ -146,7 +237,7 @@ class EmergencysController extends Controller
             
             $emergency->save();
 
-            // บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
+            // 2. บันทึกตาราง emergency_operations (สร้าง Case ใหม่)
             $operation = new Emergency_operation();
             $operation->emergency_id = $emergency->id;
             $operation->area_id = $request->area_id;
@@ -157,11 +248,276 @@ class EmergencysController extends Controller
 
             DB::commit();
 
+            // ==========================================================
+            // 3. ตรวจสอบเวลาทำการของพื้นที่ (หลังบันทึกเคสเสร็จแล้ว)
+            // ==========================================================
+            $isOutside = $this->isOutsideOperatingHours($request->area_id);
+
+            if ($isOutside) {
+                // หากอยู่นอกเวลาทำการ ให้โยนเข้าฟังก์ชันจัดการ Auto Assign
+                $this->processAutoAssign($operation->id, $request->area_id);
+            }
+
             return redirect()->route('emergency.tracking', ['id' => $emergency->id]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    // ==============================================================
+    // ฟังก์ชันตรวจสอบว่า "อยู่นอกเวลาทำการ" หรือไม่
+    // ==============================================================
+    private function isOutsideOperatingHours($areaId)
+    {
+        $area = Area::find($areaId);
+        
+        // ถ้าไม่เจอพื้นที่ หรือปิดระบบ Auto Assign แปลว่าทำงาน 24 ชม. (ไม่อยู่นอกเวลา)
+        if (!$area || $area->auto_assign !== 'Yes') {
+            return false; 
+        }
+
+        // แปลงวันปัจจุบันเป็นภาษาไทยแบบย่อ
+        $dayMap = [
+            'Monday' => 'จ', 'Tuesday' => 'อ', 'Wednesday' => 'พ',
+            'Thursday' => 'พฤ', 'Friday' => 'ศ', 'Saturday' => 'ส', 'Sunday' => 'อา'
+        ];
+        $currentDayTh = $dayMap[Carbon::now()->format('l')];
+        $currentTime = Carbon::now()->format('H:i:s');
+
+        // ตรวจสอบวันทำการ
+        $workingDays = json_decode($area->day_command, true) ?? [];
+        $isOpenDay = in_array($currentDayTh, $workingDays);
+
+        // ตรวจสอบเวลาทำการ
+        $isOpenTime = false;
+        if ($area->time_start_command && $area->time_end_command) {
+            if ($area->time_start_command <= $area->time_end_command) {
+                // เวลาปกติ เช่น 08:00 ถึง 17:00
+                $isOpenTime = $currentTime >= $area->time_start_command && $currentTime <= $area->time_end_command;
+            } else {
+                // เวลาข้ามคืน เช่น 20:00 ถึง 08:00 (ถ้าเวลาปัจจุบัน มากกว่าเวลาเริ่ม หรือ น้อยกว่าเวลาสิ้นสุด)
+                $isOpenTime = $currentTime >= $area->time_start_command || $currentTime <= $area->time_end_command;
+            }
+        }
+
+        // ถ้านอกวันทำงาน หรือ นอกเวลาทำงาน คืนค่า true (นอกเวลาทำการ)
+        return !$isOpenDay || !$isOpenTime;
+    }
+
+    // ==============================================================
+    // ฟังก์ชันสำหรับจัดการ Case นอกเวลาทำการ (Auto Assign)
+    // ==============================================================
+    private function processAutoAssign($operationId, $areaId)
+    {
+        $operation = Emergency_operation::find($operationId);
+        $area = Area::find($areaId);
+
+        if (!$operation || !$area) return;
+
+        // ดึง Priority เจ้าหน้าที่ออกมาเตรียมไว้
+        $priorities = json_decode($area->officer_priority, true) ?? [];
+        
+        // เรียงลำดับจากน้อยไปมาก
+        usort($priorities, function($a, $b) {
+            return $a['priority'] <=> $b['priority'];
+        });
+
+        $selectedOfficerId = null;
+        $selectedOfficer = null;
+
+        // วนลูปหาเจ้าหน้าที่คิวแรกสุดที่ผ่านเงื่อนไข
+        foreach ($priorities as $pri) {
+            if ($pri['auto_assign'] !== 'Yes') continue;
+
+            $officer = User_officer::with('user')
+                ->where('id', $pri['user_officers_id'])
+                ->where('status', 'Standby')
+                ->first();
+
+            if ($officer) {
+                $selectedOfficerId = $officer->id;
+                $selectedOfficer = $officer;
+                break; // เจอคนแรกที่ว่าง หยุดหาทันที
+            }
+        }
+
+        // โหลดข้อมูล Emergency ไว้ใช้ตอนส่ง Line
+        $emergency = Emergency::find($operation->emergency_id);
+
+        // ถ้าพบเจ้าหน้าที่ที่พร้อมรับงาน
+        if ($selectedOfficerId) {
+            
+            // 1. สร้าง Operating Code
+            if (empty($operation->operating_code)) {
+                $datePrefix = now()->format('ymd');
+                $formattedAreaId = str_pad($areaId, 3, '0', STR_PAD_LEFT);
+                $currentYear = now()->year;
+                $currentMonth = now()->month;
+
+                $latestOperation = Emergency_operation::whereYear('created_at', $currentYear)
+                    ->whereMonth('created_at', $currentMonth)
+                    ->where('area_id', $areaId)
+                    ->whereNotNull('operating_code')
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                $runningNumberValue = 1;
+                if ($latestOperation && !empty($latestOperation->operating_code)) {
+                    $parts = explode('-', $latestOperation->operating_code);
+                    if (isset($parts[2])) {
+                        $runningNumberValue = intval($parts[2]) + 1;
+                    }
+                }
+                
+                $runningNumber = str_pad($runningNumberValue, 4, '0', STR_PAD_LEFT);
+                $operation->operating_code = "{$datePrefix}-{$formattedAreaId}-{$runningNumber}";
+            }
+
+            // 2. เพิ่มการส่งงานให้เจ้าหน้าที่ลงใน Log (ระบุว่าเป็น Auto)
+            $logCommand = json_decode($operation->log_command, true) ?? [];
+            $logCommand[] = [
+                'datetime' => now()->toIso8601String(),
+                'sendTo'   => $selectedOfficerId,
+                'status'   => 'pending',
+                'sum_time' => 0,
+                'note'     => 'Auto-Assign System'
+            ];
+
+            // 3. อัปเดตข้อมูลตาราง Operation
+            $operation->command_by = 'Auto-Assign';
+            $operation->waiting_reply = $selectedOfficerId;
+            $operation->status = 'สั่งการ';
+            $operation->notify = 'success';
+            $operation->time_command = now()->toDateTimeString();
+            $operation->log_command = json_encode($logCommand, JSON_UNESCAPED_UNICODE); 
+            $operation->save();
+
+            // 4. ส่ง Flex Message แจ้งเตือนไปยัง Line OA ของเจ้าหน้าที่คนนั้น
+            $lineUserId = $selectedOfficer->user->provider_id ?? null;
+            if ($lineUserId) {
+                $this->sendLineFlexMessageToOfficer($lineUserId, $emergency, $operation, $selectedOfficer);
+            }
+
+        } else {
+            // ==============================================================
+            // ถ้าวนลูปจนจบ ไม่มีเจ้าหน้าที่ ยิงเข้า Line กลุ่มของพื้นที่
+            // ==============================================================
+            if ($area->groupID) {
+                $this->fallbackToLineNotify($emergency, $operation, $area->groupID);
+            }
+        }
+    }
+
+    // ==============================================================
+    // ฟังก์ชันยิงแจ้งเตือนเข้าไลน์กลุ่ม (กรณีไม่มีคนรับ Auto)
+    // ==============================================================
+    private function fallbackToLineNotify($emergency, $operation, $areaGroupId)
+    {
+        // 1. ค้นหาข้อมูลกลุ่มจากตาราง group_lines
+        $groupLine = DB::table('group_lines')->where('id', $areaGroupId)->first();
+        
+        if ($groupLine && !empty($groupLine->groupId)) {
+            $lineGroupId = $groupLine->groupId;
+
+            // ==========================================================
+            // อัปเดตข้อมูล Operation ให้เหมือนการสั่งการปกติ
+            // ==========================================================
+            
+            // 2. สร้าง Operating Code
+            if (empty($operation->operating_code)) {
+                $datePrefix = now()->format('ymd');
+                $formattedAreaId = str_pad($operation->area_id, 3, '0', STR_PAD_LEFT);
+                $currentYear = now()->year;
+                $currentMonth = now()->month;
+
+                $latestOperation = Emergency_operation::whereYear('created_at', $currentYear)
+                    ->whereMonth('created_at', $currentMonth)
+                    ->where('area_id', $operation->area_id)
+                    ->whereNotNull('operating_code')
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                $runningNumberValue = 1;
+                if ($latestOperation && !empty($latestOperation->operating_code)) {
+                    $parts = explode('-', $latestOperation->operating_code);
+                    if (isset($parts[2])) {
+                        $runningNumberValue = intval($parts[2]) + 1;
+                    }
+                }
+                
+                $runningNumber = str_pad($runningNumberValue, 4, '0', STR_PAD_LEFT);
+                $operation->operating_code = "{$datePrefix}-{$formattedAreaId}-{$runningNumber}";
+            }
+
+            // 3. เพิ่มการส่งงานลงใน Log (ระบุว่าเป็น Group)
+            $logCommand = json_decode($operation->log_command, true) ?? [];
+            $logCommand[] = [
+                'datetime' => now()->toIso8601String(),
+                'sendTo'   => 'Group: ' . $groupLine->groupName, // บันทึกชื่อกลุ่มไว้ดูประวัติ
+                'status'   => 'pending',
+                'sum_time' => 0,
+                'note'     => 'Auto-Assign To GroupLine'
+            ];
+
+            // 4. อัปเดตสถานะต่างๆ ในฐานข้อมูล
+            $operation->command_by = 'Auto-Assign To GroupLine';
+            $operation->status = 'สั่งการ';
+            $operation->waiting_reply = null; 
+            $operation->time_command = now()->toDateTimeString();
+            $operation->log_command = json_encode($logCommand, JSON_UNESCAPED_UNICODE);
+            $operation->notify = 'success'; 
+            $operation->save();
+
+
+            // ==========================================================
+            // ส่ง Flex Message
+            // ==========================================================
+            $template_path = public_path('json/flex-sos/send_sos.json'); 
+            $string_json = file_get_contents($template_path);
+
+            $string_json = str_replace("{emergency_type}", $emergency->emergency_type ?? 'ขอความช่วยเหลือ', $string_json);
+            $string_json = str_replace("{emergency_location}", $emergency->emergency_location ?? 'ไม่ระบุสถานที่', $string_json);
+            $string_json = str_replace("{emergency_detail}", $emergency->emergency_detail ?? 'ไม่มีรายละเอียดเพิ่มเติม', $string_json);
+            $string_json = str_replace("{name_reporter}", $emergency->name_reporter ?? 'ผู้แจ้งไม่ประสงค์ออกนาม', $string_json);
+            $string_json = str_replace("{phone_reporter}", $emergency->phone_reporter ?? '-', $string_json);
+            $string_json = str_replace("{type_reporter}", $emergency->type_reporter ?? '-', $string_json);
+            $string_json = str_replace("{emergency_lat}", $emergency->emergency_lat ?? '', $string_json);
+            $string_json = str_replace("{emergency_lng}", $emergency->emergency_lng ?? '', $string_json);
+            $string_json = str_replace("{operation_id}", $operation->id, $string_json);
+
+            $messages = [
+                json_decode($string_json, true)
+            ];
+
+            $body = [
+                "to" => $lineGroupId,
+                "messages" => $messages,
+            ];
+
+            $opts = [
+                'http' => [
+                    'method'  => 'POST',
+                    'header'  => "Content-Type: application/json\r\n" .
+                                 "Authorization: Bearer " . env('CHANNEL_ACCESS_TOKEN') . "\r\n",
+                    'content' => json_encode($body, JSON_UNESCAPED_UNICODE),
+                    'ignore_errors' => true 
+                ]
+            ];
+
+            $context  = stream_context_create($opts);
+            $url = "https://api.line.me/v2/bot/message/push";
+            
+            // 5. สั่งยิง Request ไปหา LINE
+            $result = file_get_contents($url, false, $context);
+
+            // 6. บันทึก Log การส่งข้อมูล
+            $logData = [
+                "title" => "Send data sos to Group (Auto Fallback)",
+                "content" => "Group ID DB : " . $groupLine->id . " / Group Name : " . $groupLine->groupName,
+            ];
+            My_log::create($logData);
         }
     }
 
@@ -588,7 +944,6 @@ class EmergencysController extends Controller
         $string_json = str_replace("{emergency_type}", $emergency->emergency_type ?? 'ขอความช่วยเหลือ', $string_json);
         $string_json = str_replace("{emergency_location}", $emergency->emergency_location ?? 'ไม่ระบุสถานที่', $string_json);
         $string_json = str_replace("{emergency_detail}", $emergency->emergency_detail ?? 'ไม่มีรายละเอียดเพิ่มเติม', $string_json);
-        $string_json = str_replace("{emergency_type}", $emergency->emergency_type ?? '-', $string_json);
         $string_json = str_replace("{name_reporter}", $emergency->name_reporter ?? 'ผู้แจ้งไม่ประสงค์ออกนาม', $string_json);
         $string_json = str_replace("{phone_reporter}", $emergency->phone_reporter ?? '-', $string_json);
         $string_json = str_replace("{type_reporter}", $emergency->type_reporter ?? '-', $string_json);
