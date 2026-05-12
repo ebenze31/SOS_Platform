@@ -205,7 +205,30 @@
                 <div class="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                     <div class="px-4 py-2 border-b border-slate-100">
                         <p class="text-sm font-bold text-slate-800 truncate">{{ Auth::user()->name ?? 'ผู้ดูแลระบบ' }}</p>
-                        <p class="text-xs text-slate-500 truncate">{{ Auth::user()->role ?? 'ไม่ระบุสถานะ' }}</p>
+                        <p class="text-xs text-slate-500 truncate">
+                            @php
+                                $roleText = 'ไม่ระบุสถานะ';
+                                
+                                if (Auth::check() && Auth::user()->userCommand) {
+                                    $cmdRole = Auth::user()->userCommand->command_role;
+                                    $areaId = Auth::user()->userCommand->area_id;
+                                    
+                                    $roleText = $cmdRole;
+                                    
+                                    // ถ้าเป็น command และมีรหัสพื้นที่
+                                    if ($cmdRole === 'command' && !empty($areaId)) {
+                                        $areaName = \Illuminate\Support\Facades\DB::table('areas')
+                                                        ->where('id', $areaId)
+                                                        ->value('name_area');
+                                        
+                                        if ($areaName) {
+                                            $roleText .= " (" . $areaName . ")";
+                                        }
+                                    }
+                                }
+                            @endphp
+                            {{ $roleText }}
+                        </p>
                     </div>
                     <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg transition-colors" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <span class="material-symbols-outlined text-[18px]">logout</span> ออกจากระบบ
@@ -248,7 +271,7 @@
         }
 
         function checkNotifications() {
-            fetch('{{ url('/api/check-notifications') }}')
+            fetch('{{ url('/check-notifications') }}')
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
@@ -332,7 +355,7 @@
         }
 
         function updateNotifyStatus(ids) {
-            fetch('{{ url('/api/mark-notifications-alert') }}', {
+            fetch('{{ url('/mark-notifications-alert') }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -143,6 +143,10 @@ Route::middleware(['auth'])->group(function () {
         // ======== Report ========
         Route::get('/report/data_emergency', 'ReportController@report_data_emergency');
 
+        // ======== Notification ========
+        Route::get('/check-notifications', 'NotificationController@check');
+        Route::post('/mark-notifications-alert', 'NotificationController@markAlert');
+
     });
 
     // Admin, Officer

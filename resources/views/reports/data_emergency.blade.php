@@ -1,7 +1,6 @@
 @extends('layouts.theme')
 
 @section('content')
-<!-- Material Icons & Google Fonts -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
 <style>
@@ -27,10 +26,8 @@
 
 <div class="bg-gray-100 font-sans text-gray-900 min-h-[calc(100dvh-57px)] mt-[57px]">
 
-    <!-- ═══ MAIN CONTENT ═══ -->
     <main class="max-w-7xl mx-auto px-4 md:px-6 py-7 space-y-5">
 
-        <!-- Page Header -->
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">ประวัติการปฏิบัติงาน</h1>
@@ -41,7 +38,6 @@
             </button>
         </div>
 
-        <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                 <p class="text-xs font-medium text-gray-400 mb-1">เหตุทั้งหมด</p>
@@ -57,16 +53,13 @@
             </div>
         </div>
 
-        <!-- Filter Bar -->
         <div class="bg-white border border-gray-200 rounded-xl p-3.5 shadow-sm flex flex-wrap gap-3 items-center">
-            <!-- Search Input -->
             <div class="relative flex-1 min-w-[250px]">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
-                <input id="searchInput" type="text" placeholder="ค้นหา เลขที่เหตุ, สถานที่, เจ้าหน้าที่..."
+                <input id="searchInput" type="text" placeholder="ค้นหา เลขที่เหตุ, พื้นที่, สถานที่, เจ้าหน้าที่..."
                     class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/10 outline-none transition-all" />
             </div>
 
-            <!-- ประเภทเหตุ (ดึงจาก DB) -->
             <select id="filterType" class="py-2 pl-3 pr-9 border border-gray-200 rounded-lg bg-gray-50 text-sm outline-none focus:bg-white">
                 <option value="">ประเภทเหตุทั้งหมด</option>
                 @foreach($emergencyTypes as $type)
@@ -74,7 +67,6 @@
                 @endforeach
             </select>
 
-            <!-- สถานะ (ตามที่คุณระบุ) -->
             <select id="filterStatus" class="py-2 pl-3 pr-9 border border-gray-200 rounded-lg bg-gray-50 text-sm outline-none focus:bg-white">
                 <option value="">สถานะทั้งหมด</option>
                 <option value="รับแจ้งเหตุ">รับแจ้งเหตุ</option>
@@ -89,7 +81,6 @@
             </button>
         </div>
 
-        <!-- Data Table Container -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <p class="text-sm text-gray-500">พบ <span id="resultCount" class="font-bold text-gray-900">–</span> รายการ</p>
@@ -101,26 +92,22 @@
                         <tr class="bg-gray-50/80 border-b border-gray-100">
                             <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">วันที่ / เวลา</th>
                             <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">เลขที่เหตุ</th>
-                            <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">ประเภทเหตุ</th>
-                            <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">สถานที่ / เจ้าหน้าที่</th>
+                            <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">ประเภทเหตุ / พื้นที่</th> <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">สถานที่ / เจ้าหน้าที่</th>
                             <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">ตอบสนอง / รวม</th>
                             <th class="px-5 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">สถานะ</th>
                             <th class="px-5 py-4 text-right"></th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-100">
-                        <!-- Data rows injected by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
 
-                <!-- Empty State -->
                 <div id="emptyState" class="hidden text-center py-20 text-gray-400">
                     <span class="material-icons-round text-5xl opacity-20">search_off</span>
                     <p class="mt-2 font-medium">ไม่พบข้อมูลที่ค้นหา</p>
                 </div>
             </div>
 
-            <!-- Pagination -->
             <div class="px-5 py-4 border-t border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p class="text-xs text-gray-400">แสดง <span id="showFrom">0</span> ถึง <span id="showTo">0</span> จาก <span id="showTotal">0</span> รายการ</p>
                 <div id="pageBtns" class="flex gap-1.5 items-center"></div>
@@ -128,7 +115,6 @@
         </div>
     </main>
 
-    <!-- Toast Notification -->
     <div id="toastContainer" class="fixed bottom-6 right-6 z-[999] flex flex-col gap-2"></div>
 
 </div>
@@ -167,7 +153,8 @@
                 d.id_display?.toLowerCase().includes(search) || 
                 d.location?.toLowerCase().includes(search) || 
                 d.officer?.toLowerCase().includes(search) ||
-                d.notes?.toLowerCase().includes(search);
+                d.area_name?.toLowerCase().includes(search) || // <--- เพิ่มให้ค้นหาจากพื้นที่ได้
+                d.type?.toLowerCase().includes(search);
                 
             const matchType = !type || d.type === type;
             const matchStatus = !status || d.raw_status === status;
@@ -211,7 +198,6 @@
         if(d.raw_status === 'เสร็จสิ้น') {
             statusBadge = `<div class="flex items-center gap-1.5 text-emerald-600 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>${d.raw_status}</div>`;
         } else {
-
             statusBadge = `<div class="flex items-center gap-1.5 text-amber-500 text-xs font-bold"><span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-dot"></span>${d.raw_status}</div>`;
         }
 
@@ -229,7 +215,14 @@
                     <div class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">${d.id_display ?? 'N/A'}</div>
                 </td>
                 <td class="px-5 py-4">
-                    <span class="text-xs font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200">${d.type}</span>
+                    <div class="mb-1.5">
+                        <span class="text-xs font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200">${d.type}</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
+                            ${d.area_name}
+                        </span>
+                    </div>
                 </td>
                 <td class="px-5 py-4 max-w-[280px]">
                     <div class="text-sm font-medium text-gray-800 truncate" title="${d.location}">${d.location}</div>
@@ -244,7 +237,7 @@
                 </td>
                 <td class="px-5 py-4">${statusBadge}</td>
                 <td class="px-5 py-4 text-right">
-                    <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all inline-flex">
                         <span class="material-icons-round text-sm">arrow_forward</span>
                     </div>
                 </td>
@@ -325,10 +318,7 @@
             return;
         }
 
-        // 1. กำหนดโครงสร้าง Mapping (Key ใน DB => ชื่อภาษาไทย)
-        // คอลัมน์ไหนไม่มีในนี้ และอยู่ในรายการ "ตัดออก" จะไม่ถูกนำมาแสดง
         const columnMapping = {
-            // ตาราง emergencys
             'name_reporter': 'ชื่อผู้แจ้ง',
             'type_reporter': 'ประเภทผู้แจ้ง',
             'phone_reporter': 'เบอร์โทรศัพท์ผู้แจ้ง',
@@ -341,8 +331,6 @@
             'score_period': 'คะแนนระยะเวลา',
             'score_total': 'คะแนนรวม',
             'comment_help': 'ความคิดเห็นจากผู้แจ้ง',
-
-            // ตาราง emergency_operations (เฉพาะตัวที่ต้องการ)
             'operating_code': 'เลขที่ปฏิบัติการ',
             'name_command': 'ผู้สั่งการ (Command)',
             'status': 'สถานะปัจจุบัน',
@@ -359,13 +347,10 @@
             'remark_by_helper': 'หมายเหตุจากเจ้าหน้าที่'
         };
 
-        // 2. สร้างหัวตารางภาษาไทย
         const headers = Object.values(columnMapping);
         const dataKeys = Object.keys(columnMapping);
 
-        // 3. จัดการข้อมูลแต่ละแถว
         const csvRows = filtered.map(row => {
-            // รวมข้อมูลทั้งหมดเข้าด้วยกันเพื่อให้ดึงง่าย
             const combinedData = {
                 ...row.full_emergency,
                 ...row.full_operation,
@@ -374,17 +359,12 @@
 
             return dataKeys.map(key => {
                 let val = combinedData[key];
-                
-                // จัดการค่า null / undefined
                 if (val === null || val === undefined) val = '';
-                
-                // ล้างเครื่องหมายคำพูด
                 const escaped = String(val).replace(/"/g, '""');
                 return `"${escaped}"`;
             }).join(',');
         });
 
-        // 4. กระบวนการดาวน์โหลด (ใส่ BOM สำหรับ Excel ภาษาไทย)
         const bom = "\uFEFF";
         const csvContent = bom + headers.join(',') + '\n' + csvRows.join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

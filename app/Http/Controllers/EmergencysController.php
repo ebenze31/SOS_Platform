@@ -286,14 +286,34 @@ class EmergencysController extends Controller
     public function monitor()
     {
         // -------------------------------------------------------
-        // 1. "รับแจ้งเหตุ"
+        // ตรวจสอบสิทธิ์และพื้นที่ของ User ที่ล็อกอิน
+        // -------------------------------------------------------
+        $user = auth()->user();
+        $userCommand = $user->userCommand ?? null;
+        
+        // เช็คว่าเป็น Supervisor หรือไม่
+        $isSupervisor = $userCommand && $userCommand->command_role === 'supervisor';
+        // ดึง Area ID ของเจ้าหน้าที่ Command (ถ้าเป็น Supervisor จะมีค่าเป็น null)
+        $myAreaId = $userCommand ? $userCommand->area_id : null;
+
+        // -------------------------------------------------------
+        // "รับแจ้งเหตุ"
         // -------------------------------------------------------
         $pendingQuery = Emergency::with('operation')
-            ->where(function ($query) {
-                $query->whereHas('operation', function($q) {
-                    $q->where('status', 'รับแจ้งเหตุ');
-                })
-                ->orWhereDoesntHave('operation');
+            ->where(function ($query) use ($isSupervisor, $myAreaId) {
+                if ($isSupervisor) {
+                    // Supervisor: เห็นเคส "รับแจ้งเหตุ" ทั้งหมด (รวมถึงเคสที่เพิ่งสร้างและยังไม่มี operation)
+                    $query->whereHas('operation', function($q) {
+                        $q->where('status', 'รับแจ้งเหตุ');
+                    })
+                    ->orWhereDoesntHave('operation');
+                } else {
+                    // Command: เห็นเฉพาะเคส "รับแจ้งเหตุ" ที่มี operation และระบุ area_id ตรงกับพื้นที่ตัวเองแล้ว
+                    $query->whereHas('operation', function($q) use ($myAreaId) {
+                        $q->where('status', 'รับแจ้งเหตุ')
+                          ->where('area_id', $myAreaId);
+                    });
+                }
             });
 
         $totalPending = $pendingQuery->count();
@@ -302,28 +322,38 @@ class EmergencysController extends Controller
             ->get();
 
         // -------------------------------------------------------
-        // 2. "กำลังดำเนินการ"
+        // "กำลังดำเนินการ"
         // -------------------------------------------------------
         $inProgressQuery = Emergency::with(['operation.officer'])
-            ->whereHas('operation', function($q) {
+            ->whereHas('operation', function($q) use ($isSupervisor, $myAreaId) {
                 $q->whereIn('status', [
                     'สั่งการ', 
                     'กำลังไปช่วยเหลือ', 
                     'ถึงที่เกิดเหตุ'
                 ]);
+
+                // กรองข้อมูลตามพื้นที่ ถ้าไม่ใช่ Supervisor
+                if (!$isSupervisor && $myAreaId) {
+                    $q->where('area_id', $myAreaId);
+                }
             });
 
-        $totalInProgress = $inProgressQuery->count(); // นับจำนวนทั้งหมด
+        $totalInProgress = $inProgressQuery->count();
         $inProgressCases = $inProgressQuery->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get();
 
         // -------------------------------------------------------
-        // 3. "เสร็จสิ้น"
+        // "เสร็จสิ้น"
         // -------------------------------------------------------
         $completedQuery = Emergency::with('operation')
-            ->whereHas('operation', function($q) {
+            ->whereHas('operation', function($q) use ($isSupervisor, $myAreaId) {
                 $q->where('status', 'เสร็จสิ้น');
+
+                // กรองข้อมูลตามพื้นที่ ถ้าไม่ใช่ Supervisor
+                if (!$isSupervisor && $myAreaId) {
+                    $q->where('area_id', $myAreaId);
+                }
             });
 
         $totalCompleted = $completedQuery->count();
@@ -342,18 +372,48 @@ class EmergencysController extends Controller
 
     public function case_assign($id)
     {
-        // 1. ดึงข้อมูลเหตุการณ์
+        // -------------------------------------------------------
+        // 1. ตรวจสอบสิทธิ์และพื้นที่ของ User ที่ล็อกอิน
+        // -------------------------------------------------------
+        $user = auth()->user();
+        $userCommand = $user->userCommand ?? null;
+        
+        $isSupervisor = $userCommand && $userCommand->command_role === 'supervisor';
+        $myAreaId = $userCommand ? $userCommand->area_id : null;
+
+        // -------------------------------------------------------
+        // 2. ดึงข้อมูลเหตุการณ์
+        // -------------------------------------------------------
         $emergency = Emergency::with('operation')->findOrFail($id);
+
+        // -------------------------------------------------------
+        // 3. ป้องกันการเข้าถึงข้ามพื้นที่ (URL Manipulation Protection)
+        // -------------------------------------------------------
+        if (!$isSupervisor && $myAreaId) {
+            // ดึง Area ID ของเคสนี้ (ถ้ามี operation เอาจาก operation ก่อน, ถ้าไม่มีเอาจาก emergency)
+            $caseAreaId = $emergency->operation->area_id ?? $emergency->area_id;
+            
+            // หากพื้นที่ของเคส ไม่ตรงกับพื้นที่ของ Command ให้เตะออก
+            if ($caseAreaId != $myAreaId) {
+                
+                // เด้งกลับไปหน้าจอ Monitor
+                return redirect('/monitor')->with('error', 'คุณไม่มีสิทธิ์เข้าถึงเคสของพื้นที่อื่น');
+            }
+        }
+
+        // -------------------------------------------------------
+        // 4. คำนวณและประมวลผลข้อมูลเจ้าหน้าที่
+        // -------------------------------------------------------
         $incidentLat = $emergency->emergency_lat;
         $incidentLng = $emergency->emergency_lng;
         
         // ดึง Area ID ของจุดเกิดเหตุที่บันทึกมาตั้งแต่ตอนแจ้งเหตุ
         $incidentAreaId = $emergency->area_id; 
 
-        // 2. ดึงข้อมูลเจ้าหน้าที่ "ทั้งหมด"
+        // ดึงข้อมูลเจ้าหน้าที่ "ทั้งหมด"
         $allOfficers = User_officer::get();
 
-        // 3. เตรียม Collection สำหรับแยกกลุ่ม
+        // เตรียม Collection สำหรับแยกกลุ่ม
         $officersInArea = collect();
         $officersOther = collect();
 
@@ -361,10 +421,11 @@ class EmergencysController extends Controller
             // คำนวณระยะทาง
             $offLat = $officer->lat ?? $incidentLat; 
             $offLng = $officer->lng ?? $incidentLng;
+            // * ต้องแน่ใจว่า Controller นี้มีฟังก์ชัน calculateDistance() อยู่ด้วย
             $distance = $this->calculateDistance($incidentLat, $incidentLng, $offLat, $offLng);
             $officer->distance_km = round($distance, 1);
 
-            // 4. เช็คพื้นที่ของเจ้าหน้าที่
+            // เช็คพื้นที่ของเจ้าหน้าที่
             $officerAreaIds = [];
             if (!empty($officer->area_id)) {
                 $decoded = json_decode($officer->area_id, true);
@@ -381,7 +442,7 @@ class EmergencysController extends Controller
                 }
             }
 
-            // 5. คัดแยกเข้ากลุ่ม
+            // คัดแยกเข้ากลุ่ม
             if ($hasMatchingArea) {
                 $officersInArea->push($officer);
             } else {
@@ -389,14 +450,14 @@ class EmergencysController extends Controller
             }
         }
 
-        // 6. เรียงลำดับตามระยะทางจากใกล้ไปไกล
+        // เรียงลำดับตามระยะทางจากใกล้ไปไกล
         $officersInArea = $officersInArea->sortBy('distance_km')->values();
         $officersOther = $officersOther->sortBy('distance_km')->values();
 
         // ถ้าไม่มีเจ้าหน้าที่ในพื้นที่เลย ให้ถือว่า Out Of Area
         $isOutOfArea = $officersInArea->isEmpty();
 
-        // 7. ส่งตัวแปรไปที่หน้า View
+        // ส่งตัวแปรไปที่หน้า View
         return view('emergencys.case_assign', [
             'emergency'      => $emergency,
             'isOutOfArea'    => $isOutOfArea,
